@@ -1,0 +1,16 @@
+{
+  "projects": {
+    "default": "your-firebase-project-id"
+  },
+  "targets": {
+    "your-firebase-project-id": {
+      "hosting": {
+        "quiz": [
+          "quiz-beautymirror-app"
+        ]
+      }
+    }
+  }
+}
+
+

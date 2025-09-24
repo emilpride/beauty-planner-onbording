@@ -1,0 +1,28 @@
+{
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20"
+  },
+  "hosting": [
+    {
+      "target": "quiz",
+      "public": "out",
+      "cleanUrls": true,
+      "rewrites": [
+        {
+          "source": "**",
+          "function": "nextServer"
+        }
+      ]
+    }
+  ],
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}
+
+
