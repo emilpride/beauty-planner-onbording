@@ -29,6 +29,7 @@ export interface QuizAnswers {
   // Steps 10 & 11: Wake Up & End Day
   wakeUpTime: string // e.g., "07:30"
   endDayTime: string // e.g., "23:00"
+  timeFormat: '12h' | '24h' // 12-hour or 24-hour format
 
   // Step 12: Stress
   stressLevel: '' | 'rarely' | 'sometimes' | 'often' | 'always'
@@ -123,6 +124,7 @@ const initialAnswers: QuizAnswers = {
   sleepHours: '',
   wakeUpTime: '07:30',
   endDayTime: '23:00',
+  timeFormat: '12h',
   stressLevel: '',
   workEnvironment: '',
   skinType: '',
