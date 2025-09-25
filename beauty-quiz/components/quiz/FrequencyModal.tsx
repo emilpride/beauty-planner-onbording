@@ -21,6 +21,9 @@ export default function FrequencyModal({
 }: FrequencyModalProps) {
   const [frequency, setFrequency] = useState(currentFrequency)
   const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year'>(currentPeriod)
+  const [isDragging, setIsDragging] = useState(false)
+  const [startY, setStartY] = useState(0)
+  const [startFrequency, setStartFrequency] = useState(0)
 
   useEffect(() => {
     setFrequency(currentFrequency)
@@ -40,6 +43,64 @@ export default function FrequencyModal({
     onClose()
   }
 
+  // Обработка скролла колесиком мыши для частоты
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault()
+    const delta = e.deltaY > 0 ? 1 : -1
+    const newFrequency = Math.max(1, Math.min(30, frequency + delta))
+    setFrequency(newFrequency)
+  }
+
+  // Обработка touch событий для частоты
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true)
+    setStartY(e.touches[0].clientY)
+    setStartFrequency(frequency)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return
+    e.preventDefault()
+    
+    const currentY = e.touches[0].clientY
+    const deltaY = startY - currentY
+    const deltaFrequency = Math.round(deltaY / 20) // 20px = 1 единица частоты
+    const newFrequency = Math.max(1, Math.min(30, startFrequency + deltaFrequency))
+    setFrequency(newFrequency)
+  }
+
+  const handleTouchEnd = () => {
+    setIsDragging(false)
+  }
+
+  // Обработка скролла колесиком мыши для периода
+  const handlePeriodWheel = (e: React.WheelEvent) => {
+    e.preventDefault()
+    const currentIndex = periods.findIndex(p => p.value === period)
+    const delta = e.deltaY > 0 ? 1 : -1
+    const newIndex = Math.max(0, Math.min(periods.length - 1, currentIndex + delta))
+    setPeriod(periods[newIndex].value)
+  }
+
+  // Обработка touch событий для периода
+  const handlePeriodTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true)
+    setStartY(e.touches[0].clientY)
+    setStartFrequency(periods.findIndex(p => p.value === period))
+  }
+
+  const handlePeriodTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return
+    e.preventDefault()
+    
+    const currentY = e.touches[0].clientY
+    const deltaY = startY - currentY
+    const deltaIndex = Math.round(deltaY / 20) // 20px = 1 единица периода
+    const currentIndex = periods.findIndex(p => p.value === period)
+    const newIndex = Math.max(0, Math.min(periods.length - 1, currentIndex + deltaIndex))
+    setPeriod(periods[newIndex].value)
+  }
+
   if (!isOpen) return null
 
   return (
@@ -52,7 +113,13 @@ export default function FrequencyModal({
         <div className="flex justify-center space-x-8 mb-6">
           {/* Numbers Column */}
           <div className="flex flex-col items-center">
-            <div className="h-32 overflow-hidden relative w-16">
+            <div 
+              className="h-32 overflow-hidden relative w-16"
+              onWheel={handleWheel}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
               <div 
                 className="flex flex-col transition-transform duration-300 ease-out"
                 style={{ transform: `translateY(${64 - (frequency - 1) * 40}px)` }}
@@ -77,7 +144,13 @@ export default function FrequencyModal({
 
           {/* Periods Column */}
           <div className="flex flex-col items-center">
-            <div className="h-32 overflow-hidden relative w-20">
+            <div 
+              className="h-32 overflow-hidden relative w-20"
+              onWheel={handlePeriodWheel}
+              onTouchStart={handlePeriodTouchStart}
+              onTouchMove={handlePeriodTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
               <div 
                 className="flex flex-col transition-transform duration-300 ease-out"
                 style={{ transform: `translateY(${64 - periods.findIndex(p => p.value === period) * 40}px)` }}

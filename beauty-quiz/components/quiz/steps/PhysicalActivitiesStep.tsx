@@ -4,15 +4,25 @@ import { useState } from 'react'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
 import FrequencyModal from '@/components/quiz/FrequencyModal'
+import CustomActivitiesModal from '@/components/quiz/CustomActivitiesModal'
 
 const activities = [
   "Gym Workouts", "Pilates", "Cycling", "Martial Arts", "Dance", "Other"
 ]
 
+interface CustomActivity {
+  id: string
+  name: string
+  frequency: number
+  period: 'day' | 'week' | 'month' | 'year'
+}
+
 export default function PhysicalActivitiesStep() {
   const { answers, setAnswer } = useQuizStore()
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)
+  const [customActivities, setCustomActivities] = useState<CustomActivity[]>([])
 
   const getFrequencyText = (activity: string) => {
     const activityData = answers.activityFrequency.find(a => a.id === activity)
@@ -27,8 +37,12 @@ export default function PhysicalActivitiesStep() {
   }
 
   const handleActivityClick = (activity: string) => {
-    setSelectedActivity(activity)
-    setIsModalOpen(true)
+    if (activity === 'Other') {
+      setIsCustomModalOpen(true)
+    } else {
+      setSelectedActivity(activity)
+      setIsModalOpen(true)
+    }
   }
 
   const handleFrequencyConfirm = (frequency: number, period: 'day' | 'week' | 'month' | 'year') => {
@@ -52,8 +66,37 @@ export default function PhysicalActivitiesStep() {
     setAnswer('activityFrequency', newFrequencies)
   }
 
+  const handleCustomActivitiesConfirm = (activities: CustomActivity[]) => {
+    setCustomActivities(activities)
+    
+    // Добавляем пользовательские активности к существующим
+    const existingFrequencies = answers.activityFrequency.filter(a => !a.id.startsWith('custom_'))
+    const customFrequencies = activities.map(activity => ({
+      id: activity.id,
+      frequency: activity.frequency,
+      period: activity.period
+    }))
+    
+    setAnswer('activityFrequency', [...existingFrequencies, ...customFrequencies])
+  }
+
   const isActivitySelected = (activity: string) => {
+    if (activity === 'Other') {
+      return customActivities.length > 0
+    }
     return answers.activityFrequency.some(a => a.id === activity)
+  }
+
+  const getCustomActivitiesText = () => {
+    if (customActivities.length === 0) return 'Not set'
+    if (customActivities.length === 1) {
+      const activity = customActivities[0]
+      const periodText = activity.period === 'day' ? 'Day' : 
+                        activity.period === 'week' ? 'Week' : 
+                        activity.period === 'month' ? 'Month' : 'Year'
+      return `${activity.name} - Every ${activity.frequency} ${periodText}${activity.frequency > 1 ? 's' : ''}`
+    }
+    return `${customActivities.length} custom activities`
   }
 
   return (
@@ -79,7 +122,7 @@ export default function PhysicalActivitiesStep() {
                 <span className={`text-sm ${
                   isActivitySelected(activity) ? 'text-primary' : 'text-gray-500'
                 }`}>
-                  {getFrequencyText(activity)}
+                  {activity === 'Other' ? getCustomActivitiesText() : getFrequencyText(activity)}
                 </span>
               </div>
               <svg
@@ -102,6 +145,13 @@ export default function PhysicalActivitiesStep() {
         activityName={selectedActivity || ''}
         currentFrequency={answers.activityFrequency.find(a => a.id === selectedActivity)?.frequency || 1}
         currentPeriod={answers.activityFrequency.find(a => a.id === selectedActivity)?.period || 'week'}
+      />
+
+      <CustomActivitiesModal
+        isOpen={isCustomModalOpen}
+        onClose={() => setIsCustomModalOpen(false)}
+        onConfirm={handleCustomActivitiesConfirm}
+        existingActivities={customActivities}
       />
     </>
   )
