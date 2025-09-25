@@ -2,6 +2,8 @@
 
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
+import { useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 
 const problems = [
   "Acne", "Redness", "Blackheads", "Pores", "Wrinkles", 
@@ -9,7 +11,9 @@ const problems = [
 ]
 
 export default function SkinProblemsStep() {
-  const { answers, setAnswer } = useQuizStore()
+  const { answers, setAnswer, currentStep, nextStep } = useQuizStore()
+  const router = useRouter()
+  const hasTransitioned = useRef(false)
 
   const handleToggleProblem = (problem: string) => {
     const newProblems = answers.skinProblems.includes(problem)
@@ -18,11 +22,54 @@ export default function SkinProblemsStep() {
     setAnswer('skinProblems', newProblems)
   }
 
+  const handleOptionSelect = (option: string) => {
+    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    
+    if (option === 'no_problems') {
+      setAnswer('skinProblems', ['no_problems']) // Устанавливаем флаг "no_problems"
+    } else if (option === 'ai_analyze') {
+      setAnswer('skinProblems', ['ai_analyze']) // Устанавливаем специальный флаг для AI
+    }
+    
+    hasTransitioned.current = true
+    
+    // Автоматический переход через небольшую задержку
+    setTimeout(() => {
+      nextStep()
+      router.push(`/quiz/${currentStep + 1}`)
+    }, 800)
+  }
+
+  const handleSkip = () => {
+    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    
+    setAnswer('skinProblems', []) // Очищаем выбранные проблемы при Skip
+    hasTransitioned.current = true
+    
+    // Автоматический переход через небольшую задержку
+    setTimeout(() => {
+      nextStep()
+      router.push(`/quiz/${currentStep + 1}`)
+    }, 800)
+  }
+
+  // Сброс флага при монтировании компонента
+  useEffect(() => {
+    hasTransitioned.current = false
+    
+    return () => {
+      hasTransitioned.current = false
+    }
+  }, [])
+
   return (
     <OnboardingStep
       title="Do you have any of these skin problems?"
       subtitle="Select all that apply."
       condition={answers.skinProblems.length > 0}
+      skip={true}
+      skipText="Skip"
+      onSkip={handleSkip}
     >
       <div className="flex flex-wrap gap-3">
         {problems.map((problem) => (
@@ -38,6 +85,30 @@ export default function SkinProblemsStep() {
             {problem}
           </button>
         ))}
+        
+        {/* No Problems вариант */}
+        <button
+          onClick={() => handleOptionSelect('no_problems')}
+          className={`px-4 py-2 border-2 rounded-full text-center transition-all duration-200 font-medium ${
+            answers.skinProblems.includes('no_problems')
+              ? 'border-primary bg-primary bg-opacity-10 text-primary'
+              : 'border-gray-300 hover:border-primary text-text-primary'
+          }`}
+        >
+          No problems
+        </button>
+
+        {/* Let AI Analyze вариант */}
+        <button
+          onClick={() => handleOptionSelect('ai_analyze')}
+          className={`px-4 py-2 border-2 rounded-full text-center transition-all duration-200 font-medium ${
+            answers.skinProblems.includes('ai_analyze')
+              ? 'border-primary bg-primary bg-opacity-10 text-primary'
+              : 'border-gray-300 hover:border-primary text-purple-500'
+          }`}
+        >
+          Let AI Analyze
+        </button>
       </div>
     </OnboardingStep>
   )
