@@ -155,7 +155,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
       15: 'onboarding_img_17', // HairTypeStep
       16: 'onboarding_img_18', // HairProblemsStep
       17: 'onboarding_img_19', // PhysicalActivitiesStep
-      18: 'onboarding_img_20', // DietStep
+      18: 'onboarding_img_21', // DietStep
       19: 'onboarding_img_21', // MoodStep
       20: 'onboarding_img_22', // EnergyLevelStep
       21: 'onboarding_img_23', // ProcrastinationStep
