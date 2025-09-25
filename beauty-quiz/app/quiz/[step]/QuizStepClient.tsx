@@ -143,7 +143,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
       3: 'onboarding_img_5',   // ExcitedStep
       4: 'onboarding_img_7',   // StatisticStep (img_6 doesn't exist)
       5: 'onboarding_img_7',   // PrivacyStep
-      6: 'onboarding_img_9',   // GeneralStep (img_8 doesn't exist)
+      6: 'onboarding_img_1',   // GeneralStep (removed img_9)
       7: 'onboarding_img_9',   // LifestyleStep
       8: 'onboarding_img_10',  // SleepStep
       9: 'onboarding_img_11',  // WakeUpStep
@@ -215,7 +215,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
       {stepNumber < 27 && stepNumber >= 0 && <OnboardingAppbar />}
 
       <main className="w-full h-full max-w-lg mx-auto relative">
-        {!isFullScreen && stepNumber !== 25 && stepNumber !== 26 && stepNumber !== 27 && (
+        {!isFullScreen && stepNumber !== 25 && stepNumber !== 26 && stepNumber !== 27 && stepNumber !== 6 && (
            <div className="absolute top-0 left-0 right-0 z-10 flex justify-center items-end" style={{ height: '42vh', pointerEvents: 'none' }}>
             <div 
               className={`transition-all duration-500 h-[85%] ${isReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
@@ -244,12 +244,12 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
         <div 
           className={`absolute left-0 right-0 z-20 transition-all duration-700 ease-in-out ${isReady ? 'opacity-100 bottom-0' : 'opacity-0 -bottom-full'}`}
           style={!isFullScreen ? { 
-            top: stepNumber === 1 ? '35vh' : stepNumber === 20 ? '30vh' : stepNumber === 25 ? '15vh' : stepNumber === 26 ? '15vh' : '42vh'
+            top: stepNumber === 1 ? '35vh' : stepNumber === 6 ? '15vh' : stepNumber === 20 ? '30vh' : stepNumber === 25 ? '15vh' : stepNumber === 26 ? '15vh' : '42vh'
           } : { top: '0' }}
         >
           <div 
             className="bg-white rounded-t-3xl shadow-2xl overflow-hidden"
-            style={{ height: isFullScreen ? '100vh' : stepNumber === 25 || stepNumber === 26 ? '85vh' : stepNumber === 20 ? '70vh' : '58vh' }}
+            style={{ height: isFullScreen ? '100vh' : stepNumber === 6 ? '85vh' : stepNumber === 25 || stepNumber === 26 ? '85vh' : stepNumber === 20 ? '70vh' : '58vh' }}
           >
              <StepComponent />
           </div>
