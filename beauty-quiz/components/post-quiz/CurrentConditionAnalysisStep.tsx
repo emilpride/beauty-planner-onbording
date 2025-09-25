@@ -1,10 +1,12 @@
 'use client'
 
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { useQuizStore } from '@/store/quizStore'
 
 export default function CurrentConditionAnalysisStep() {
   const { answers } = useQuizStore()
+  const router = useRouter()
   
   const getBMIIllustration = () => {
     const gender = answers.gender === 2 ? 'female' : 'male'
@@ -174,7 +176,10 @@ export default function CurrentConditionAnalysisStep() {
 
         {/* To The Activities Button */}
         <div className="text-center">
-          <button className="bg-primary text-white px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-primary-700 transition-colors duration-200">
+          <button 
+            onClick={() => router.push('/signup')}
+            className="bg-primary text-white px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-primary-700 transition-colors duration-200"
+          >
             To The Activities
           </button>
         </div>

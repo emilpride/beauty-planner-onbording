@@ -17,7 +17,7 @@ export default function AIResultsStep() {
           // Автоматическое перенаправление после завершения загрузки
           setTimeout(() => {
             nextStep()
-            router.push('/quiz/27') // Перенаправляем на следующий шаг (CurrentConditionAnalysisStep)
+            router.push('/CurrentConditionAnalysis') // Перенаправляем на страницу анализа состояния
           }, 1000) // Небольшая задержка для показа 100%
           return 100
         }

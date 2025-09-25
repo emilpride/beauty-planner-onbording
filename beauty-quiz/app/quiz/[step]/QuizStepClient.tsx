@@ -38,7 +38,6 @@ import AIResultsStep from '@/components/quiz/steps/AIResultsStep'
 
 // Post-quiz screens
 import AIAnalysisIntroStep from '@/components/quiz/steps/AIAnalysisIntroStep'
-import CurrentConditionAnalysisStep from '@/components/post-quiz/CurrentConditionAnalysisStep'
 import ChooseActivitiesStep from '@/components/post-quiz/ChooseActivitiesStep'
 import ActivitySetupStep from '@/components/post-quiz/ActivitySetupStep'
 import RemindersStep from '@/components/post-quiz/RemindersStep'
@@ -75,12 +74,11 @@ const stepComponents: { [key: number]: React.ComponentType } = {
   26: AIResultsStep,
   
   // Post-quiz screens
-  27: CurrentConditionAnalysisStep,
-  28: ChooseActivitiesStep,
-  29: ActivitySetupStep,
-  30: RemindersStep,
-  31: ChoosePlanStep,
-  32: PricingStep,
+  27: ChooseActivitiesStep,
+  28: ActivitySetupStep,
+  29: RemindersStep,
+  30: ChoosePlanStep,
+  31: PricingStep,
 }
 
 // Card heights from Flutter design
