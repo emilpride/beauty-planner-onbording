@@ -15,6 +15,7 @@ interface OnboardingStepProps {
   skipText?: string
   onSkip?: () => void
   centerContent?: boolean
+  hideButton?: boolean
 }
 
 export default function OnboardingStep({
@@ -29,6 +30,7 @@ export default function OnboardingStep({
   skipText = 'Skip',
   onSkip,
   centerContent = false,
+  hideButton = false,
 }: OnboardingStepProps) {
   const router = useRouter()
   const { nextStep, currentStep } = useQuizStore()
@@ -72,28 +74,30 @@ export default function OnboardingStep({
         <div>{children}</div>
       </div>
 
-      <div className={`${centerContent ? 'pt-6' : 'mt-auto pt-4'}`}>
-        <button
-          onClick={handleNext}
-          disabled={!condition}
-          className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-200 ${
-            condition
-              ? 'bg-primary text-white shadow-lg hover:shadow-xl'
-              : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-          }`}
-        >
-          {buttonText}
-        </button>
-
-        {skip && (
+      {!hideButton && (
+        <div className={`${centerContent ? 'pt-6' : 'mt-auto pt-4'}`}>
           <button
-            onClick={handleSkip}
-            className="w-full mt-3 py-3 px-6 text-gray-500 font-medium hover:text-gray-700 transition-colors duration-200"
+            onClick={handleNext}
+            disabled={!condition}
+            className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-200 ${
+              condition
+                ? 'bg-primary text-white shadow-lg hover:shadow-xl'
+                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+            }`}
           >
-            {skipText}
+            {buttonText}
           </button>
-        )}
-      </div>
+
+          {skip && (
+            <button
+              onClick={handleSkip}
+              className="w-full mt-3 py-3 px-6 text-gray-500 font-medium hover:text-gray-700 transition-colors duration-200"
+            >
+              {skipText}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
