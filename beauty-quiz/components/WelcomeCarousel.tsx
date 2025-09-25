@@ -89,7 +89,7 @@ export default function WelcomeCarousel() {
   const currentSlideData = welcomeSlides[currentSlide]
 
   return (
-    <div className="min-h-screen bg-white flex flex-col overflow-hidden">
+    <div className="h-[100dvh] bg-white flex flex-col overflow-hidden">
       {/* Slider Container */}
       <div 
         className="flex-1 relative"
@@ -105,19 +105,19 @@ export default function WelcomeCarousel() {
             <div key={slide.id} className="w-full flex-shrink-0 flex flex-col items-center justify-center px-6">
               {/* Image */}
               <div className="flex-1 flex items-center justify-center w-full max-w-sm">
-                <div className="relative w-full h-[60vh] max-h-[500px]">
+                <div className="relative w-full h-[55vh] max-h-[450px] rounded-[32px] overflow-hidden">
                   <Image
                     src={slide.image}
                     alt={`Welcome slide ${slide.id}`}
                     fill
-                    className="object-contain transition-opacity duration-300"
+                    className="object-contain transition-opacity duration-300 rounded-[32px]"
                     priority={index === 0}
                   />
                 </div>
               </div>
 
               {/* Text Content */}
-              <div className="w-full max-w-sm text-center mb-8">
+              <div className="w-full max-w-sm text-center mb-6 flex flex-col justify-center items-center gap-3">
                 <h1 className="text-xl font-bold text-text-primary leading-relaxed transition-opacity duration-300">
                   {slide.title}
                 </h1>
@@ -128,9 +128,9 @@ export default function WelcomeCarousel() {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="px-6 pb-8">
+      <div className="px-6 pb-6">
         {/* Page Indicators */}
-        <div className="flex justify-center space-x-2 mb-6">
+        <div className="flex justify-center space-x-2 mb-4">
           {welcomeSlides.map((_, index) => (
             <button
               key={index}
@@ -144,26 +144,28 @@ export default function WelcomeCarousel() {
           ))}
         </div>
 
-        {/* Next Button */}
-        <div className="flex justify-center">
-          <button
-            onClick={nextSlide}
-            disabled={isTransitioning}
-            className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-white font-semibold py-3 px-12 rounded-2xl transition-all duration-200 text-base"
-          >
-            Next
-          </button>
-        </div>
-
-        {/* Sign In Link - Only on first slide */}
-        {welcomeSlides[currentSlide].showSignIn && (
-          <p className="text-center mt-4 text-text-secondary">
-            Already have an account?{' '}
-            <button className="text-primary font-semibold">
-              Sign in
+        <div className="max-w-sm mx-auto">
+          {/* Next Button */}
+          <div className="flex justify-center">
+            <button
+              onClick={nextSlide}
+              disabled={isTransitioning}
+              className="w-full bg-[#A385E9] hover:bg-primary/90 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-200 text-base"
+            >
+              Next
             </button>
-          </p>
-        )}
+          </div>
+
+          {/* Sign In Link - Only on first slide */}
+          {welcomeSlides[currentSlide].showSignIn && (
+            <p className="text-center mt-4 text-text-secondary">
+              Already have an account?{' '}
+              <button className="text-primary font-semibold">
+                Sign in
+              </button>
+            </p>
+          )}
+        </div>
       </div>
     </div>
   )
