@@ -132,36 +132,52 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
 
   const assistantName = answers.assistant === 2 ? 'ellie' : 'max'
   
-  // Create accurate lists of available images for each assistant (adjusted for removed step 0)
-  const ellieImageSteps = [1, 2, 3, 4, 5, 6, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27];
-  const maxImageSteps = [1, 2, 3, 4, 6, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27];
-  
-  let imageUrl;
-  const imageIndex = stepNumber + 1; // +1 because we removed step 0, so step 0 now corresponds to image 1
+  // Correct image mapping for each step using actual existing files
+  const getImageForStep = (step: number, assistant: 'max' | 'ellie') => {
+    // Map step numbers to actual existing image files
+    const stepToImageMap: { [key: number]: string } = {
+      0: 'onboarding_img_2',   // GenderStep
+      1: 'onboarding_img_3',   // GoalStep
+      2: 'onboarding_img_4',   // CongratulationsStep
+      3: 'onboarding_img_5',   // ExcitedStep
+      4: 'onboarding_img_7',   // StatisticStep (img_6 doesn't exist)
+      5: 'onboarding_img_7',   // PrivacyStep
+      6: 'onboarding_img_9',   // GeneralStep (img_8 doesn't exist)
+      7: 'onboarding_img_9',   // LifestyleStep
+      8: 'onboarding_img_10',  // SleepStep
+      9: 'onboarding_img_11',  // WakeUpStep
+      10: 'onboarding_img_12', // EndDayStep
+      11: 'onboarding_img_13', // StressStep
+      12: 'onboarding_img_14', // WorkEnvironmentStep
+      13: 'onboarding_img_15', // SkinTypeStep
+      14: 'onboarding_img_16', // SkinProblemsStep
+      15: 'onboarding_img_17', // HairTypeStep
+      16: 'onboarding_img_18', // HairProblemsStep
+      17: 'onboarding_img_19', // PhysicalActivitiesStep
+      18: 'onboarding_img_20', // DietStep
+      19: 'onboarding_img_21', // MoodStep
+      20: 'onboarding_img_22', // EnergyLevelStep
+      21: 'onboarding_img_23', // ProcrastinationStep
+      22: 'onboarding_img_24', // FocusStep
+      23: 'onboarding_img_25', // OrganizationInfluenceStep
+      24: 'onboarding_img_26', // AnalysisIntroStep
+      25: 'onboarding_img_27', // PhotoUploadStep
+      26: 'onboarding_img_1',  // AIResultsStep (fallback to img_1)
+    };
 
-  // Special case for step 0 (GenderStep) - use onboarding_img_2
-  if (stepNumber === 0) {
-    if (assistantName === 'max') {
-      imageUrl = `/images/on_boarding_images/onboarding_img_2_max.png`;
+    const imageName = stepToImageMap[step] || 'onboarding_img_1';
+    
+    if (assistant === 'max') {
+      return `/images/on_boarding_images/${imageName}_max.png`;
     } else {
-      imageUrl = `/images/on_boarding_images/onboarding_img_2.png`;
+      return `/images/on_boarding_images/${imageName}.png`;
     }
-  } else if (assistantName === 'max') {
-    if (maxImageSteps.includes(imageIndex)) {
-      imageUrl = `/images/on_boarding_images/onboarding_img_${imageIndex}_max.png`;
-    } else {
-      imageUrl = `/images/on_boarding_images/onboarding_img_1_max.png`; // Fallback for Max
-    }
-  } else { // Ellie
-    if (ellieImageSteps.includes(imageIndex)) {
-       imageUrl = `/images/on_boarding_images/onboarding_img_${imageIndex}.png`;
-    } else {
-       imageUrl = `/images/on_boarding_images/onboarding_img_1.png`; // Fallback for Ellie
-    }
-  }
+  };
+
+  const imageUrl = getImageForStep(stepNumber, assistantName);
 
   // Debug logging
-  console.log(`Step ${stepNumber}, Assistant: ${assistantName}, ImageIndex: ${imageIndex}, ImageUrl: ${imageUrl}`);
+  console.log(`Step ${stepNumber}, Assistant: ${assistantName}, ImageUrl: ${imageUrl}`);
 
   // Step 25 (PhotoUploadStep) doesn't need assistant character
 
