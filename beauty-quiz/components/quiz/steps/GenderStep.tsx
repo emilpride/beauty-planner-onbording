@@ -23,28 +23,34 @@ export default function GenderStep() {
           <div
             key={option.id}
             onClick={() => setAnswer('gender', option.id as 1 | 2)}
-            className={`flex flex-col items-center cursor-pointer p-2 rounded-2xl transition-all duration-200 ${
-              answers.gender === option.id
-                ? 'bg-primary bg-opacity-20'
-                : ''
-            }`}
+            className="flex flex-col items-center cursor-pointer group"
           >
             <div
-              className={`w-32 h-32 rounded-full overflow-hidden border-4 transition-all duration-200 ${
-                answers.gender === option.id
-                  ? 'border-primary'
-                  : 'border-transparent'
-              }`}
+              className={`
+                w-36 h-36 rounded-full overflow-hidden 
+                border-4 transition-all duration-200 p-1
+                ${
+                  answers.gender === option.id
+                    ? option.id === 1 ? 'border-blue-400' : 'border-pink-400'
+                    : 'border-transparent'
+                }
+              `}
             >
-              <Image
-                src={option.image}
-                alt={option.label}
-                width={128}
-                height={128}
-                className="w-full h-full object-cover"
-              />
+              <div
+                className={`w-full h-full rounded-full overflow-hidden ${
+                  option.id === 1 ? 'bg-blue-300' : 'bg-pink-200'
+                }`}
+              >
+                <Image
+                  src={option.image}
+                  alt={option.label}
+                  width={128}
+                  height={128}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </div>
-            <span className="mt-4 text-lg font-semibold text-text-primary">
+            <span className="mt-4 text-lg font-semibold text-text-primary group-hover:text-primary transition-colors">
               {option.label}
             </span>
           </div>
