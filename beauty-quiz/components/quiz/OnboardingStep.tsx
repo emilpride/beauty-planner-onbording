@@ -98,6 +98,17 @@ export default function OnboardingStep({
           )}
         </div>
       )}
+
+      {hideButton && skip && (
+        <div className={`${centerContent ? 'pt-6' : 'mt-auto pt-4'}`}>
+          <button
+            onClick={handleSkip}
+            className="w-full py-3 px-6 text-gray-500 font-medium hover:text-gray-700 transition-colors duration-200"
+          >
+            {skipText}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

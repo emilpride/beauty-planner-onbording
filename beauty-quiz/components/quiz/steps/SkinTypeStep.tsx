@@ -2,6 +2,8 @@
 
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
+import { useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 
 const options = [
   { id: 'dry', label: 'Dry' },
@@ -11,37 +13,92 @@ const options = [
 ]
 
 export default function SkinTypeStep() {
-  const { answers, setAnswer } = useQuizStore()
+  const { answers, setAnswer, currentStep, nextStep } = useQuizStore()
+  const router = useRouter()
+  const hasTransitioned = useRef(false)
+
+  const handleOptionSelect = (optionId: string) => {
+    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    
+    setAnswer('skinType', optionId as any)
+    hasTransitioned.current = true
+    
+    // Автоматический переход через небольшую задержку
+    setTimeout(() => {
+      nextStep()
+      router.push(`/quiz/${currentStep + 1}`)
+    }, 800)
+  }
+
+  const handleSkip = () => {
+    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    
+    setAnswer('skinType', '')
+    hasTransitioned.current = true
+    
+    // Автоматический переход через небольшую задержку
+    setTimeout(() => {
+      nextStep()
+      router.push(`/quiz/${currentStep + 1}`)
+    }, 800)
+  }
+
+  // Сброс значения skinType и флага при монтировании компонента
+  useEffect(() => {
+    // Сбрасываем значение skinType при заходе на экран
+    setAnswer('skinType', '')
+    hasTransitioned.current = false
+    
+    return () => {
+      hasTransitioned.current = false
+    }
+  }, [setAnswer])
 
   return (
     <OnboardingStep
       title="What is your skin type?"
       subtitle="Don't know? Let our AI analyze it for you in a later step."
-      condition={answers.skinType !== ''}
+      hideButton={true} // Убираем кнопку Next
+      skip={true} // Добавляем кнопку Skip
+      skipText="Skip"
+      onSkip={handleSkip}
     >
       <div className="space-y-3">
         {options.map((option) => (
           <button
             key={option.id}
-            onClick={() => setAnswer('skinType', option.id as any)}
-            className={`w-full p-4 border-2 rounded-xl text-left transition-all duration-200 ${
+            onClick={() => handleOptionSelect(option.id)}
+            className={`w-full p-3 border-2 rounded-lg text-left transition-all duration-300 ${
               answers.skinType === option.id
-                ? 'border-primary bg-primary bg-opacity-10 shadow-lg'
-                : 'border-gray-300 hover:border-primary'
+                ? 'border-primary bg-primary bg-opacity-15 shadow-lg'
+                : 'border-gray-300 hover:border-primary hover:bg-gray-50'
             }`}
           >
-            <span className="text-lg font-semibold text-text-primary">{option.label}</span>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-base font-semibold text-text-primary">{option.label}</p>
+              </div>
+              {answers.skinType === option.id && (
+                <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+            </div>
           </button>
         ))}
         <button
-          onClick={() => setAnswer('skinType', 'ai_analyze')}
-          className={`w-full p-4 border-2 rounded-xl text-left transition-all duration-200 ${
+          onClick={() => handleOptionSelect('ai_analyze')}
+          className={`w-full p-3 border-2 rounded-lg text-left transition-all duration-300 ${
             answers.skinType === 'ai_analyze'
-              ? 'border-primary bg-primary bg-opacity-10 shadow-lg'
-              : 'border-gray-300 hover:border-primary'
+              ? 'border-primary bg-primary bg-opacity-15 shadow-lg'
+              : 'border-gray-300 hover:border-primary hover:bg-gray-50'
           }`}
         >
-          <span className="text-lg font-semibold text-text-primary">Let AI Analyze</span>
+          <div>
+            <p className="text-base font-semibold text-purple-500">Let AI Analyze</p>
+          </div>
         </button>
       </div>
     </OnboardingStep>
