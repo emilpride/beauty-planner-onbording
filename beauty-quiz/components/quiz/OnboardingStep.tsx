@@ -14,6 +14,7 @@ interface OnboardingStepProps {
   skip?: boolean
   skipText?: string
   onSkip?: () => void
+  centerContent?: boolean
 }
 
 export default function OnboardingStep({
@@ -27,6 +28,7 @@ export default function OnboardingStep({
   skip = false,
   skipText = 'Skip',
   onSkip,
+  centerContent = false,
 }: OnboardingStepProps) {
   const router = useRouter()
   const { nextStep, currentStep } = useQuizStore()
@@ -55,8 +57,8 @@ export default function OnboardingStep({
   }
 
   return (
-    <div className="h-full flex flex-col p-6">
-      <div className="flex-1 overflow-y-auto pb-4 scrollbar-hide">
+    <div className={`h-full flex flex-col p-6 ${centerContent ? 'justify-center' : ''}`}>
+      <div className="overflow-y-auto pb-4 scrollbar-hide">
         <div className="space-y-2 mb-6">
           <h1 className="text-2xl font-bold text-text-primary leading-tight">
             {title}
@@ -70,7 +72,7 @@ export default function OnboardingStep({
         <div>{children}</div>
       </div>
 
-      <div className="mt-auto pt-4">
+      <div className={`${centerContent ? 'pt-6' : 'mt-auto pt-4'}`}>
         <button
           onClick={handleNext}
           disabled={!condition}
