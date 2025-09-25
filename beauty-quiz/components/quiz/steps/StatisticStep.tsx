@@ -6,10 +6,9 @@ export default function StatisticStep() {
   return (
     <OnboardingStep
       title="87% of our users see results within the first week!"
-      subtitle="You’re on the right path — and your transformation could start even faster than you think. Let’s continue building your personalized plan to achieve amazing results!"
+      subtitle="You're on the right path — and your transformation could start even faster than you think. Let's continue building your personalized plan to achieve amazing results!"
       buttonText="Interesting!"
     >
-      <div className="text-center text-6xl mt-8">📊</div>
     </OnboardingStep>
   )
 }

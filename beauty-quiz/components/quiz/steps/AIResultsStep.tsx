@@ -55,7 +55,7 @@ export default function AIResultsStep() {
       {progress >= 100 && (
         <button
           // onClick={() => router.push('/plan')} // This will be the next step after the quiz
-          className="mt-8 px-8 py-4 bg-primary text-white font-semibold rounded-xl shadow-lg animate-pulse"
+          className="mt-4 px-8 py-4 bg-primary text-white font-semibold rounded-xl shadow-lg animate-pulse"
         >
           View My Plan
         </button>

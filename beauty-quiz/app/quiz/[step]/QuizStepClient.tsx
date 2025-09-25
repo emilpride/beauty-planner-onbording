@@ -5,6 +5,7 @@ import { useQuizStore } from '@/store/quizStore'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import OnboardingAppbar from '@/components/quiz/OnboardingAppbar' // To be created
+import CircularProgressAnimation from '@/components/animations/CircularProgressAnimation'
 
 // Import all step components (we will create these next)
 import GenderStep from '@/components/quiz/steps/GenderStep'
@@ -220,14 +221,22 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
               className={`transition-all duration-500 h-[85%] ${isReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
               style={{ pointerEvents: 'auto' }}
             >
-              <Image
-                src={imageUrl}
-                alt={`Assistant for step ${stepNumber}`}
-                width={300}
-                height={300}
-                className="object-contain h-full w-auto"
-                priority
-              />
+              {stepNumber === 4 ? (
+                // Если это 4-й шаг, показываем нашу новую анимацию
+                <div className="flex justify-center items-center h-full">
+                  <CircularProgressAnimation percentage={87} />
+                </div>
+              ) : (
+                // Для всех остальных шагов показываем картинку, как и раньше
+                <Image
+                  src={imageUrl}
+                  alt={`Assistant for step ${stepNumber}`}
+                  width={300}
+                  height={300}
+                  className="object-contain h-full w-auto"
+                  priority
+                />
+              )}
             </div>
           </div>
         )}
