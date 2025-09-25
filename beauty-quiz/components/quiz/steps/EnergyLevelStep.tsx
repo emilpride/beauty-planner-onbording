@@ -2,9 +2,17 @@
 
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
+import { useEffect } from 'react'
 
 export default function EnergyLevelStep() {
   const { answers, setAnswer } = useQuizStore()
+
+  // Устанавливаем дефолтное значение 1 при загрузке компонента
+  useEffect(() => {
+    if (!answers.energyLevel || answers.energyLevel === 0) {
+      setAnswer('energyLevel', 1)
+    }
+  }, [answers.energyLevel, setAnswer])
 
   const getBatteryLevel = (level: number) => {
     // Возвращаем количество полосок для батарейки (1-5)

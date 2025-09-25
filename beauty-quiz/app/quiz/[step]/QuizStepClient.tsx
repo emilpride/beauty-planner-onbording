@@ -156,12 +156,12 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
       16: 'onboarding_img_18', // HairProblemsStep
       17: 'onboarding_img_19', // PhysicalActivitiesStep
       18: 'onboarding_img_21', // DietStep
-      19: 'onboarding_img_21', // MoodStep
-      20: 'onboarding_img_22', // EnergyLevelStep
-      21: 'onboarding_img_23', // ProcrastinationStep
-      22: 'onboarding_img_24', // FocusStep
-      23: 'onboarding_img_25', // OrganizationInfluenceStep
-      24: 'onboarding_img_26', // AnalysisIntroStep
+      19: 'onboarding_img_22', // MoodStep
+      20: 'onboarding_img_23', // EnergyLevelStep
+      21: 'onboarding_img_24', // ProcrastinationStep
+      22: 'onboarding_img_25', // FocusStep
+      23: 'onboarding_img_26', // OrganizationInfluenceStep
+      24: 'onboarding_img_27', // AnalysisIntroStep
       25: 'onboarding_img_27', // PhotoUploadStep
       26: 'onboarding_img_1',  // AIResultsStep (fallback to img_1)
     };

@@ -1,15 +1,24 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useQuizStore } from '@/store/quizStore'
 
 export default function AIResultsStep() {
   const [progress, setProgress] = useState(0)
+  const router = useRouter()
+  const { nextStep } = useQuizStore()
 
   useEffect(() => {
     const timer = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(timer)
+          // Автоматическое перенаправление после завершения загрузки
+          setTimeout(() => {
+            nextStep()
+            router.push('/quiz/27') // Перенаправляем на следующий шаг (CurrentConditionAnalysisStep)
+          }, 1000) // Небольшая задержка для показа 100%
           return 100
         }
         return prev + 1
@@ -17,7 +26,7 @@ export default function AIResultsStep() {
     }, 80) // Adjust timing for a smooth feel over ~8 seconds
 
     return () => clearInterval(timer)
-  }, [])
+  }, [router, nextStep])
 
   const getAnalysisMessage = () => {
     if (progress < 20) return "Analyzing facial geometry..."
@@ -52,14 +61,6 @@ export default function AIResultsStep() {
         </p>
       </div>
 
-      {progress >= 100 && (
-        <button
-          // onClick={() => router.push('/plan')} // This will be the next step after the quiz
-          className="mt-4 px-8 py-4 bg-primary text-white font-semibold rounded-xl shadow-lg animate-pulse"
-        >
-          View My Plan
-        </button>
-      )}
     </div>
   )
 }

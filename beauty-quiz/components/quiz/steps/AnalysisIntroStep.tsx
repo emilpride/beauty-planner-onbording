@@ -9,7 +9,6 @@ export default function AnalysisIntroStep() {
       subtitle="We're about to ask for a few photos to help our AI understand your unique features. This is a key step in creating your personalized plan."
       buttonText="Let's Start Analysis"
     >
-      <div className="text-center text-6xl mt-8">🔬</div>
     </OnboardingStep>
   )
 }
