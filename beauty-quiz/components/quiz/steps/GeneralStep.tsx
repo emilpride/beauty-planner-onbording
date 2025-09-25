@@ -2,10 +2,11 @@
 
 import { useQuizStore } from '@/store/quizStore'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
+import UnitToggle from '@/components/ui/UnitToggle'
 import { useState, useEffect } from 'react'
 
 export default function GeneralStep() {
-  const { answers, setAnswer } = useQuizStore()
+  const { answers, setAnswer, setHeightUnit, setWeightUnit } = useQuizStore()
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
   const isFormValid = () => {
@@ -87,65 +88,53 @@ export default function GeneralStep() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1">
-            Height
-          </label>
-          <div className="flex">
-            <input
-              type="text"
-              value={answers.height}
-              onChange={(e) => handleInputChange('height', e.target.value)}
-              className={`flex-grow w-full px-4 py-3 border rounded-l-xl focus:ring-2 focus:ring-primary outline-none transition text-text-primary placeholder-gray-400 ${
-                errors.height ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder={answers.heightUnit === 'cm' ? '175' : "5' 9\""}
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium text-text-secondary">
+              Height
+            </label>
+            <UnitToggle
+              selectedValue={answers.heightUnit}
+              onChange={(value) => setHeightUnit(value as 'cm' | 'ft&in')}
+              options={[
+                { value: 'ft&in', label: 'ft, in' },
+                { value: 'cm', label: 'cm' }
+              ]}
             />
-            <div className="flex items-center border border-l-0 rounded-r-xl bg-gray-50 text-sm">
-              <button
-                onClick={() => setAnswer('heightUnit', 'cm')}
-                className={`px-3 py-2 rounded-l-md ${answers.heightUnit === 'cm' ? 'bg-primary text-white' : 'text-text-secondary'}`}
-              >
-                cm
-              </button>
-              <button
-                onClick={() => setAnswer('heightUnit', 'ft&in')}
-                className={`px-3 py-2 rounded-r-md ${answers.heightUnit === 'ft&in' ? 'bg-primary text-white' : 'text-text-secondary'}`}
-              >
-                ft&in
-              </button>
-            </div>
           </div>
+          <input
+            type="text"
+            value={answers.height}
+            onChange={(e) => handleInputChange('height', e.target.value)}
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary outline-none transition text-text-primary placeholder-gray-400 ${
+              errors.height ? 'border-red-500' : 'border-gray-300'
+            }`}
+            placeholder={answers.heightUnit === 'cm' ? '175' : "5' 9\""}
+          />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1">
-            Weight
-          </label>
-          <div className="flex">
-            <input
-              type="text"
-              value={answers.weight}
-              onChange={(e) => handleInputChange('weight', e.target.value)}
-              className={`flex-grow w-full px-4 py-3 border rounded-l-xl focus:ring-2 focus:ring-primary outline-none transition text-text-primary placeholder-gray-400 ${
-                errors.weight ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder={answers.weightUnit === 'kg' ? '70' : '154'}
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium text-text-secondary">
+              Weight
+            </label>
+            <UnitToggle
+              selectedValue={answers.weightUnit}
+              onChange={(value) => setWeightUnit(value as 'kg' | 'lbs')}
+              options={[
+                { value: 'lbs', label: 'lbs' },
+                { value: 'kg', label: 'kg' }
+              ]}
             />
-            <div className="flex items-center border border-l-0 rounded-r-xl bg-gray-50 text-sm">
-              <button
-                onClick={() => setAnswer('weightUnit', 'kg')}
-                className={`px-3 py-2 rounded-l-md ${answers.weightUnit === 'kg' ? 'bg-primary text-white' : 'text-text-secondary'}`}
-              >
-                kg
-              </button>
-              <button
-                onClick={() => setAnswer('weightUnit', 'lbs')}
-                className={`px-3 py-2 rounded-r-md ${answers.weightUnit === 'lbs' ? 'bg-primary text-white' : 'text-text-secondary'}`}
-              >
-                lbs
-              </button>
-            </div>
           </div>
+          <input
+            type="text"
+            value={answers.weight}
+            onChange={(e) => handleInputChange('weight', e.target.value)}
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary outline-none transition text-text-primary placeholder-gray-400 ${
+              errors.weight ? 'border-red-500' : 'border-gray-300'
+            }`}
+            placeholder={answers.weightUnit === 'kg' ? '70' : '154'}
+          />
         </div>
         
         <div>

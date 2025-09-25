@@ -99,6 +99,8 @@ interface QuizStore {
   totalSteps: number
   hydrate: () => void
   setAnswer: <K extends keyof QuizAnswers>(field: K, value: QuizAnswers[K]) => void
+  setHeightUnit: (unit: 'cm' | 'ft&in') => void
+  setWeightUnit: (unit: 'kg' | 'lbs') => void
   nextStep: () => void
   prevStep: () => void
   goToStep: (step: number) => void
@@ -113,9 +115,9 @@ const initialAnswers: QuizAnswers = {
   name: '',
   age: null,
   height: '',
-  heightUnit: 'cm',
+  heightUnit: 'ft&in',
   weight: '',
-  weightUnit: 'kg',
+  weightUnit: 'lbs',
   ethnicGroup: '',
   lifestyle: '',
   sleepHours: '',
@@ -167,6 +169,22 @@ export const useQuizStore = create<QuizStore>()(
           answers: {
             ...state.answers,
             [field]: value,
+          },
+        })),
+
+      setHeightUnit: (unit) =>
+        set((state) => ({
+          answers: {
+            ...state.answers,
+            heightUnit: unit,
+          },
+        })),
+
+      setWeightUnit: (unit) =>
+        set((state) => ({
+          answers: {
+            ...state.answers,
+            weightUnit: unit,
           },
         })),
       
