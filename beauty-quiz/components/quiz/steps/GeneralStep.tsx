@@ -63,7 +63,7 @@ export default function GeneralStep() {
             type="text"
             value={answers.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary outline-none transition text-text-primary placeholder-gray-400 ${
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary placeholder-gray-400 ${
               errors.name ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Enter your name"
@@ -80,7 +80,7 @@ export default function GeneralStep() {
             onChange={(e) =>
               handleInputChange('age', e.target.value ? parseInt(e.target.value) : null)
             }
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary outline-none transition text-text-primary placeholder-gray-400 ${
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary placeholder-gray-400 ${
               errors.age ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Enter your age"
@@ -105,7 +105,7 @@ export default function GeneralStep() {
             type="text"
             value={answers.height}
             onChange={(e) => handleInputChange('height', e.target.value)}
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary outline-none transition text-text-primary placeholder-gray-400 ${
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary placeholder-gray-400 ${
               errors.height ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder={answers.heightUnit === 'cm' ? '175' : "5' 9\""}
@@ -130,7 +130,7 @@ export default function GeneralStep() {
             type="text"
             value={answers.weight}
             onChange={(e) => handleInputChange('weight', e.target.value)}
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary outline-none transition text-text-primary placeholder-gray-400 ${
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary placeholder-gray-400 ${
               errors.weight ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder={answers.weightUnit === 'kg' ? '70' : '154'}
@@ -144,7 +144,7 @@ export default function GeneralStep() {
           <select
             value={answers.ethnicGroup}
             onChange={(e) => setAnswer('ethnicGroup', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary outline-none transition text-text-primary bg-white"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-white"
           >
             <option value="">Select your ethnic group</option>
             <option value="European American">European American</option>
