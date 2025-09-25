@@ -22,7 +22,7 @@ export default function AssistantSelectionPage() {
   const startQuiz = () => {
     setIsLoading(true)
     setAnswer('assistant', selectedAssistant)
-    router.push('/quiz/0')
+    router.push('/assistant-welcome')
   }
 
   // Remove handleLoadingComplete as loading is now on home page
