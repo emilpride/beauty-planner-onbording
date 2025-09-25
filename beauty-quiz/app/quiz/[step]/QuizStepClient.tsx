@@ -38,17 +38,12 @@ import AIResultsStep from '@/components/quiz/steps/AIResultsStep'
 
 // Post-quiz screens
 import AIAnalysisIntroStep from '@/components/quiz/steps/AIAnalysisIntroStep'
-import CurrentConditionAnalysisStep from '@/components/quiz/steps/CurrentConditionAnalysisStep'
-import SignUpStep from '@/components/quiz/steps/SignUpStep'
-import ScheduleIntroStep from '@/components/quiz/steps/ScheduleIntroStep'
-import ChooseActivitiesStep from '@/components/quiz/steps/ChooseActivitiesStep'
-import ActivitySetupStep from '@/components/quiz/steps/ActivitySetupStep'
-import CreatingScheduleStep from '@/components/quiz/steps/CreatingScheduleStep'
-import RemindersStep from '@/components/quiz/steps/RemindersStep'
-import ContractStep from '@/components/quiz/steps/ContractStep'
-import ChoosePlanStep from '@/components/quiz/steps/ChoosePlanStep'
-import PricingStep from '@/components/quiz/steps/PricingStep'
-import CongratulationsFinalStep from '@/components/quiz/steps/CongratulationsFinalStep'
+import CurrentConditionAnalysisStep from '@/components/post-quiz/CurrentConditionAnalysisStep'
+import ChooseActivitiesStep from '@/components/post-quiz/ChooseActivitiesStep'
+import ActivitySetupStep from '@/components/post-quiz/ActivitySetupStep'
+import RemindersStep from '@/components/post-quiz/RemindersStep'
+import ChoosePlanStep from '@/components/post-quiz/ChoosePlanStep'
+import PricingStep from '@/components/post-quiz/PricingStep'
 
 const stepComponents: { [key: number]: React.ComponentType } = {
   0: GenderStep,
@@ -81,16 +76,11 @@ const stepComponents: { [key: number]: React.ComponentType } = {
   
   // Post-quiz screens
   27: CurrentConditionAnalysisStep,
-  28: SignUpStep,
-  29: ScheduleIntroStep,
-  30: ChooseActivitiesStep,
-  31: ActivitySetupStep,
-  32: CreatingScheduleStep,
-  33: RemindersStep,
-  34: ContractStep,
-  35: ChoosePlanStep,
-  36: PricingStep,
-  37: CongratulationsFinalStep,
+  28: ChooseActivitiesStep,
+  29: ActivitySetupStep,
+  30: RemindersStep,
+  31: ChoosePlanStep,
+  32: PricingStep,
 }
 
 // Card heights from Flutter design
@@ -203,7 +193,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   }
 
   return (
-    <div className="min-h-screen w-full relative overflow-hidden">
+    <div className={`w-full relative ${isFullScreen ? 'min-h-screen' : 'min-h-screen overflow-hidden'}`}>
       {/* Background Ellipse - only for quiz steps, not for step 0 */}
       {stepNumber > 0 && (
         <div 
@@ -248,8 +238,8 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
           } : { top: '0' }}
         >
           <div 
-            className="bg-white rounded-t-3xl shadow-2xl overflow-hidden"
-            style={{ height: isFullScreen ? '100vh' : stepNumber === 6 ? '85vh' : stepNumber === 25 || stepNumber === 26 ? '85vh' : stepNumber === 20 ? '70vh' : '58vh' }}
+            className={`bg-white shadow-2xl ${isFullScreen ? 'min-h-screen' : 'rounded-t-3xl overflow-hidden'}`}
+            style={isFullScreen ? {} : { height: stepNumber === 6 ? '85vh' : stepNumber === 25 || stepNumber === 26 ? '85vh' : stepNumber === 20 ? '70vh' : '58vh' }}
           >
              <StepComponent />
           </div>

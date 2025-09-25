@@ -14,10 +14,11 @@ export default function CurrentConditionAnalysisStep() {
   const getConditionScore = (condition: string) => {
     // Mock scores based on answers - in real app this would come from AI analysis
     const scores = {
-      skin: 8,
-      hair: 7,
-      body: 6,
-      overall: 7
+      skin: 6,
+      hair: 9,
+      physic: 6,
+      mental: 6,
+      overall: 7.2
     }
     return scores[condition as keyof typeof scores] || 7
   }
@@ -59,8 +60,8 @@ export default function CurrentConditionAnalysisStep() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-light p-6">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="w-full h-screen bg-light p-6 overflow-y-auto scrollbar-hide">
+      <div className="max-w-2xl mx-auto space-y-6 pb-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-text-primary mb-4">
             Your Current Condition Analysis
@@ -74,13 +75,13 @@ export default function CurrentConditionAnalysisStep() {
         <div className="bg-white rounded-2xl p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="w-16 h-32 bg-gradient-to-t from-green-400 to-blue-500 rounded-lg flex flex-col justify-end p-2">
+              <div className="w-16 h-32 bg-gradient-to-t from-red-500 via-orange-400 via-yellow-400 to-green-500 rounded-lg flex flex-col justify-end p-2">
                 <div className="w-full h-3/4 bg-white rounded"></div>
               </div>
               <div>
-                <h3 className="text-xl font-bold text-text-primary">BMI</h3>
-                <p className="text-3xl font-bold text-primary">22.5</p>
-                <p className="text-sm text-text-secondary">Normal weight</p>
+                <h3 className="text-xl font-bold text-text-primary">Your BMI is: <span className="text-primary">Overweight</span></h3>
+                <p className="text-sm text-text-secondary">Slightly above normal. Risk of heart and metabolic issues.</p>
+                <p className="text-3xl font-bold text-yellow-500">25.2</p>
               </div>
             </div>
             <div className="w-24 h-32">
@@ -100,13 +101,10 @@ export default function CurrentConditionAnalysisStep() {
           {/* Skin Condition */}
           <div className="bg-white rounded-2xl p-6 shadow-lg">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-text-primary">Skin Condition</h3>
-              <button className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
-                i
-              </button>
+              <h3 className="text-lg font-bold text-primary">Skin Condition</h3>
             </div>
             <p className="text-sm text-text-secondary mb-4">
-              Your skin shows good overall health with some areas for improvement
+              Your skin is generally clear but sometimes feels dry and flaky. It can also get oily, especially in the T-zone. I may experience occasional breakouts, redness, or sensitivity, depending on the environment and skincare routine.
             </p>
             <div className="flex items-center justify-center">
               <ScoreCircle score={getConditionScore('skin')} />
@@ -116,16 +114,39 @@ export default function CurrentConditionAnalysisStep() {
           {/* Hair Condition */}
           <div className="bg-white rounded-2xl p-6 shadow-lg">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-text-primary">Hair Condition</h3>
-              <button className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
-                i
-              </button>
+              <h3 className="text-lg font-bold text-primary">Hair Condition</h3>
             </div>
             <p className="text-sm text-text-secondary mb-4">
-              Your hair has good texture but could benefit from targeted care
+              Your skin is generally clear but sometimes feels dry and flaky. It can also get oily, especially in the T-zone. I may experience occasional breakouts, redness, or sensitivity, depending on the environment and skincare routine.
             </p>
             <div className="flex items-center justify-center">
               <ScoreCircle score={getConditionScore('hair')} />
+            </div>
+          </div>
+
+          {/* Physic Condition */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-primary">Physic Condition</h3>
+            </div>
+            <p className="text-sm text-text-secondary mb-4">
+              Your skin is generally clear but sometimes feels dry and flaky. It can also get oily, especially in the T-zone. I may experience occasional breakouts, redness, or sensitivity, depending on the environment and skincare routine.
+            </p>
+            <div className="flex items-center justify-center">
+              <ScoreCircle score={getConditionScore('physic')} />
+            </div>
+          </div>
+
+          {/* Mental Condition */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-primary">Mental Condition</h3>
+            </div>
+            <p className="text-sm text-text-secondary mb-4">
+              Your skin is generally clear but sometimes feels dry and flaky. It can also get oily, especially in the T-zone. I may experience occasional breakouts, redness, or sensitivity, depending on the environment and skincare routine.
+            </p>
+            <div className="flex items-center justify-center">
+              <ScoreCircle score={getConditionScore('mental')} />
             </div>
           </div>
         </div>
@@ -133,13 +154,15 @@ export default function CurrentConditionAnalysisStep() {
         {/* BMS Card */}
         <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-6 text-white">
           <div className="text-center">
-            <h3 className="text-2xl font-bold mb-2">Beauty Mirror Score</h3>
+            <h3 className="text-2xl font-bold mb-2">Beauty Mirror Score (BMS)</h3>
+            <p className="text-sm mb-4">BMS is calculated by averaging scores from four categories—BMI, Skin, Hair, Fitness, and Mind—each rated on a scale from 0 to 10.</p>
+            <p className="text-lg mb-2">Your BMS is: <span className="font-bold">Balanced</span></p>
+            <p className="text-sm mb-4">Keep up the consistent routine!</p>
             <div className="flex items-center justify-center mb-4">
               <div className="w-24 h-24 relative">
                 <ScoreCircle score={getConditionScore('overall')} size="w-24 h-24" />
               </div>
             </div>
-            <p className="text-lg mb-6">7/10 - Good foundation with room for improvement</p>
             <div className="w-full bg-white bg-opacity-20 rounded-full h-3">
               <div 
                 className="bg-white rounded-full h-3 transition-all duration-1000 ease-out"
