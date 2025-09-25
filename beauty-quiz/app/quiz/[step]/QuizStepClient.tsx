@@ -139,7 +139,14 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   let imageUrl;
   const imageIndex = stepNumber + 1; // +1 because we removed step 0, so step 0 now corresponds to image 1
 
-  if (assistantName === 'max') {
+  // Special case for step 0 (GenderStep) - use onboarding_img_2
+  if (stepNumber === 0) {
+    if (assistantName === 'max') {
+      imageUrl = `/images/on_boarding_images/onboarding_img_2_max.png`;
+    } else {
+      imageUrl = `/images/on_boarding_images/onboarding_img_2.png`;
+    }
+  } else if (assistantName === 'max') {
     if (maxImageSteps.includes(imageIndex)) {
       imageUrl = `/images/on_boarding_images/onboarding_img_${imageIndex}_max.png`;
     } else {
