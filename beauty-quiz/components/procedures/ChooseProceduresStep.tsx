@@ -103,6 +103,15 @@ export default function ChooseProceduresStep() {
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [iconSearchQuery, setIconSearchQuery] = useState('')
+  
+  // Состояние для создания новой категории
+  const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] = useState(false)
+  const [newCategory, setNewCategory] = useState({
+    name: '',
+    color: '',
+    icon: ''
+  })
+  
   const [newActivity, setNewActivity] = useState({
     name: '',
     note: '',
@@ -132,9 +141,9 @@ export default function ChooseProceduresStep() {
   ]
 
   // Данные для создания новой активности
-  const categories = [
-    'Skin Care', 'Hair Care', 'Physical Health', 'Mental Wellness', 'Beauty', 'Fitness', 'Nutrition', 'Sleep'
-  ]
+  const [categories, setCategories] = useState([
+    'Skin', 'Hair', 'Physical health', 'Mental Wellness'
+  ])
 
   const colors = [
     { id: 'red', value: '#FF6B6B', name: 'Red' },
@@ -226,6 +235,615 @@ export default function ChooseProceduresStep() {
     { icon: '🍎', category: 'food', keywords: ['apple', 'fruit', 'healthy', 'food'] },
     { icon: '🥗', category: 'food', keywords: ['salad', 'healthy', 'vegetables', 'food'] },
     { icon: '💧', category: 'food', keywords: ['water', 'drink', 'hydration', 'liquid'] },
+    
+    // Дополнительные иконки здоровья и фитнеса
+    { icon: '🏋️', category: 'fitness', keywords: ['weight', 'lifting', 'gym', 'strength'] },
+    { icon: '🤸', category: 'fitness', keywords: ['gymnastics', 'flexibility', 'acrobatics', 'exercise'] },
+    { icon: '🤾', category: 'fitness', keywords: ['handball', 'team', 'sport', 'exercise'] },
+    { icon: '🏌️', category: 'fitness', keywords: ['golf', 'sport', 'outdoor', 'leisure'] },
+    { icon: '🏄', category: 'fitness', keywords: ['surfing', 'water', 'ocean', 'sport'] },
+    { icon: '🏇', category: 'fitness', keywords: ['horse', 'riding', 'equestrian', 'sport'] },
+    { icon: '🤽', category: 'fitness', keywords: ['water', 'polo', 'swimming', 'team'] },
+    { icon: '🏐', category: 'fitness', keywords: ['volleyball', 'team', 'sport', 'ball'] },
+    { icon: '🏑', category: 'fitness', keywords: ['hockey', 'stick', 'sport', 'team'] },
+    { icon: '🏒', category: 'fitness', keywords: ['ice', 'hockey', 'sport', 'winter'] },
+    { icon: '🏓', category: 'fitness', keywords: ['ping', 'pong', 'table', 'tennis'] },
+    { icon: '🏸', category: 'fitness', keywords: ['badminton', 'racket', 'sport', 'shuttlecock'] },
+    { icon: '🥊', category: 'fitness', keywords: ['boxing', 'punch', 'fight', 'martial'] },
+    { icon: '🥋', category: 'fitness', keywords: ['martial', 'arts', 'karate', 'uniform'] },
+    { icon: '🥅', category: 'fitness', keywords: ['goal', 'net', 'sport', 'hockey'] },
+    { icon: '⛳', category: 'fitness', keywords: ['golf', 'flag', 'hole', 'sport'] },
+    { icon: '⛷️', category: 'fitness', keywords: ['skiing', 'winter', 'snow', 'sport'] },
+    { icon: '🏂', category: 'fitness', keywords: ['snowboard', 'winter', 'snow', 'sport'] },
+    { icon: '🛷', category: 'fitness', keywords: ['sled', 'sleigh', 'winter', 'snow'] },
+    { icon: '🛹', category: 'fitness', keywords: ['skateboard', 'skate', 'wheels', 'sport'] },
+    { icon: '🛼', category: 'fitness', keywords: ['roller', 'skate', 'wheels', 'sport'] },
+    { icon: '🛺', category: 'fitness', keywords: ['auto', 'rickshaw', 'vehicle', 'transport'] },
+    { icon: '🛻', category: 'fitness', keywords: ['pickup', 'truck', 'vehicle', 'transport'] },
+    { icon: '🛼', category: 'fitness', keywords: ['roller', 'skate', 'wheels', 'sport'] },
+    { icon: '🛹', category: 'fitness', keywords: ['skateboard', 'skate', 'wheels', 'sport'] },
+    { icon: '🛷', category: 'fitness', keywords: ['sled', 'sleigh', 'winter', 'snow'] },
+    { icon: '🏂', category: 'fitness', keywords: ['snowboard', 'winter', 'snow', 'sport'] },
+    { icon: '⛷️', category: 'fitness', keywords: ['skiing', 'winter', 'snow', 'sport'] },
+    { icon: '⛳', category: 'fitness', keywords: ['golf', 'flag', 'hole', 'sport'] },
+    { icon: '🥅', category: 'fitness', keywords: ['goal', 'net', 'sport', 'hockey'] },
+    { icon: '🥋', category: 'fitness', keywords: ['martial', 'arts', 'karate', 'uniform'] },
+    { icon: '🥊', category: 'fitness', keywords: ['boxing', 'punch', 'fight', 'martial'] },
+    { icon: '🏸', category: 'fitness', keywords: ['badminton', 'racket', 'sport', 'shuttlecock'] },
+    { icon: '🏓', category: 'fitness', keywords: ['ping', 'pong', 'table', 'tennis'] },
+    { icon: '🏒', category: 'fitness', keywords: ['ice', 'hockey', 'sport', 'winter'] },
+    { icon: '🏑', category: 'fitness', keywords: ['hockey', 'stick', 'sport', 'team'] },
+    { icon: '🏐', category: 'fitness', keywords: ['volleyball', 'team', 'sport', 'ball'] },
+    { icon: '🤽', category: 'fitness', keywords: ['water', 'polo', 'swimming', 'team'] },
+    { icon: '🏇', category: 'fitness', keywords: ['horse', 'riding', 'equestrian', 'sport'] },
+    { icon: '🏄', category: 'fitness', keywords: ['surfing', 'water', 'ocean', 'sport'] },
+    { icon: '🏌️', category: 'fitness', keywords: ['golf', 'sport', 'outdoor', 'leisure'] },
+    { icon: '🤾', category: 'fitness', keywords: ['handball', 'team', 'sport', 'exercise'] },
+    { icon: '🤸', category: 'fitness', keywords: ['gymnastics', 'flexibility', 'acrobatics', 'exercise'] },
+    { icon: '🏋️', category: 'fitness', keywords: ['weight', 'lifting', 'gym', 'strength'] },
+    
+    // Дополнительные иконки красоты и ухода
+    { icon: '💄', category: 'beauty', keywords: ['lipstick', 'makeup', 'cosmetics', 'beauty'] },
+    { icon: '💅', category: 'beauty', keywords: ['nail', 'polish', 'manicure', 'beauty'] },
+    { icon: '💇', category: 'beauty', keywords: ['haircut', 'salon', 'hair', 'beauty'] },
+    { icon: '💈', category: 'beauty', keywords: ['barber', 'pole', 'salon', 'hair'] },
+    { icon: '💉', category: 'beauty', keywords: ['syringe', 'injection', 'medical', 'beauty'] },
+    { icon: '💊', category: 'beauty', keywords: ['pill', 'medicine', 'supplement', 'health'] },
+    { icon: '💋', category: 'beauty', keywords: ['kiss', 'lips', 'love', 'beauty'] },
+    { icon: '💌', category: 'beauty', keywords: ['love', 'letter', 'romance', 'heart'] },
+    { icon: '💍', category: 'beauty', keywords: ['ring', 'jewelry', 'engagement', 'marriage'] },
+    { icon: '💎', category: 'beauty', keywords: ['diamond', 'jewelry', 'luxury', 'beauty'] },
+    { icon: '💏', category: 'beauty', keywords: ['couple', 'kiss', 'love', 'romance'] },
+    { icon: '💐', category: 'beauty', keywords: ['bouquet', 'flowers', 'gift', 'beauty'] },
+    { icon: '💑', category: 'beauty', keywords: ['couple', 'love', 'heart', 'romance'] },
+    { icon: '💒', category: 'beauty', keywords: ['wedding', 'church', 'marriage', 'celebration'] },
+    { icon: '💓', category: 'beauty', keywords: ['heartbeat', 'love', 'pulse', 'emotion'] },
+    { icon: '💔', category: 'beauty', keywords: ['broken', 'heart', 'sad', 'love'] },
+    { icon: '💕', category: 'beauty', keywords: ['two', 'hearts', 'love', 'romance'] },
+    { icon: '💖', category: 'beauty', keywords: ['sparkling', 'heart', 'love', 'beauty'] },
+    { icon: '💗', category: 'beauty', keywords: ['growing', 'heart', 'love', 'emotion'] },
+    { icon: '💘', category: 'beauty', keywords: ['cupid', 'arrow', 'love', 'romance'] },
+    { icon: '💙', category: 'beauty', keywords: ['blue', 'heart', 'love', 'color'] },
+    { icon: '💚', category: 'beauty', keywords: ['green', 'heart', 'love', 'nature'] },
+    { icon: '💛', category: 'beauty', keywords: ['yellow', 'heart', 'love', 'color'] },
+    { icon: '💜', category: 'beauty', keywords: ['purple', 'heart', 'love', 'color'] },
+    { icon: '💝', category: 'beauty', keywords: ['gift', 'heart', 'present', 'love'] },
+    { icon: '💞', category: 'beauty', keywords: ['revolving', 'hearts', 'love', 'romance'] },
+    { icon: '💟', category: 'beauty', keywords: ['heart', 'decoration', 'love', 'beauty'] },
+    { icon: '💠', category: 'beauty', keywords: ['diamond', 'shape', 'gem', 'beauty'] },
+    { icon: '💡', category: 'beauty', keywords: ['lightbulb', 'idea', 'bright', 'light'] },
+    { icon: '💢', category: 'beauty', keywords: ['anger', 'symbol', 'mad', 'emotion'] },
+    { icon: '💣', category: 'beauty', keywords: ['bomb', 'explosive', 'danger', 'warning'] },
+    { icon: '💤', category: 'beauty', keywords: ['sleeping', 'zzz', 'sleep', 'rest'] },
+    { icon: '💥', category: 'beauty', keywords: ['explosion', 'boom', 'collision', 'impact'] },
+    { icon: '💦', category: 'beauty', keywords: ['sweat', 'droplets', 'water', 'exercise'] },
+    { icon: '💨', category: 'beauty', keywords: ['wind', 'blowing', 'air', 'fast'] },
+    { icon: '💩', category: 'beauty', keywords: ['poop', 'pile', 'waste', 'funny'] },
+    { icon: '💫', category: 'beauty', keywords: ['dizzy', 'star', 'sparkle', 'magic'] },
+    { icon: '💬', category: 'beauty', keywords: ['speech', 'bubble', 'talk', 'chat'] },
+    { icon: '💮', category: 'beauty', keywords: ['white', 'flower', 'blossom', 'beauty'] },
+    { icon: '💯', category: 'beauty', keywords: ['hundred', 'points', 'perfect', 'score'] },
+    { icon: '💰', category: 'beauty', keywords: ['money', 'bag', 'wealth', 'rich'] },
+    { icon: '💱', category: 'beauty', keywords: ['currency', 'exchange', 'money', 'trade'] },
+    { icon: '💲', category: 'beauty', keywords: ['dollar', 'sign', 'money', 'currency'] },
+    { icon: '💳', category: 'beauty', keywords: ['credit', 'card', 'payment', 'money'] },
+    { icon: '💴', category: 'beauty', keywords: ['yen', 'banknote', 'money', 'japan'] },
+    { icon: '💵', category: 'beauty', keywords: ['dollar', 'banknote', 'money', 'usa'] },
+    { icon: '💶', category: 'beauty', keywords: ['euro', 'banknote', 'money', 'europe'] },
+    { icon: '💷', category: 'beauty', keywords: ['pound', 'banknote', 'money', 'uk'] },
+    { icon: '💸', category: 'beauty', keywords: ['money', 'wings', 'flying', 'expensive'] },
+    { icon: '💹', category: 'beauty', keywords: ['chart', 'increasing', 'yen', 'growth'] },
+    { icon: '💺', category: 'beauty', keywords: ['seat', 'chair', 'sitting', 'rest'] },
+    { icon: '💻', category: 'beauty', keywords: ['laptop', 'computer', 'work', 'tech'] },
+    { icon: '💼', category: 'beauty', keywords: ['briefcase', 'work', 'business', 'office'] },
+    { icon: '💽', category: 'beauty', keywords: ['minidisc', 'disk', 'music', 'storage'] },
+    { icon: '💾', category: 'beauty', keywords: ['floppy', 'disk', 'save', 'storage'] },
+    { icon: '💿', category: 'beauty', keywords: ['optical', 'disk', 'cd', 'music'] },
+    { icon: '📀', category: 'beauty', keywords: ['dvd', 'disk', 'movie', 'video'] },
+    
+    // Минималистичные геометрические формы
+    { icon: '⚫', category: 'minimal', keywords: ['circle', 'black', 'dot', 'minimal'] },
+    { icon: '⚪', category: 'minimal', keywords: ['circle', 'white', 'dot', 'minimal'] },
+    { icon: '🔴', category: 'minimal', keywords: ['circle', 'red', 'dot', 'minimal'] },
+    { icon: '🟠', category: 'minimal', keywords: ['circle', 'orange', 'dot', 'minimal'] },
+    { icon: '🟡', category: 'minimal', keywords: ['circle', 'yellow', 'dot', 'minimal'] },
+    { icon: '🟢', category: 'minimal', keywords: ['circle', 'green', 'dot', 'minimal'] },
+    { icon: '🔵', category: 'minimal', keywords: ['circle', 'blue', 'dot', 'minimal'] },
+    { icon: '🟣', category: 'minimal', keywords: ['circle', 'purple', 'dot', 'minimal'] },
+    { icon: '🟤', category: 'minimal', keywords: ['circle', 'brown', 'dot', 'minimal'] },
+    { icon: '⚫', category: 'minimal', keywords: ['square', 'black', 'box', 'minimal'] },
+    { icon: '⚪', category: 'minimal', keywords: ['square', 'white', 'box', 'minimal'] },
+    { icon: '🔴', category: 'minimal', keywords: ['square', 'red', 'box', 'minimal'] },
+    { icon: '🟠', category: 'minimal', keywords: ['square', 'orange', 'box', 'minimal'] },
+    { icon: '🟡', category: 'minimal', keywords: ['square', 'yellow', 'box', 'minimal'] },
+    { icon: '🟢', category: 'minimal', keywords: ['square', 'green', 'box', 'minimal'] },
+    { icon: '🔵', category: 'minimal', keywords: ['square', 'blue', 'box', 'minimal'] },
+    { icon: '🟣', category: 'minimal', keywords: ['square', 'purple', 'box', 'minimal'] },
+    { icon: '🟤', category: 'minimal', keywords: ['square', 'brown', 'box', 'minimal'] },
+    { icon: '🔺', category: 'minimal', keywords: ['triangle', 'red', 'up', 'minimal'] },
+    { icon: '🔻', category: 'minimal', keywords: ['triangle', 'red', 'down', 'minimal'] },
+    { icon: '🔸', category: 'minimal', keywords: ['triangle', 'orange', 'small', 'minimal'] },
+    { icon: '🔹', category: 'minimal', keywords: ['triangle', 'blue', 'small', 'minimal'] },
+    { icon: '🔶', category: 'minimal', keywords: ['triangle', 'orange', 'large', 'minimal'] },
+    { icon: '🔷', category: 'minimal', keywords: ['triangle', 'blue', 'large', 'minimal'] },
+    { icon: '🔴', category: 'minimal', keywords: ['diamond', 'red', 'gem', 'minimal'] },
+    { icon: '🔵', category: 'minimal', keywords: ['diamond', 'blue', 'gem', 'minimal'] },
+    { icon: '🔺', category: 'minimal', keywords: ['diamond', 'orange', 'gem', 'minimal'] },
+    { icon: '🔻', category: 'minimal', keywords: ['diamond', 'blue', 'gem', 'minimal'] },
+    
+    // Символы и знаки
+    { icon: '➕', category: 'minimal', keywords: ['plus', 'add', 'cross', 'minimal'] },
+    { icon: '➖', category: 'minimal', keywords: ['minus', 'subtract', 'dash', 'minimal'] },
+    { icon: '✖️', category: 'minimal', keywords: ['multiply', 'times', 'x', 'minimal'] },
+    { icon: '➗', category: 'minimal', keywords: ['divide', 'division', 'slash', 'minimal'] },
+    { icon: '✔️', category: 'minimal', keywords: ['check', 'tick', 'correct', 'minimal'] },
+    { icon: '❌', category: 'minimal', keywords: ['cross', 'wrong', 'error', 'minimal'] },
+    { icon: '✅', category: 'minimal', keywords: ['check', 'green', 'correct', 'minimal'] },
+    { icon: '❎', category: 'minimal', keywords: ['cross', 'red', 'wrong', 'minimal'] },
+    { icon: '⭐', category: 'minimal', keywords: ['star', 'favorite', 'rating', 'minimal'] },
+    { icon: '🌟', category: 'minimal', keywords: ['star', 'glowing', 'bright', 'minimal'] },
+    { icon: '💫', category: 'minimal', keywords: ['star', 'dizzy', 'sparkle', 'minimal'] },
+    { icon: '✨', category: 'minimal', keywords: ['sparkles', 'shine', 'magic', 'minimal'] },
+    { icon: '❓', category: 'minimal', keywords: ['question', 'help', 'ask', 'minimal'] },
+    { icon: '❔', category: 'minimal', keywords: ['question', 'white', 'help', 'minimal'] },
+    { icon: '❕', category: 'minimal', keywords: ['exclamation', 'white', 'warning', 'minimal'] },
+    { icon: '❗', category: 'minimal', keywords: ['exclamation', 'red', 'warning', 'minimal'] },
+    { icon: '‼️', category: 'minimal', keywords: ['double', 'exclamation', 'urgent', 'minimal'] },
+    { icon: '⁉️', category: 'minimal', keywords: ['exclamation', 'question', 'surprise', 'minimal'] },
+    { icon: '❣️', category: 'minimal', keywords: ['heart', 'exclamation', 'love', 'minimal'] },
+    { icon: '💢', category: 'minimal', keywords: ['anger', 'symbol', 'mad', 'minimal'] },
+    { icon: '💯', category: 'minimal', keywords: ['hundred', 'points', 'perfect', 'minimal'] },
+    { icon: '🔟', category: 'minimal', keywords: ['ten', 'number', 'keycap', 'minimal'] },
+    { icon: '🔢', category: 'minimal', keywords: ['numbers', '123', 'digits', 'minimal'] },
+    { icon: '🔣', category: 'minimal', keywords: ['symbols', 'punctuation', 'marks', 'minimal'] },
+    { icon: '🔤', category: 'minimal', keywords: ['letters', 'abc', 'alphabet', 'minimal'] },
+    { icon: '🅰️', category: 'minimal', keywords: ['a', 'blood', 'type', 'minimal'] },
+    { icon: '🅱️', category: 'minimal', keywords: ['b', 'blood', 'type', 'minimal'] },
+    { icon: '🆎', category: 'minimal', keywords: ['ab', 'blood', 'type', 'minimal'] },
+    { icon: '🅾️', category: 'minimal', keywords: ['o', 'blood', 'type', 'minimal'] },
+    { icon: '🆑', category: 'minimal', keywords: ['cl', 'clear', 'delete', 'minimal'] },
+    { icon: '🆒', category: 'minimal', keywords: ['cool', 'squared', 'fresh', 'minimal'] },
+    { icon: '🆓', category: 'minimal', keywords: ['free', 'squared', 'no', 'minimal'] },
+    { icon: '🆔', category: 'minimal', keywords: ['id', 'squared', 'identity', 'minimal'] },
+    { icon: '🆕', category: 'minimal', keywords: ['new', 'squared', 'fresh', 'minimal'] },
+    { icon: '🆖', category: 'minimal', keywords: ['ng', 'squared', 'no', 'minimal'] },
+    { icon: '🆗', category: 'minimal', keywords: ['ok', 'squared', 'good', 'minimal'] },
+    { icon: '🆘', category: 'minimal', keywords: ['sos', 'squared', 'help', 'minimal'] },
+    { icon: '🆙', category: 'minimal', keywords: ['up', 'squared', 'arrow', 'minimal'] },
+    { icon: '🆚', category: 'minimal', keywords: ['vs', 'squared', 'versus', 'minimal'] },
+    { icon: '🈁', category: 'minimal', keywords: ['japanese', 'here', 'location', 'minimal'] },
+    { icon: '🈂️', category: 'minimal', keywords: ['japanese', 'service', 'charge', 'minimal'] },
+    { icon: '🈷️', category: 'minimal', keywords: ['japanese', 'monthly', 'amount', 'minimal'] },
+    { icon: '🈶', category: 'minimal', keywords: ['japanese', 'not', 'free', 'minimal'] },
+    { icon: '🈯', category: 'minimal', keywords: ['japanese', 'reserved', 'booking', 'minimal'] },
+    { icon: '🉐', category: 'minimal', keywords: ['japanese', 'bargain', 'deal', 'minimal'] },
+    { icon: '🈹', category: 'minimal', keywords: ['japanese', 'discount', 'sale', 'minimal'] },
+    { icon: '🈚', category: 'minimal', keywords: ['japanese', 'free', 'charge', 'minimal'] },
+    { icon: '🈲', category: 'minimal', keywords: ['japanese', 'prohibited', 'no', 'minimal'] },
+    { icon: '🉑', category: 'minimal', keywords: ['japanese', 'acceptable', 'ok', 'minimal'] },
+    { icon: '🈸', category: 'minimal', keywords: ['japanese', 'application', 'form', 'minimal'] },
+    { icon: '🈴', category: 'minimal', keywords: ['japanese', 'passing', 'grade', 'minimal'] },
+    { icon: '🈳', category: 'minimal', keywords: ['japanese', 'vacancy', 'empty', 'minimal'] },
+    { icon: '㊗️', category: 'minimal', keywords: ['japanese', 'congratulations', 'celebration', 'minimal'] },
+    { icon: '㊙️', category: 'minimal', keywords: ['japanese', 'secret', 'confidential', 'minimal'] },
+    { icon: '🈺', category: 'minimal', keywords: ['japanese', 'open', 'business', 'minimal'] },
+    { icon: '🈵', category: 'minimal', keywords: ['japanese', 'no', 'vacancy', 'minimal'] },
+    
+    // Стрелки и направления
+    { icon: '⬆️', category: 'minimal', keywords: ['up', 'arrow', 'north', 'minimal'] },
+    { icon: '⬇️', category: 'minimal', keywords: ['down', 'arrow', 'south', 'minimal'] },
+    { icon: '⬅️', category: 'minimal', keywords: ['left', 'arrow', 'west', 'minimal'] },
+    { icon: '➡️', category: 'minimal', keywords: ['right', 'arrow', 'east', 'minimal'] },
+    { icon: '↗️', category: 'minimal', keywords: ['up', 'right', 'northeast', 'minimal'] },
+    { icon: '↘️', category: 'minimal', keywords: ['down', 'right', 'southeast', 'minimal'] },
+    { icon: '↙️', category: 'minimal', keywords: ['down', 'left', 'southwest', 'minimal'] },
+    { icon: '↖️', category: 'minimal', keywords: ['up', 'left', 'northwest', 'minimal'] },
+    { icon: '↕️', category: 'minimal', keywords: ['up', 'down', 'vertical', 'minimal'] },
+    { icon: '↔️', category: 'minimal', keywords: ['left', 'right', 'horizontal', 'minimal'] },
+    { icon: '↩️', category: 'minimal', keywords: ['return', 'left', 'back', 'minimal'] },
+    { icon: '↪️', category: 'minimal', keywords: ['return', 'right', 'forward', 'minimal'] },
+    { icon: '⤴️', category: 'minimal', keywords: ['up', 'right', 'curve', 'minimal'] },
+    { icon: '⤵️', category: 'minimal', keywords: ['down', 'right', 'curve', 'minimal'] },
+    { icon: '🔃', category: 'minimal', keywords: ['clockwise', 'arrows', 'refresh', 'minimal'] },
+    { icon: '🔄', category: 'minimal', keywords: ['counterclockwise', 'arrows', 'undo', 'minimal'] },
+    { icon: '🔙', category: 'minimal', keywords: ['back', 'arrow', 'return', 'minimal'] },
+    { icon: '🔚', category: 'minimal', keywords: ['end', 'arrow', 'finish', 'minimal'] },
+    { icon: '🔛', category: 'minimal', keywords: ['on', 'arrow', 'active', 'minimal'] },
+    { icon: '🔜', category: 'minimal', keywords: ['soon', 'arrow', 'coming', 'minimal'] },
+    { icon: '🔝', category: 'minimal', keywords: ['top', 'arrow', 'up', 'minimal'] },
+    { icon: '🔞', category: 'minimal', keywords: ['18', 'adult', 'restricted', 'minimal'] },
+    { icon: '🔟', category: 'minimal', keywords: ['ten', 'number', 'keycap', 'minimal'] },
+    { icon: '🔢', category: 'minimal', keywords: ['numbers', '123', 'digits', 'minimal'] },
+    { icon: '🔣', category: 'minimal', keywords: ['symbols', 'punctuation', 'marks', 'minimal'] },
+    { icon: '🔤', category: 'minimal', keywords: ['letters', 'abc', 'alphabet', 'minimal'] },
+    { icon: '🅰️', category: 'minimal', keywords: ['a', 'blood', 'type', 'minimal'] },
+    { icon: '🅱️', category: 'minimal', keywords: ['b', 'blood', 'type', 'minimal'] },
+    { icon: '🆎', category: 'minimal', keywords: ['ab', 'blood', 'type', 'minimal'] },
+    { icon: '🅾️', category: 'minimal', keywords: ['o', 'blood', 'type', 'minimal'] },
+    { icon: '🆑', category: 'minimal', keywords: ['cl', 'clear', 'delete', 'minimal'] },
+    { icon: '🆒', category: 'minimal', keywords: ['cool', 'squared', 'fresh', 'minimal'] },
+    { icon: '🆓', category: 'minimal', keywords: ['free', 'squared', 'no', 'minimal'] },
+    { icon: '🆔', category: 'minimal', keywords: ['id', 'squared', 'identity', 'minimal'] },
+    { icon: '🆕', category: 'minimal', keywords: ['new', 'squared', 'fresh', 'minimal'] },
+    { icon: '🆖', category: 'minimal', keywords: ['ng', 'squared', 'no', 'minimal'] },
+    { icon: '🆗', category: 'minimal', keywords: ['ok', 'squared', 'good', 'minimal'] },
+    { icon: '🆘', category: 'minimal', keywords: ['sos', 'squared', 'help', 'minimal'] },
+    { icon: '🆙', category: 'minimal', keywords: ['up', 'squared', 'arrow', 'minimal'] },
+    { icon: '🆚', category: 'minimal', keywords: ['vs', 'squared', 'versus', 'minimal'] },
+    { icon: '🈁', category: 'minimal', keywords: ['japanese', 'here', 'location', 'minimal'] },
+    { icon: '🈂️', category: 'minimal', keywords: ['japanese', 'service', 'charge', 'minimal'] },
+    { icon: '🈷️', category: 'minimal', keywords: ['japanese', 'monthly', 'amount', 'minimal'] },
+    { icon: '🈶', category: 'minimal', keywords: ['japanese', 'not', 'free', 'minimal'] },
+    { icon: '🈯', category: 'minimal', keywords: ['japanese', 'reserved', 'booking', 'minimal'] },
+    { icon: '🉐', category: 'minimal', keywords: ['japanese', 'bargain', 'deal', 'minimal'] },
+    { icon: '🈹', category: 'minimal', keywords: ['japanese', 'discount', 'sale', 'minimal'] },
+    { icon: '🈚', category: 'minimal', keywords: ['japanese', 'free', 'charge', 'minimal'] },
+    { icon: '🈲', category: 'minimal', keywords: ['japanese', 'prohibited', 'no', 'minimal'] },
+    { icon: '🉑', category: 'minimal', keywords: ['japanese', 'acceptable', 'ok', 'minimal'] },
+    { icon: '🈸', category: 'minimal', keywords: ['japanese', 'application', 'form', 'minimal'] },
+    { icon: '🈴', category: 'minimal', keywords: ['japanese', 'passing', 'grade', 'minimal'] },
+    { icon: '🈳', category: 'minimal', keywords: ['japanese', 'vacancy', 'empty', 'minimal'] },
+    { icon: '㊗️', category: 'minimal', keywords: ['japanese', 'congratulations', 'celebration', 'minimal'] },
+    { icon: '㊙️', category: 'minimal', keywords: ['japanese', 'secret', 'confidential', 'minimal'] },
+    { icon: '🈺', category: 'minimal', keywords: ['japanese', 'open', 'business', 'minimal'] },
+    { icon: '🈵', category: 'minimal', keywords: ['japanese', 'no', 'vacancy', 'minimal'] },
+    
+    // Животные
+    { icon: '🐶', category: 'animals', keywords: ['dog', 'puppy', 'pet', 'animal'] },
+    { icon: '🐱', category: 'animals', keywords: ['cat', 'kitten', 'pet', 'animal'] },
+    { icon: '🐭', category: 'animals', keywords: ['mouse', 'rat', 'small', 'animal'] },
+    { icon: '🐹', category: 'animals', keywords: ['hamster', 'pet', 'small', 'animal'] },
+    { icon: '🐰', category: 'animals', keywords: ['rabbit', 'bunny', 'pet', 'animal'] },
+    { icon: '🦊', category: 'animals', keywords: ['fox', 'wild', 'cunning', 'animal'] },
+    { icon: '🐻', category: 'animals', keywords: ['bear', 'wild', 'strong', 'animal'] },
+    { icon: '🐼', category: 'animals', keywords: ['panda', 'cute', 'china', 'animal'] },
+    { icon: '🐨', category: 'animals', keywords: ['koala', 'australia', 'cute', 'animal'] },
+    { icon: '🐯', category: 'animals', keywords: ['tiger', 'wild', 'stripes', 'animal'] },
+    { icon: '🦁', category: 'animals', keywords: ['lion', 'king', 'wild', 'animal'] },
+    { icon: '🐮', category: 'animals', keywords: ['cow', 'farm', 'milk', 'animal'] },
+    { icon: '🐷', category: 'animals', keywords: ['pig', 'farm', 'pink', 'animal'] },
+    { icon: '🐸', category: 'animals', keywords: ['frog', 'green', 'jump', 'animal'] },
+    { icon: '🐵', category: 'animals', keywords: ['monkey', 'banana', 'funny', 'animal'] },
+    { icon: '🙈', category: 'animals', keywords: ['monkey', 'see', 'no', 'evil'] },
+    { icon: '🙉', category: 'animals', keywords: ['monkey', 'hear', 'no', 'evil'] },
+    { icon: '🙊', category: 'animals', keywords: ['monkey', 'speak', 'no', 'evil'] },
+    { icon: '🐒', category: 'animals', keywords: ['monkey', 'wild', 'jungle', 'animal'] },
+    { icon: '🦍', category: 'animals', keywords: ['gorilla', 'strong', 'wild', 'animal'] },
+    { icon: '🦧', category: 'animals', keywords: ['orangutan', 'ape', 'wild', 'animal'] },
+    { icon: '🐕', category: 'animals', keywords: ['dog', 'pet', 'loyal', 'animal'] },
+    { icon: '🐩', category: 'animals', keywords: ['poodle', 'dog', 'curly', 'animal'] },
+    { icon: '🐺', category: 'animals', keywords: ['wolf', 'wild', 'pack', 'animal'] },
+    { icon: '🦝', category: 'animals', keywords: ['raccoon', 'mask', 'cute', 'animal'] },
+    { icon: '🐈', category: 'animals', keywords: ['cat', 'pet', 'independent', 'animal'] },
+    { icon: '🦁', category: 'animals', keywords: ['lion', 'king', 'wild', 'animal'] },
+    { icon: '🐅', category: 'animals', keywords: ['tiger', 'wild', 'stripes', 'animal'] },
+    { icon: '🐆', category: 'animals', keywords: ['leopard', 'spots', 'wild', 'animal'] },
+    { icon: '🐴', category: 'animals', keywords: ['horse', 'ride', 'fast', 'animal'] },
+    { icon: '🦄', category: 'animals', keywords: ['unicorn', 'magic', 'rainbow', 'animal'] },
+    { icon: '🦓', category: 'animals', keywords: ['zebra', 'stripes', 'africa', 'animal'] },
+    { icon: '🦌', category: 'animals', keywords: ['deer', 'antlers', 'forest', 'animal'] },
+    { icon: '🐂', category: 'animals', keywords: ['ox', 'bull', 'strong', 'animal'] },
+    { icon: '🐃', category: 'animals', keywords: ['water', 'buffalo', 'strong', 'animal'] },
+    { icon: '🐄', category: 'animals', keywords: ['cow', 'farm', 'milk', 'animal'] },
+    { icon: '🐎', category: 'animals', keywords: ['horse', 'race', 'fast', 'animal'] },
+    { icon: '🐖', category: 'animals', keywords: ['pig', 'farm', 'pink', 'animal'] },
+    { icon: '🐗', category: 'animals', keywords: ['boar', 'wild', 'tusks', 'animal'] },
+    { icon: '🐘', category: 'animals', keywords: ['elephant', 'big', 'trunk', 'animal'] },
+    { icon: '🦏', category: 'animals', keywords: ['rhinoceros', 'horn', 'big', 'animal'] },
+    { icon: '🦛', category: 'animals', keywords: ['hippopotamus', 'water', 'big', 'animal'] },
+    { icon: '🐪', category: 'animals', keywords: ['camel', 'desert', 'hump', 'animal'] },
+    { icon: '🐫', category: 'animals', keywords: ['two', 'hump', 'camel', 'animal'] },
+    { icon: '🦒', category: 'animals', keywords: ['giraffe', 'tall', 'neck', 'animal'] },
+    { icon: '🦘', category: 'animals', keywords: ['kangaroo', 'australia', 'jump', 'animal'] },
+    { icon: '🐃', category: 'animals', keywords: ['water', 'buffalo', 'strong', 'animal'] },
+    { icon: '🐄', category: 'animals', keywords: ['cow', 'farm', 'milk', 'animal'] },
+    { icon: '🐎', category: 'animals', keywords: ['horse', 'race', 'fast', 'animal'] },
+    { icon: '🐖', category: 'animals', keywords: ['pig', 'farm', 'pink', 'animal'] },
+    { icon: '🐗', category: 'animals', keywords: ['boar', 'wild', 'tusks', 'animal'] },
+    { icon: '🐘', category: 'animals', keywords: ['elephant', 'big', 'trunk', 'animal'] },
+    { icon: '🦏', category: 'animals', keywords: ['rhinoceros', 'horn', 'big', 'animal'] },
+    { icon: '🦛', category: 'animals', keywords: ['hippopotamus', 'water', 'big', 'animal'] },
+    { icon: '🐪', category: 'animals', keywords: ['camel', 'desert', 'hump', 'animal'] },
+    { icon: '🐫', category: 'animals', keywords: ['two', 'hump', 'camel', 'animal'] },
+    { icon: '🦒', category: 'animals', keywords: ['giraffe', 'tall', 'neck', 'animal'] },
+    { icon: '🦘', category: 'animals', keywords: ['kangaroo', 'australia', 'jump', 'animal'] },
+    
+    // Птицы
+    { icon: '🐦', category: 'animals', keywords: ['bird', 'fly', 'wings', 'animal'] },
+    { icon: '🐧', category: 'animals', keywords: ['penguin', 'antarctica', 'cold', 'animal'] },
+    { icon: '🐔', category: 'animals', keywords: ['chicken', 'farm', 'egg', 'animal'] },
+    { icon: '🐓', category: 'animals', keywords: ['rooster', 'farm', 'crow', 'animal'] },
+    { icon: '🦆', category: 'animals', keywords: ['duck', 'water', 'quack', 'animal'] },
+    { icon: '🦅', category: 'animals', keywords: ['eagle', 'bird', 'fly', 'animal'] },
+    { icon: '🦉', category: 'animals', keywords: ['owl', 'night', 'wise', 'animal'] },
+    { icon: '🦇', category: 'animals', keywords: ['bat', 'night', 'fly', 'animal'] },
+    { icon: '🦜', category: 'animals', keywords: ['parrot', 'colorful', 'talk', 'animal'] },
+    { icon: '🦚', category: 'animals', keywords: ['peacock', 'beautiful', 'feathers', 'animal'] },
+    { icon: '🦩', category: 'animals', keywords: ['flamingo', 'pink', 'water', 'animal'] },
+    { icon: '🕊️', category: 'animals', keywords: ['dove', 'peace', 'white', 'animal'] },
+    { icon: '🐥', category: 'animals', keywords: ['chick', 'baby', 'yellow', 'animal'] },
+    { icon: '🐣', category: 'animals', keywords: ['hatching', 'chick', 'egg', 'animal'] },
+    { icon: '🐤', category: 'animals', keywords: ['baby', 'chick', 'small', 'animal'] },
+    { icon: '🐦', category: 'animals', keywords: ['bird', 'fly', 'wings', 'animal'] },
+    { icon: '🐧', category: 'animals', keywords: ['penguin', 'antarctica', 'cold', 'animal'] },
+    { icon: '🐔', category: 'animals', keywords: ['chicken', 'farm', 'egg', 'animal'] },
+    { icon: '🐓', category: 'animals', keywords: ['rooster', 'farm', 'crow', 'animal'] },
+    { icon: '🦆', category: 'animals', keywords: ['duck', 'water', 'quack', 'animal'] },
+    { icon: '🦅', category: 'animals', keywords: ['eagle', 'bird', 'fly', 'animal'] },
+    { icon: '🦉', category: 'animals', keywords: ['owl', 'night', 'wise', 'animal'] },
+    { icon: '🦇', category: 'animals', keywords: ['bat', 'night', 'fly', 'animal'] },
+    { icon: '🦜', category: 'animals', keywords: ['parrot', 'colorful', 'talk', 'animal'] },
+    { icon: '🦚', category: 'animals', keywords: ['peacock', 'beautiful', 'feathers', 'animal'] },
+    { icon: '🦩', category: 'animals', keywords: ['flamingo', 'pink', 'water', 'animal'] },
+    { icon: '🕊️', category: 'animals', keywords: ['dove', 'peace', 'white', 'animal'] },
+    { icon: '🐥', category: 'animals', keywords: ['chick', 'baby', 'yellow', 'animal'] },
+    { icon: '🐣', category: 'animals', keywords: ['hatching', 'chick', 'egg', 'animal'] },
+    { icon: '🐤', category: 'animals', keywords: ['baby', 'chick', 'small', 'animal'] },
+    
+    // Морские животные
+    { icon: '🐟', category: 'animals', keywords: ['fish', 'water', 'swim', 'animal'] },
+    { icon: '🐠', category: 'animals', keywords: ['tropical', 'fish', 'colorful', 'animal'] },
+    { icon: '🐡', category: 'animals', keywords: ['blowfish', 'puffer', 'water', 'animal'] },
+    { icon: '🦈', category: 'animals', keywords: ['shark', 'teeth', 'water', 'animal'] },
+    { icon: '🐙', category: 'animals', keywords: ['octopus', 'tentacles', 'water', 'animal'] },
+    { icon: '🐚', category: 'animals', keywords: ['shell', 'beach', 'spiral', 'animal'] },
+    { icon: '🐌', category: 'animals', keywords: ['snail', 'slow', 'shell', 'animal'] },
+    { icon: '🦋', category: 'animals', keywords: ['butterfly', 'wings', 'colorful', 'animal'] },
+    { icon: '🐛', category: 'animals', keywords: ['bug', 'insect', 'small', 'animal'] },
+    { icon: '🐜', category: 'animals', keywords: ['ant', 'small', 'work', 'animal'] },
+    { icon: '🐝', category: 'animals', keywords: ['bee', 'honey', 'buzz', 'animal'] },
+    { icon: '🦟', category: 'animals', keywords: ['mosquito', 'buzz', 'bite', 'animal'] },
+    { icon: '🦗', category: 'animals', keywords: ['cricket', 'chirp', 'jump', 'animal'] },
+    { icon: '🕷️', category: 'animals', keywords: ['spider', 'web', 'eight', 'animal'] },
+    { icon: '🕸️', category: 'animals', keywords: ['spider', 'web', 'net', 'animal'] },
+    { icon: '🦂', category: 'animals', keywords: ['scorpion', 'sting', 'tail', 'animal'] },
+    { icon: '🦠', category: 'animals', keywords: ['microbe', 'virus', 'small', 'animal'] },
+    { icon: '🐢', category: 'animals', keywords: ['turtle', 'slow', 'shell', 'animal'] },
+    { icon: '🦎', category: 'animals', keywords: ['lizard', 'reptile', 'scales', 'animal'] },
+    { icon: '🐍', category: 'animals', keywords: ['snake', 'slither', 'reptile', 'animal'] },
+    { icon: '🦕', category: 'animals', keywords: ['sauropod', 'dinosaur', 'big', 'animal'] },
+    { icon: '🦖', category: 'animals', keywords: ['t-rex', 'dinosaur', 'big', 'animal'] },
+    { icon: '🐲', category: 'animals', keywords: ['dragon', 'fire', 'mythical', 'animal'] },
+    { icon: '🐉', category: 'animals', keywords: ['dragon', 'chinese', 'mythical', 'animal'] },
+    { icon: '🦕', category: 'animals', keywords: ['sauropod', 'dinosaur', 'big', 'animal'] },
+    { icon: '🦖', category: 'animals', keywords: ['t-rex', 'dinosaur', 'big', 'animal'] },
+    { icon: '🐲', category: 'animals', keywords: ['dragon', 'fire', 'mythical', 'animal'] },
+    { icon: '🐉', category: 'animals', keywords: ['dragon', 'chinese', 'mythical', 'animal'] },
+    
+    // Еда и напитки
+    { icon: '🍎', category: 'food', keywords: ['apple', 'fruit', 'healthy', 'food'] },
+    { icon: '🍊', category: 'food', keywords: ['orange', 'fruit', 'citrus', 'food'] },
+    { icon: '🍋', category: 'food', keywords: ['lemon', 'fruit', 'citrus', 'food'] },
+    { icon: '🍌', category: 'food', keywords: ['banana', 'fruit', 'yellow', 'food'] },
+    { icon: '🍉', category: 'food', keywords: ['watermelon', 'fruit', 'summer', 'food'] },
+    { icon: '🍇', category: 'food', keywords: ['grapes', 'fruit', 'wine', 'food'] },
+    { icon: '🍓', category: 'food', keywords: ['strawberry', 'fruit', 'red', 'food'] },
+    { icon: '🍈', category: 'food', keywords: ['melon', 'fruit', 'sweet', 'food'] },
+    { icon: '🍒', category: 'food', keywords: ['cherry', 'fruit', 'red', 'food'] },
+    { icon: '🍑', category: 'food', keywords: ['peach', 'fruit', 'soft', 'food'] },
+    { icon: '🥭', category: 'food', keywords: ['mango', 'fruit', 'tropical', 'food'] },
+    { icon: '🍍', category: 'food', keywords: ['pineapple', 'fruit', 'tropical', 'food'] },
+    { icon: '🥥', category: 'food', keywords: ['coconut', 'fruit', 'tropical', 'food'] },
+    { icon: '🥝', category: 'food', keywords: ['kiwi', 'fruit', 'green', 'food'] },
+    { icon: '🍅', category: 'food', keywords: ['tomato', 'vegetable', 'red', 'food'] },
+    { icon: '🍆', category: 'food', keywords: ['eggplant', 'vegetable', 'purple', 'food'] },
+    { icon: '🥑', category: 'food', keywords: ['avocado', 'vegetable', 'green', 'food'] },
+    { icon: '🥦', category: 'food', keywords: ['broccoli', 'vegetable', 'green', 'food'] },
+    { icon: '🥕', category: 'food', keywords: ['carrot', 'vegetable', 'orange', 'food'] },
+    { icon: '🌽', category: 'food', keywords: ['corn', 'vegetable', 'yellow', 'food'] },
+    { icon: '🌶️', category: 'food', keywords: ['pepper', 'vegetable', 'spicy', 'food'] },
+    { icon: '🫒', category: 'food', keywords: ['olive', 'vegetable', 'green', 'food'] },
+    { icon: '🥒', category: 'food', keywords: ['cucumber', 'vegetable', 'green', 'food'] },
+    { icon: '🥬', category: 'food', keywords: ['lettuce', 'vegetable', 'green', 'food'] },
+    { icon: '🥭', category: 'food', keywords: ['mango', 'fruit', 'tropical', 'food'] },
+    { icon: '🍍', category: 'food', keywords: ['pineapple', 'fruit', 'tropical', 'food'] },
+    { icon: '🥥', category: 'food', keywords: ['coconut', 'fruit', 'tropical', 'food'] },
+    { icon: '🥝', category: 'food', keywords: ['kiwi', 'fruit', 'green', 'food'] },
+    { icon: '🍅', category: 'food', keywords: ['tomato', 'vegetable', 'red', 'food'] },
+    { icon: '🍆', category: 'food', keywords: ['eggplant', 'vegetable', 'purple', 'food'] },
+    { icon: '🥑', category: 'food', keywords: ['avocado', 'vegetable', 'green', 'food'] },
+    { icon: '🥦', category: 'food', keywords: ['broccoli', 'vegetable', 'green', 'food'] },
+    { icon: '🥕', category: 'food', keywords: ['carrot', 'vegetable', 'orange', 'food'] },
+    { icon: '🌽', category: 'food', keywords: ['corn', 'vegetable', 'yellow', 'food'] },
+    { icon: '🌶️', category: 'food', keywords: ['pepper', 'vegetable', 'spicy', 'food'] },
+    { icon: '🫒', category: 'food', keywords: ['olive', 'vegetable', 'green', 'food'] },
+    { icon: '🥒', category: 'food', keywords: ['cucumber', 'vegetable', 'green', 'food'] },
+    { icon: '🥬', category: 'food', keywords: ['lettuce', 'vegetable', 'green', 'food'] },
+    
+    // Напитки
+    { icon: '🥤', category: 'food', keywords: ['cup', 'straw', 'drink', 'food'] },
+    { icon: '🧃', category: 'food', keywords: ['beverage', 'box', 'drink', 'food'] },
+    { icon: '🧉', category: 'food', keywords: ['mate', 'drink', 'herbal', 'food'] },
+    { icon: '🧊', category: 'food', keywords: ['ice', 'cube', 'cold', 'food'] },
+    { icon: '🥢', category: 'food', keywords: ['chopsticks', 'eating', 'asian', 'food'] },
+    { icon: '🍽️', category: 'food', keywords: ['plate', 'fork', 'knife', 'food'] },
+    { icon: '🍴', category: 'food', keywords: ['fork', 'knife', 'eating', 'food'] },
+    { icon: '🥄', category: 'food', keywords: ['spoon', 'eating', 'soup', 'food'] },
+    { icon: '🔪', category: 'food', keywords: ['knife', 'cutting', 'sharp', 'food'] },
+    { icon: '🏺', category: 'food', keywords: ['amphora', 'vase', 'ancient', 'food'] },
+    { icon: '🥤', category: 'food', keywords: ['cup', 'straw', 'drink', 'food'] },
+    { icon: '🧃', category: 'food', keywords: ['beverage', 'box', 'drink', 'food'] },
+    { icon: '🧉', category: 'food', keywords: ['mate', 'drink', 'herbal', 'food'] },
+    { icon: '🧊', category: 'food', keywords: ['ice', 'cube', 'cold', 'food'] },
+    { icon: '🥢', category: 'food', keywords: ['chopsticks', 'eating', 'asian', 'food'] },
+    { icon: '🍽️', category: 'food', keywords: ['plate', 'fork', 'knife', 'food'] },
+    { icon: '🍴', category: 'food', keywords: ['fork', 'knife', 'eating', 'food'] },
+    { icon: '🥄', category: 'food', keywords: ['spoon', 'eating', 'soup', 'food'] },
+    { icon: '🔪', category: 'food', keywords: ['knife', 'cutting', 'sharp', 'food'] },
+    { icon: '🏺', category: 'food', keywords: ['amphora', 'vase', 'ancient', 'food'] },
+    
+    // Транспорт
+    { icon: '🚗', category: 'transport', keywords: ['car', 'vehicle', 'drive', 'transport'] },
+    { icon: '🚕', category: 'transport', keywords: ['taxi', 'car', 'yellow', 'transport'] },
+    { icon: '🚙', category: 'transport', keywords: ['suv', 'car', 'big', 'transport'] },
+    { icon: '🚌', category: 'transport', keywords: ['bus', 'public', 'transport', 'transport'] },
+    { icon: '🚎', category: 'transport', keywords: ['trolleybus', 'electric', 'transport', 'transport'] },
+    { icon: '🏎️', category: 'transport', keywords: ['race', 'car', 'fast', 'transport'] },
+    { icon: '🚓', category: 'transport', keywords: ['police', 'car', 'blue', 'transport'] },
+    { icon: '🚑', category: 'transport', keywords: ['ambulance', 'medical', 'emergency', 'transport'] },
+    { icon: '🚒', category: 'transport', keywords: ['fire', 'truck', 'red', 'transport'] },
+    { icon: '🚐', category: 'transport', keywords: ['minibus', 'van', 'small', 'transport'] },
+    { icon: '🛻', category: 'transport', keywords: ['pickup', 'truck', 'work', 'transport'] },
+    { icon: '🚚', category: 'transport', keywords: ['truck', 'delivery', 'big', 'transport'] },
+    { icon: '🚛', category: 'transport', keywords: ['articulated', 'lorry', 'big', 'transport'] },
+    { icon: '🚜', category: 'transport', keywords: ['tractor', 'farm', 'work', 'transport'] },
+    { icon: '🏍️', category: 'transport', keywords: ['motorcycle', 'bike', 'fast', 'transport'] },
+    { icon: '🛵', category: 'transport', keywords: ['scooter', 'motor', 'small', 'transport'] },
+    { icon: '🛺', category: 'transport', keywords: ['auto', 'rickshaw', 'three', 'transport'] },
+    { icon: '🚲', category: 'transport', keywords: ['bicycle', 'bike', 'pedal', 'transport'] },
+    { icon: '🛴', category: 'transport', keywords: ['kick', 'scooter', 'push', 'transport'] },
+    { icon: '🛹', category: 'transport', keywords: ['skateboard', 'wheels', 'sport', 'transport'] },
+    { icon: '🛼', category: 'transport', keywords: ['roller', 'skate', 'wheels', 'transport'] },
+    { icon: '🚁', category: 'transport', keywords: ['helicopter', 'rotor', 'fly', 'transport'] },
+    { icon: '✈️', category: 'transport', keywords: ['airplane', 'plane', 'fly', 'transport'] },
+    { icon: '🛩️', category: 'transport', keywords: ['small', 'airplane', 'fly', 'transport'] },
+    { icon: '🛫', category: 'transport', keywords: ['airplane', 'departure', 'takeoff', 'transport'] },
+    { icon: '🛬', category: 'transport', keywords: ['airplane', 'arrival', 'landing', 'transport'] },
+    { icon: '🪂', category: 'transport', keywords: ['parachute', 'jump', 'sky', 'transport'] },
+    { icon: '💺', category: 'transport', keywords: ['seat', 'chair', 'sitting', 'transport'] },
+    { icon: '🚀', category: 'transport', keywords: ['rocket', 'space', 'launch', 'transport'] },
+    { icon: '🛸', category: 'transport', keywords: ['flying', 'saucer', 'ufo', 'transport'] },
+    { icon: '🚉', category: 'transport', keywords: ['station', 'train', 'railway', 'transport'] },
+    { icon: '🚞', category: 'transport', keywords: ['mountain', 'railway', 'train', 'transport'] },
+    { icon: '🚝', category: 'transport', keywords: ['monorail', 'train', 'single', 'transport'] },
+    { icon: '🚄', category: 'transport', keywords: ['high', 'speed', 'train', 'transport'] },
+    { icon: '🚅', category: 'transport', keywords: ['bullet', 'train', 'fast', 'transport'] },
+    { icon: '🚈', category: 'transport', keywords: ['light', 'rail', 'train', 'transport'] },
+    { icon: '🚂', category: 'transport', keywords: ['steam', 'locomotive', 'train', 'transport'] },
+    { icon: '🚃', category: 'transport', keywords: ['railway', 'car', 'train', 'transport'] },
+    { icon: '🚋', category: 'transport', keywords: ['tram', 'car', 'electric', 'transport'] },
+    { icon: '🚍', category: 'transport', keywords: ['oncoming', 'bus', 'public', 'transport'] },
+    { icon: '🚘', category: 'transport', keywords: ['oncoming', 'automobile', 'car', 'transport'] },
+    { icon: '🚖', category: 'transport', keywords: ['oncoming', 'taxi', 'car', 'transport'] },
+    { icon: '🚡', category: 'transport', keywords: ['aerial', 'tramway', 'cable', 'transport'] },
+    { icon: '🚠', category: 'transport', keywords: ['mountain', 'cableway', 'cable', 'transport'] },
+    { icon: '🚟', category: 'transport', keywords: ['suspension', 'railway', 'cable', 'transport'] },
+    { icon: '🎠', category: 'transport', keywords: ['carousel', 'horse', 'merry', 'transport'] },
+    { icon: '🎡', category: 'transport', keywords: ['ferris', 'wheel', 'amusement', 'transport'] },
+    { icon: '🎢', category: 'transport', keywords: ['roller', 'coaster', 'amusement', 'transport'] },
+    { icon: '🚏', category: 'transport', keywords: ['bus', 'stop', 'station', 'transport'] },
+    { icon: '⛽', category: 'transport', keywords: ['fuel', 'pump', 'gas', 'transport'] },
+    { icon: '🚨', category: 'transport', keywords: ['police', 'car', 'light', 'transport'] },
+    { icon: '🚥', category: 'transport', keywords: ['horizontal', 'traffic', 'light', 'transport'] },
+    { icon: '🚦', category: 'transport', keywords: ['vertical', 'traffic', 'light', 'transport'] },
+    { icon: '🛑', category: 'transport', keywords: ['stop', 'sign', 'red', 'transport'] },
+    { icon: '🚧', category: 'transport', keywords: ['construction', 'sign', 'work', 'transport'] },
+    
+    // Эмоции и лица
+    { icon: '😀', category: 'emotions', keywords: ['grinning', 'face', 'happy', 'emotion'] },
+    { icon: '😃', category: 'emotions', keywords: ['grinning', 'face', 'big', 'eyes', 'emotion'] },
+    { icon: '😄', category: 'emotions', keywords: ['grinning', 'face', 'smiling', 'eyes', 'emotion'] },
+    { icon: '😁', category: 'emotions', keywords: ['beaming', 'face', 'smiling', 'eyes', 'emotion'] },
+    { icon: '😆', category: 'emotions', keywords: ['grinning', 'squinting', 'face', 'emotion'] },
+    { icon: '😅', category: 'emotions', keywords: ['grinning', 'face', 'sweat', 'emotion'] },
+    { icon: '🤣', category: 'emotions', keywords: ['rolling', 'floor', 'laughing', 'emotion'] },
+    { icon: '😂', category: 'emotions', keywords: ['face', 'tears', 'joy', 'emotion'] },
+    { icon: '🙂', category: 'emotions', keywords: ['slightly', 'smiling', 'face', 'emotion'] },
+    { icon: '🙃', category: 'emotions', keywords: ['upside', 'down', 'face', 'emotion'] },
+    { icon: '😉', category: 'emotions', keywords: ['winking', 'face', 'wink', 'emotion'] },
+    { icon: '😊', category: 'emotions', keywords: ['smiling', 'face', 'smiling', 'eyes', 'emotion'] },
+    { icon: '😇', category: 'emotions', keywords: ['smiling', 'face', 'halo', 'emotion'] },
+    { icon: '🥰', category: 'emotions', keywords: ['smiling', 'face', 'hearts', 'emotion'] },
+    { icon: '😍', category: 'emotions', keywords: ['smiling', 'face', 'heart', 'eyes', 'emotion'] },
+    { icon: '🤩', category: 'emotions', keywords: ['star', 'struck', 'face', 'emotion'] },
+    { icon: '😘', category: 'emotions', keywords: ['face', 'blowing', 'kiss', 'emotion'] },
+    { icon: '😗', category: 'emotions', keywords: ['kissing', 'face', 'kiss', 'emotion'] },
+    { icon: '☺️', category: 'emotions', keywords: ['smiling', 'face', 'smile', 'emotion'] },
+    { icon: '😚', category: 'emotions', keywords: ['kissing', 'face', 'closed', 'eyes', 'emotion'] },
+    { icon: '😙', category: 'emotions', keywords: ['kissing', 'face', 'smiling', 'eyes', 'emotion'] },
+    { icon: '😋', category: 'emotions', keywords: ['face', 'savoring', 'food', 'emotion'] },
+    { icon: '😛', category: 'emotions', keywords: ['face', 'tongue', 'stuck', 'out', 'emotion'] },
+    { icon: '😜', category: 'emotions', keywords: ['winking', 'face', 'tongue', 'emotion'] },
+    { icon: '🤪', category: 'emotions', keywords: ['zany', 'face', 'crazy', 'emotion'] },
+    { icon: '😝', category: 'emotions', keywords: ['squinting', 'face', 'tongue', 'emotion'] },
+    { icon: '🤑', category: 'emotions', keywords: ['money', 'mouth', 'face', 'emotion'] },
+    { icon: '🤗', category: 'emotions', keywords: ['hugging', 'face', 'hug', 'emotion'] },
+    { icon: '🤭', category: 'emotions', keywords: ['face', 'hand', 'over', 'mouth', 'emotion'] },
+    { icon: '🤫', category: 'emotions', keywords: ['shushing', 'face', 'quiet', 'emotion'] },
+    { icon: '🤔', category: 'emotions', keywords: ['thinking', 'face', 'think', 'emotion'] },
+    { icon: '🤐', category: 'emotions', keywords: ['zipper', 'mouth', 'face', 'emotion'] },
+    { icon: '🤨', category: 'emotions', keywords: ['face', 'raised', 'eyebrow', 'emotion'] },
+    { icon: '😐', category: 'emotions', keywords: ['neutral', 'face', 'neutral', 'emotion'] },
+    { icon: '😑', category: 'emotions', keywords: ['expressionless', 'face', 'blank', 'emotion'] },
+    { icon: '😶', category: 'emotions', keywords: ['face', 'without', 'mouth', 'emotion'] },
+    { icon: '😏', category: 'emotions', keywords: ['smirking', 'face', 'smirk', 'emotion'] },
+    { icon: '😒', category: 'emotions', keywords: ['unamused', 'face', 'bored', 'emotion'] },
+    { icon: '🙄', category: 'emotions', keywords: ['face', 'rolling', 'eyes', 'emotion'] },
+    { icon: '😬', category: 'emotions', keywords: ['grimacing', 'face', 'grimace', 'emotion'] },
+    { icon: '🤥', category: 'emotions', keywords: ['lying', 'face', 'lie', 'emotion'] },
+    { icon: '😔', category: 'emotions', keywords: ['pensive', 'face', 'sad', 'emotion'] },
+    { icon: '😪', category: 'emotions', keywords: ['sleepy', 'face', 'tired', 'emotion'] },
+    { icon: '🤤', category: 'emotions', keywords: ['drooling', 'face', 'drool', 'emotion'] },
+    { icon: '😴', category: 'emotions', keywords: ['sleeping', 'face', 'sleep', 'emotion'] },
+    { icon: '😷', category: 'emotions', keywords: ['face', 'medical', 'mask', 'emotion'] },
+    { icon: '🤒', category: 'emotions', keywords: ['face', 'thermometer', 'sick', 'emotion'] },
+    { icon: '🤕', category: 'emotions', keywords: ['face', 'bandage', 'hurt', 'emotion'] },
+    { icon: '🤢', category: 'emotions', keywords: ['nauseated', 'face', 'sick', 'emotion'] },
+    { icon: '🤮', category: 'emotions', keywords: ['face', 'vomiting', 'sick', 'emotion'] },
+    { icon: '🤧', category: 'emotions', keywords: ['sneezing', 'face', 'sneeze', 'emotion'] },
+    { icon: '🥵', category: 'emotions', keywords: ['hot', 'face', 'hot', 'emotion'] },
+    { icon: '🥶', category: 'emotions', keywords: ['cold', 'face', 'cold', 'emotion'] },
+    { icon: '🥴', category: 'emotions', keywords: ['woozy', 'face', 'dizzy', 'emotion'] },
+    { icon: '😵', category: 'emotions', keywords: ['knocked', 'out', 'face', 'emotion'] },
+    { icon: '🤯', category: 'emotions', keywords: ['exploding', 'head', 'mind', 'emotion'] },
+    { icon: '🤠', category: 'emotions', keywords: ['cowboy', 'hat', 'face', 'emotion'] },
+    { icon: '🥳', category: 'emotions', keywords: ['partying', 'face', 'party', 'emotion'] },
+    { icon: '🥸', category: 'emotions', keywords: ['disguised', 'face', 'disguise', 'emotion'] },
+    { icon: '😎', category: 'emotions', keywords: ['smiling', 'face', 'sunglasses', 'emotion'] },
+    { icon: '🤓', category: 'emotions', keywords: ['nerd', 'face', 'nerd', 'emotion'] },
+    { icon: '🧐', category: 'emotions', keywords: ['face', 'monocle', 'monocle', 'emotion'] },
+    { icon: '😕', category: 'emotions', keywords: ['confused', 'face', 'confused', 'emotion'] },
+    { icon: '😟', category: 'emotions', keywords: ['worried', 'face', 'worried', 'emotion'] },
+    { icon: '🙁', category: 'emotions', keywords: ['slightly', 'frowning', 'face', 'emotion'] },
+    { icon: '☹️', category: 'emotions', keywords: ['frowning', 'face', 'sad', 'emotion'] },
+    { icon: '😮', category: 'emotions', keywords: ['face', 'open', 'mouth', 'emotion'] },
+    { icon: '😯', category: 'emotions', keywords: ['hushed', 'face', 'surprised', 'emotion'] },
+    { icon: '😲', category: 'emotions', keywords: ['astonished', 'face', 'shocked', 'emotion'] },
+    { icon: '😳', category: 'emotions', keywords: ['flushed', 'face', 'embarrassed', 'emotion'] },
+    { icon: '🥺', category: 'emotions', keywords: ['pleading', 'face', 'plead', 'emotion'] },
+    { icon: '😦', category: 'emotions', keywords: ['frowning', 'face', 'open', 'mouth', 'emotion'] },
+    { icon: '😧', category: 'emotions', keywords: ['anguished', 'face', 'pain', 'emotion'] },
+    { icon: '😨', category: 'emotions', keywords: ['fearful', 'face', 'scared', 'emotion'] },
+    { icon: '😰', category: 'emotions', keywords: ['anxious', 'face', 'sweat', 'emotion'] },
+    { icon: '😥', category: 'emotions', keywords: ['sad', 'relieved', 'face', 'emotion'] },
+    { icon: '😢', category: 'emotions', keywords: ['crying', 'face', 'cry', 'emotion'] },
+    { icon: '😭', category: 'emotions', keywords: ['loudly', 'crying', 'face', 'emotion'] },
+    { icon: '😱', category: 'emotions', keywords: ['face', 'screaming', 'fear', 'emotion'] },
+    { icon: '😖', category: 'emotions', keywords: ['confounded', 'face', 'confused', 'emotion'] },
+    { icon: '😣', category: 'emotions', keywords: ['persevering', 'face', 'struggle', 'emotion'] },
+    { icon: '😞', category: 'emotions', keywords: ['disappointed', 'face', 'sad', 'emotion'] },
+    { icon: '😓', category: 'emotions', keywords: ['downcast', 'face', 'sweat', 'emotion'] },
+    { icon: '😩', category: 'emotions', keywords: ['weary', 'face', 'tired', 'emotion'] },
+    { icon: '😫', category: 'emotions', keywords: ['tired', 'face', 'exhausted', 'emotion'] },
+    { icon: '🥱', category: 'emotions', keywords: ['yawning', 'face', 'yawn', 'emotion'] },
+    { icon: '😤', category: 'emotions', keywords: ['face', 'steam', 'nose', 'emotion'] },
+    { icon: '😡', category: 'emotions', keywords: ['pouting', 'face', 'angry', 'emotion'] },
+    { icon: '😠', category: 'emotions', keywords: ['angry', 'face', 'mad', 'emotion'] },
+    { icon: '🤬', category: 'emotions', keywords: ['face', 'symbols', 'mouth', 'emotion'] },
+    { icon: '😈', category: 'emotions', keywords: ['smiling', 'face', 'horns', 'emotion'] },
+    { icon: '👿', category: 'emotions', keywords: ['angry', 'face', 'horns', 'emotion'] },
+    { icon: '💀', category: 'emotions', keywords: ['skull', 'death', 'dead', 'emotion'] },
+    { icon: '☠️', category: 'emotions', keywords: ['skull', 'crossbones', 'death', 'emotion'] },
+    { icon: '💩', category: 'emotions', keywords: ['pile', 'poo', 'poop', 'emotion'] },
+    { icon: '🤡', category: 'emotions', keywords: ['clown', 'face', 'clown', 'emotion'] },
+    { icon: '👹', category: 'emotions', keywords: ['ogre', 'monster', 'japanese', 'emotion'] },
+    { icon: '👺', category: 'emotions', keywords: ['goblin', 'monster', 'japanese', 'emotion'] },
+    { icon: '👻', category: 'emotions', keywords: ['ghost', 'spooky', 'halloween', 'emotion'] },
+    { icon: '👽', category: 'emotions', keywords: ['alien', 'monster', 'ufo', 'emotion'] },
+    { icon: '👾', category: 'emotions', keywords: ['alien', 'monster', 'video', 'emotion'] },
+    { icon: '🤖', category: 'emotions', keywords: ['robot', 'face', 'robot', 'emotion'] },
+    { icon: '😺', category: 'emotions', keywords: ['grinning', 'cat', 'face', 'emotion'] },
+    { icon: '😸', category: 'emotions', keywords: ['grinning', 'cat', 'smiling', 'eyes', 'emotion'] },
+    { icon: '😹', category: 'emotions', keywords: ['cat', 'face', 'tears', 'joy', 'emotion'] },
+    { icon: '😻', category: 'emotions', keywords: ['smiling', 'cat', 'heart', 'eyes', 'emotion'] },
+    { icon: '😼', category: 'emotions', keywords: ['cat', 'wry', 'smile', 'emotion'] },
+    { icon: '😽', category: 'emotions', keywords: ['kissing', 'cat', 'face', 'emotion'] },
+    { icon: '🙀', category: 'emotions', keywords: ['weary', 'cat', 'face', 'emotion'] },
+    { icon: '😿', category: 'emotions', keywords: ['crying', 'cat', 'face', 'emotion'] },
+    { icon: '😾', category: 'emotions', keywords: ['pouting', 'cat', 'face', 'emotion'] },
+    { icon: '🙈', category: 'emotions', keywords: ['see', 'no', 'evil', 'monkey', 'emotion'] },
+    { icon: '🙉', category: 'emotions', keywords: ['hear', 'no', 'evil', 'monkey', 'emotion'] },
+    { icon: '🙊', category: 'emotions', keywords: ['speak', 'no', 'evil', 'monkey', 'emotion'] },
   ]
 
   // Фильтрация иконок по поисковому запросу
@@ -281,8 +899,29 @@ export default function ChooseProceduresStep() {
     })
   }
 
+  // Функция для создания новой категории
+  const handleCreateCategory = () => {
+    if (newCategory.name && newCategory.color && newCategory.icon) {
+      // Добавляем новую категорию в список
+      setCategories(prev => [...prev, newCategory.name])
+      
+      // Здесь можно добавить логику сохранения новой категории
+      console.log('Creating new category:', newCategory)
+      setIsCreateCategoryModalOpen(false)
+      setNewCategory({ name: '', color: '', icon: '' })
+    }
+  }
+
   const handleNewActivityChange = (field: string, value: string) => {
     setNewActivity(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  // Функция для изменения полей новой категории
+  const handleNewCategoryChange = (field: string, value: string) => {
+    setNewCategory(prev => ({
       ...prev,
       [field]: value
     }))
@@ -385,7 +1024,11 @@ export default function ChooseProceduresStep() {
   const handleColorSelect = (color: string) => {
     // Конвертируем HSL в HEX для лучшего сравнения
     const hexColor = hslToHex(color)
-    handleNewActivityChange('color', hexColor)
+    if (isCreateCategoryModalOpen) {
+      handleNewCategoryChange('color', hexColor)
+    } else {
+      handleNewActivityChange('color', hexColor)
+    }
     // НЕ закрываем палитру автоматически - пользователь сам нажмет Done
   }
 
@@ -445,12 +1088,12 @@ export default function ChooseProceduresStep() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full h-[70px] pl-10 pr-4 bg-white border border-[#969AB7] rounded-lg text-gray-900 placeholder-[#969AB7] focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
+          />
             </div>
-            <button
+          <button
               onClick={() => setIsPromptModalOpen(true)}
               className="px-6 py-3 bg-[#A385E9] text-white rounded-lg font-medium hover:bg-[#906fe2] transition-colors whitespace-nowrap"
-            >
+          >
               Use prompt
           </button>
           </div>
@@ -479,7 +1122,7 @@ export default function ChooseProceduresStep() {
                            {activity.aiRecommended && (
                              <div className="text-xs font-medium bg-gradient-to-r from-purple-600 via-pink-500 to-purple-700 bg-clip-text text-transparent">
                                AI recommendation for you
-                             </div>
+      </div>
                            )}
                          </div>
                          {selectedActivities.includes(activity.id) && (
@@ -500,10 +1143,10 @@ export default function ChooseProceduresStep() {
                    <div className="space-y-3">
                      {filteredActivities.hair.map((activity) => (
                        <button
-                         key={activity.id}
+              key={activity.id}
                          onClick={() => handleActivityToggle(activity.id)}
                          className={`w-full flex items-center px-3 py-3 rounded-full transition-colors ${
-                           selectedActivities.includes(activity.id) 
+                selectedActivities.includes(activity.id)
                              ? `${activity.bgColor} hover:opacity-80` 
                              : `${activity.bgColor} hover:opacity-80 opacity-50`
                          }`}
@@ -536,7 +1179,7 @@ export default function ChooseProceduresStep() {
                      {filteredActivities.physical.map((activity) => (
                        <button
               key={activity.id}
-                         onClick={() => handleActivityToggle(activity.id)}
+              onClick={() => handleActivityToggle(activity.id)}
                          className={`w-full flex items-center px-3 py-3 rounded-full transition-colors ${
                 selectedActivities.includes(activity.id)
                              ? 'bg-purple-100 border-2 border-purple-300' 
@@ -549,7 +1192,7 @@ export default function ChooseProceduresStep() {
                            {activity.aiRecommended && (
                              <div className="text-xs font-medium bg-gradient-to-r from-purple-600 via-pink-500 to-purple-700 bg-clip-text text-transparent">
                                AI recommendation for you
-                             </div>
+              </div>
                            )}
                          </div>
                          {selectedActivities.includes(activity.id) && (
@@ -558,9 +1201,9 @@ export default function ChooseProceduresStep() {
                            </div>
                          )}
                        </button>
-                     ))}
-                   </div>
-                 </div>
+          ))}
+        </div>
+      </div>
                )}
 
                {/* Mental Wellness Category */}
@@ -597,7 +1240,7 @@ export default function ChooseProceduresStep() {
         </div>
                  </div>
                )}
-      </div>
+             </div>
 
              {/* Next Button */}
              <div className="fixed bottom-0 left-0 right-0 p-6 bg-[#F5F5F5]">
@@ -760,13 +1403,20 @@ export default function ChooseProceduresStep() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                 <select
                   value={newActivity.category}
-                  onChange={(e) => handleNewActivityChange('category', e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value === 'add-new-category') {
+                      setIsCreateCategoryModalOpen(true)
+                    } else {
+                      handleNewActivityChange('category', e.target.value)
+                    }
+                  }}
                   className="w-full p-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#A385E9] focus:border-transparent text-sm text-gray-900 bg-white"
                 >
                   <option value="" className="text-gray-500">Choose category</option>
                   {categories.map((category) => (
                     <option key={category} value={category} className="text-gray-900">{category}</option>
                   ))}
+                  <option value="add-new-category" className="text-[#A385E9] font-medium">+ Add new category</option>
                 </select>
               </div>
 
@@ -780,7 +1430,7 @@ export default function ChooseProceduresStep() {
                     const isSelected = newActivity.color === color.value
                     
                     return (
-                      <button
+              <button
                         key={color.id}
                         onClick={() => handleNewActivityChange('color', color.value)}
                         className={`w-7 h-7 rounded-full border-2 transition-all duration-200 ${
@@ -876,7 +1526,7 @@ export default function ChooseProceduresStep() {
 
       {/* Color Picker Modal */}
       {isColorPickerOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div 
             className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -939,12 +1589,12 @@ export default function ChooseProceduresStep() {
 
       {/* Icon Picker Modal */}
       {isIconPickerOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div 
-            className="bg-white rounded-3xl p-8 w-full max-w-4xl max-h-[80vh] shadow-2xl overflow-hidden"
+            className="bg-white rounded-3xl w-full max-w-4xl max-h-[80vh] shadow-2xl flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center p-8 pb-4">
               <h3 className="text-xl font-bold text-[#5C4688]">Choose Icon</h3>
               <button
                 onClick={() => setIsIconPickerOpen(false)}
@@ -957,7 +1607,7 @@ export default function ChooseProceduresStep() {
             </div>
 
             {/* Поиск по иконкам */}
-            <div className="mb-4">
+            <div className="px-8 pb-4">
               <div className="relative">
                 <input
                   type="text"
@@ -974,22 +1624,26 @@ export default function ChooseProceduresStep() {
               </div>
             </div>
 
-            <div className="max-h-96 overflow-y-auto scrollbar-hide">
+            <div className="flex-1 px-8 overflow-y-auto scrollbar-hide">
               <div className="grid grid-cols-8 gap-3">
                 {filteredIcons.map((icon, index) => (
                   <button
                     key={index}
-                    onClick={() => {
-                      handleNewActivityChange('icon', icon)
+                onClick={() => {
+                      if (isCreateCategoryModalOpen) {
+                        handleNewCategoryChange('icon', icon)
+                      } else {
+                        handleNewActivityChange('icon', icon)
+                      }
                     }}
                     className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-200 text-2xl ${
-                      newActivity.icon === icon
+                      (isCreateCategoryModalOpen ? newCategory.icon : newActivity.icon) === icon
                         ? 'text-white ring-2 ring-[#A385E9] ring-offset-1 scale-105'
                         : 'hover:scale-105'
                     }`}
                     style={{ 
-                      backgroundColor: newActivity.icon === icon 
-                        ? (newActivity.color || '#A385E9')
+                      backgroundColor: (isCreateCategoryModalOpen ? newCategory.icon : newActivity.icon) === icon 
+                        ? (isCreateCategoryModalOpen ? (newCategory.color || '#A385E9') : (newActivity.color || '#A385E9'))
                         : '#f3f4f6'
                     }}
                     title={icon}
@@ -1000,13 +1654,136 @@ export default function ChooseProceduresStep() {
               </div>
             </div>
 
-
-            <div className="text-center mt-6">
+            <div className="text-center p-8 pt-4">
               <button
                 onClick={() => setIsIconPickerOpen(false)}
                 className="px-8 py-3 bg-[#A385E9] text-white rounded-xl hover:bg-[#906fe2] transition-colors font-medium"
               >
                 Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно создания новой категории */}
+      {isCreateCategoryModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-[#5C4688] mb-6 text-center">Create New Category</h2>
+            
+            <div className="space-y-4">
+              {/* Category Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category name</label>
+                <input
+                  type="text"
+                  value={newCategory.name}
+                  onChange={(e) => handleNewCategoryChange('name', e.target.value)}
+                  placeholder="Type the name"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#A385E9] focus:border-transparent text-sm text-gray-900"
+                />
+              </div>
+
+              {/* Color */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                <div className="flex gap-1 p-2 border border-purple-200 rounded-lg">
+                  {/* Показываем все предустановленные цвета */}
+                  {colors.map((color) => {
+                    // Простое сравнение цветов
+                    const isSelected = newCategory.color === color.value
+                    
+                    return (
+              <button
+                        key={color.id}
+                        onClick={() => handleNewCategoryChange('color', color.value)}
+                        className={`w-7 h-7 rounded-full border-2 transition-all duration-200 ${
+                          isSelected
+                            ? 'border-[#A385E9] scale-110 ring-2 ring-[#A385E9] ring-opacity-50 shadow-lg'
+                            : 'border-gray-300 hover:scale-105 hover:border-gray-400'
+                        }`}
+                        style={{ backgroundColor: color.value }}
+                      />
+                    )
+                  })}
+                  
+                  {/* Показываем выбранный цвет, если он не в предустановленных */}
+                  {newCategory.color && !colors.some(c => c.value === newCategory.color) && (
+                    <button
+                      onClick={() => handleNewCategoryChange('color', newCategory.color)}
+                      className="w-7 h-7 rounded-full border-2 border-[#A385E9] scale-110 ring-2 ring-[#A385E9] ring-opacity-50 shadow-lg transition-all duration-200"
+                      style={{ backgroundColor: newCategory.color }}
+                      title="Selected color"
+                    />
+                  )}
+                  <button
+                    onClick={() => setIsColorPickerOpen(true)}
+                    className="w-7 h-7 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center hover:border-[#A385E9] hover:bg-purple-50 transition-all duration-200"
+                  >
+                    <span className="text-gray-400 text-sm font-bold">+</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Icon */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
+                <div className="flex gap-1 p-2 border border-purple-200 rounded-lg">
+                  {icons.map((icon) => (
+                    <button
+                      key={icon.id}
+                      onClick={() => handleNewCategoryChange('icon', icon.icon)}
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-lg transition-all duration-200 box-border ${
+                        newCategory.icon === icon.icon
+                          ? 'ring-2 ring-[#A385E9] ring-offset-1 scale-110'
+                          : 'hover:scale-105'
+                      }`}
+                      style={{ 
+                        backgroundColor: newCategory.color || '#A385E9' 
+                      }}
+                    >
+                      {icon.icon}
+                    </button>
+                  ))}
+                  
+                  {/* Показываем выбранную иконку, если она не в предустановленных */}
+                  {newCategory.icon && !icons.some(i => i.icon === newCategory.icon) && (
+                    <button
+                      onClick={() => handleNewCategoryChange('icon', newCategory.icon)}
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-white text-lg transition-all duration-200 ring-2 ring-[#A385E9] ring-offset-1 scale-110 box-border"
+                      style={{ 
+                        backgroundColor: newCategory.color || '#A385E9' 
+                      }}
+                      title="Selected icon"
+                    >
+                      {newCategory.icon}
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={handleIconPickerOpen}
+                    className="w-7 h-7 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center hover:border-[#A385E9] hover:bg-purple-50 transition-all duration-200 box-border"
+                  >
+                    <span className="text-gray-400 text-sm font-bold">+</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setIsCreateCategoryModalOpen(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateCategory}
+                disabled={!newCategory.name || !newCategory.color || !newCategory.icon}
+                className="flex-1 px-4 py-2 bg-[#A385E9] text-white rounded-lg hover:bg-[#8B6BC2] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Create
               </button>
             </div>
           </div>
