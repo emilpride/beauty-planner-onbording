@@ -10,7 +10,7 @@ export default function NotificationsConsentStep() {
   const { currentStep, nextStep, answers, setAnswer } = useQuizStore()
   const router = useRouter()
   const [dailyReminders, setDailyReminders] = useState(answers.dailyReminders || false)
-  const [activityReminders, setActivityReminders] = useState(answers.activityReminders || true)
+  const [activityReminders, setActivityReminders] = useState<boolean>(answers.activityReminders || true)
 
   const handleSave = () => {
     setAnswer('dailyReminders', dailyReminders)

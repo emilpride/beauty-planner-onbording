@@ -9,7 +9,7 @@ export default function CongratulationsStep() {
       subtitle="You've just made a big move towards becoming the best version of yourself. Let's keep going — I'm here to guide you every step of the way!"
       buttonText="Continue"
     >
-      {/* This step doesn't require any additional content inside the card */}
+      <div></div>
     </OnboardingStep>
   )
 }

@@ -9,7 +9,7 @@ export default function EnergyLevelStep() {
 
   // Устанавливаем дефолтное значение 1 при загрузке компонента
   useEffect(() => {
-    if (!answers.energyLevel || answers.energyLevel === 0) {
+    if (!answers.energyLevel) {
       setAnswer('energyLevel', 1)
     }
   }, [answers.energyLevel, setAnswer])

@@ -26,8 +26,8 @@ export default function ScheduleIntroStep() {
     router.push(`/quiz/${nextStepIndex}`)
   }
 
-  const assistantImage = answers.assistant === 'max' 
-    ? "/images/content/assistant_max.png" 
+  const assistantImage = answers.assistant === 0 // 0 = max, 1 = ellie
+    ? "/images/content/assistant_max.png"
     : "/images/content/assistant_ellie.png";
 
   return (

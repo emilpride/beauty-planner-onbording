@@ -1,13 +1,14 @@
 import ProceduresFlow from '@/components/procedures/ProceduresFlow'
 
 interface ProceduresPageProps {
-  params: {
+  params: Promise<{
     step: string
-  }
+  }>
 }
 
-export default function ProceduresPage({ params }: ProceduresPageProps) {
-  const step = parseInt(params.step, 10)
+export default async function ProceduresPage({ params }: ProceduresPageProps) {
+  const { step: stepParam } = await params
+  const step = parseInt(stepParam, 10)
   
   return <ProceduresFlow step={step} />
 }
