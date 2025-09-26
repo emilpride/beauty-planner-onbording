@@ -13,13 +13,14 @@ export default function SignUpStep() {
   const handleSignUp = () => {
     // Handle sign up logic here
     console.log('Sign up with:', { email, password })
-    // Navigate to next step
-    router.push('/quiz/27')
+    // Navigate to premium intro screen
+    router.push('/premium-intro')
   }
 
   const handleSocialSignUp = (provider: string) => {
     console.log(`Sign up with ${provider}`)
     // Handle social sign up logic here
+    router.push('/premium-intro')
   }
 
   return (
@@ -69,7 +70,7 @@ export default function SignUpStep() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm text-gray-900"
                 />
               </div>
             </div>
@@ -88,7 +89,7 @@ export default function SignUpStep() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Password"
-                  className="w-full pl-10 pr-10 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                  className="w-full pl-10 pr-10 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm text-gray-900"
                 />
                 <button
                   type="button"
@@ -191,9 +192,23 @@ export default function SignUpStep() {
             {/* Terms and Privacy */}
             <div className="text-center text-xs text-gray-600 leading-relaxed">
               By proceeding, you agree with the{' '}
-              <button className="text-purple-500 hover:underline">Terms of Use</button>
+              <a 
+                href="https://beautymirror.app/terms" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-purple-500 hover:underline"
+              >
+                Terms of Use
+              </a>
               {' '}and{' '}
-              <button className="text-purple-500 hover:underline">Privacy Policy</button>
+              <a 
+                href="https://beautymirror.app/privacy" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-purple-500 hover:underline"
+              >
+                Privacy Policy
+              </a>
             </div>
           </div>
         </div>
