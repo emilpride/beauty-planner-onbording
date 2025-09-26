@@ -27,25 +27,53 @@ export default function ProcedureSetupStep() {
   const { currentStep, nextStep, answers } = useQuizStore()
   const router = useRouter()
   
-  const [activitySettings, setActivitySettings] = useState<ActivitySetting[]>([
-    {
-      id: '1',
-      name: 'Morning Skincare',
-      note: '',
-      repeat: 'Daily',
-      allDay: false,
-      selectedDays: [1, 2, 3, 4, 5],
-      time: '08:00',
-      timePeriod: 'Morning',
-      endDate: false,
-      endType: 'date',
-      endDateValue: '',
-      endDaysValue: 30,
-      remind: true,
-      remindBefore: 15,
-      remindBefore2: 5
+  // Получаем выбранные процедуры из store
+  const selectedActivities = answers.selectedActivities || []
+  
+  // Создаем настройки для выбранных процедур
+  const [activitySettings, setActivitySettings] = useState<ActivitySetting[]>(() => {
+    if (selectedActivities.length === 0) {
+      return [{
+        id: '1',
+        name: 'Morning Skincare',
+        note: '',
+        repeat: 'Daily',
+        allDay: false,
+        selectedDays: [1, 2, 3, 4, 5],
+        time: '08:00',
+        timePeriod: 'Morning',
+        endDate: false,
+        endType: 'date',
+        endDateValue: '',
+        endDaysValue: 30,
+        remind: true,
+        remindBefore: 15,
+        remindBefore2: 5
+      }]
     }
-  ])
+    
+    // Создаем настройки для каждой выбранной процедуры
+    return selectedActivities.map((activityId) => {
+      const activityInfo = getActivityInfo(activityId)
+      return {
+        id: activityId,
+        name: activityInfo.name,
+        note: '',
+        repeat: 'Daily' as const,
+        allDay: false,
+        selectedDays: [1, 2, 3, 4, 5],
+        time: '08:00',
+        timePeriod: 'Morning' as const,
+        endDate: false,
+        endType: 'date' as const,
+        endDateValue: '',
+        endDaysValue: 30,
+        remind: true,
+        remindBefore: 15,
+        remindBefore2: 5
+      }
+    })
+  })
 
   const [currentActivityIndex, setCurrentActivityIndex] = useState(0)
   const currentActivity = activitySettings[currentActivityIndex]
@@ -84,20 +112,58 @@ export default function ProcedureSetupStep() {
     }
   }
 
-  const getActivityIcon = (name: string) => {
-    if (name.includes('Skincare')) return '🧼'
-    if (name.includes('Fitness')) return '🏃'
-    if (name.includes('Hair')) return '🚿'
-    if (name.includes('Wellness')) return '🧘'
-    return '✨'
+  // Функция для получения информации о процедуре по ID
+  const getActivityInfo = (activityId: string) => {
+    // Проверяем, является ли это пользовательской процедурой
+    if (activityId.startsWith('custom-')) {
+      // Для пользовательских процедур используем базовую информацию
+      return { name: `Custom Activity`, icon: '✨', color: 'bg-gray-500' }
+    }
+    
+    // Базовые процедуры
+    const activityMap: Record<string, { name: string; icon: string; color: string }> = {
+      'cleanse-hydrate': { name: 'Cleanse & Hydrate', icon: '🧼', color: 'bg-blue-500' },
+      'deep-hydration': { name: 'Deep Hydration', icon: '💧', color: 'bg-blue-600' },
+      'exfoliate': { name: 'Exfoliate', icon: '✨', color: 'bg-yellow-500' },
+      'face-massage': { name: 'Face Massage', icon: '🤲', color: 'bg-green-500' },
+      'lip-eye-care': { name: 'Lip & Eye Care', icon: '👁️', color: 'bg-purple-500' },
+      'spf-protection': { name: 'SPF Protection', icon: '☀️', color: 'bg-orange-500' },
+      'wash-care': { name: 'Wash & Care', icon: '🚿', color: 'bg-cyan-500' },
+      'deep-nourishment': { name: 'Deep Nourishment', icon: '🌿', color: 'bg-indigo-500' },
+      'scalp-detox': { name: 'Scalp Detox', icon: '🧴', color: 'bg-pink-500' },
+      'heat-protection': { name: 'Heat Protection', icon: '🔥', color: 'bg-red-500' },
+      'scalp-massage': { name: 'Scalp Massage', icon: '💆', color: 'bg-purple-600' },
+      'trim-split-ends': { name: 'Trim Split Ends', icon: '✂️', color: 'bg-yellow-600' },
+      'post-color-care': { name: 'Post-Color Care', icon: '🎨', color: 'bg-green-600' },
+      'morning-stretch': { name: 'Morning Stretch', icon: '🤸', color: 'bg-blue-500' },
+      'cardio-boost': { name: 'Cardio Boost', icon: '🏃', color: 'bg-red-500' },
+      'strength-training': { name: 'Strength Training', icon: '💪', color: 'bg-purple-500' },
+      'yoga-flexibility': { name: 'Yoga & Flexibility', icon: '🧘', color: 'bg-green-500' },
+      'dance-it-out': { name: 'Dance It Out', icon: '💃', color: 'bg-pink-500' },
+      'swimming-time': { name: 'Swimming Time', icon: '🏊', color: 'bg-cyan-500' },
+      'cycling': { name: 'Cycling', icon: '🚴', color: 'bg-orange-500' },
+      'posture-fix': { name: 'Posture Fix', icon: '🦴', color: 'bg-indigo-500' },
+      'evening-stretch': { name: 'Evening Stretch', icon: '🌙', color: 'bg-purple-500' },
+      'mindful-meditation': { name: 'Mindful Meditation', icon: '🧘‍♀️', color: 'bg-green-500' },
+      'breathing-exercises': { name: 'Breathing Exercises', icon: '🫁', color: 'bg-blue-500' },
+      'gratitude-exercises': { name: 'Gratitude Exercises', icon: '🙏', color: 'bg-yellow-500' },
+      'mood-check-in': { name: 'Mood Check-In', icon: '😊', color: 'bg-pink-500' },
+      'learn-grow': { name: 'Learn & Grow', icon: '📚', color: 'bg-indigo-500' },
+      'social-media-detox': { name: 'Social Media Detox', icon: '📱', color: 'bg-gray-500' },
+      'positive-affirmations': { name: 'Positive Affirmations', icon: '💭', color: 'bg-purple-500' },
+      'talk-it-out': { name: 'Talk It Out', icon: '🗣️', color: 'bg-blue-500' },
+      'stress-relief': { name: 'Stress Relief', icon: '😌', color: 'bg-green-500' },
+    }
+    
+    return activityMap[activityId] || { name: `Activity ${activityId}`, icon: '✨', color: 'bg-gray-500' }
   }
 
-  const getActivityColor = (name: string) => {
-    if (name.includes('Skincare')) return 'bg-blue-500'
-    if (name.includes('Fitness')) return 'bg-red-500'
-    if (name.includes('Hair')) return 'bg-purple-500'
-    if (name.includes('Wellness')) return 'bg-green-500'
-    return 'bg-gray-500'
+  const getActivityIcon = (activityId: string) => {
+    return getActivityInfo(activityId).icon
+  }
+
+  const getActivityColor = (activityId: string) => {
+    return getActivityInfo(activityId).color
   }
 
   return (
@@ -113,21 +179,23 @@ export default function ProcedureSetupStep() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-xl font-bold text-[#5C4688]">Activity Setup</h1>
+          <h1 className="text-xl font-bold text-[#5C4688]">
+            Activity Setup ({currentActivityIndex + 1}/{activitySettings.length})
+          </h1>
           <div className="w-10"></div>
         </div>
 
         {/* Activity Card */}
         <motion.div 
           className="p-4 rounded-xl border-2 border-gray-200"
-          style={{ backgroundColor: `${getActivityColor(currentActivity.name)}20` }}
+          style={{ backgroundColor: `${getActivityColor(currentActivity.id)}20` }}
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
           <div className="flex items-center space-x-3">
-            <div className={`w-12 h-12 ${getActivityColor(currentActivity.name)} rounded-lg flex items-center justify-center`}>
-              <span className="text-2xl text-white">{getActivityIcon(currentActivity.name)}</span>
+            <div className={`w-12 h-12 ${getActivityColor(currentActivity.id)} rounded-lg flex items-center justify-center`}>
+              <span className="text-2xl text-white">{getActivityIcon(currentActivity.id)}</span>
             </div>
             <div>
               <h3 className="font-semibold text-gray-800">{currentActivity.name}</h3>

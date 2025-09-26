@@ -40,15 +40,57 @@ const iconEmojis = {
   stressRelief: '😌',
 }
 
+// Функция для извлечения цвета из Tailwind класса или HEX строки
+const extractColorFromClass = (colorClass: string): string => {
+  // Если это уже HEX строка (новый формат)
+  if (colorClass.startsWith('#')) {
+    return colorClass
+  }
+  
+  // Если это Tailwind класс (старый формат)
+  if (colorClass.startsWith('bg-[')) {
+    return colorClass.match(/bg-\[([^\]]+)\]/)?.[1] || '#A385E9'
+  }
+  
+  return colorClass
+}
+
+// Функция для извлечения RGBA цвета из Tailwind класса или строки
+const extractRgbaFromClass = (bgColorClass: string): string => {
+  // Если это уже RGBA строка (новый формат)
+  if (bgColorClass.startsWith('rgba(')) {
+    return bgColorClass
+  }
+  
+  // Если это Tailwind класс (старый формат)
+  if (bgColorClass.startsWith('bg-[rgba(')) {
+    const match = bgColorClass.match(/bg-\[rgba\(([^)]+)\)\]/)
+    if (match) {
+      return `rgba(${match[1]})`
+    }
+  }
+  
+  return 'rgba(163, 133, 233, 0.2)' // fallback
+}
+
 // Иконки для активностей
-const ActivityIcon = ({ icon, color }: { icon: string; color: string }) => (
-  <div className={`w-12 h-12 rounded-full ${color} flex items-center justify-center text-2xl`}>
-    {icon}
-  </div>
-)
+const ActivityIcon = ({ icon, color }: { icon: string; color: string }) => {
+  console.log('ActivityIcon received color:', color)
+  
+  const backgroundColor = extractColorFromClass(color)
+    
+  return (
+    <div 
+      className="w-12 h-12 rounded-full flex items-center justify-center text-2xl"
+      style={{ backgroundColor }}
+    >
+      {icon}
+    </div>
+  )
+}
 
   // Данные активностей по категориям с точными цветами из Figma
-  const activities = {
+  const initialActivities = {
     skin: [
       { id: 'cleanse-hydrate', name: 'Cleanse & Hydrate', icon: iconEmojis.cleanseAndHydrate, color: 'bg-[#0080FF]', bgColor: 'bg-[rgba(0,128,255,0.2)]', aiRecommended: true },
       { id: 'deep-hydration', name: 'Deep Hydration', icon: iconEmojis.deepHydration, color: 'bg-[#FF001D]', bgColor: 'bg-[rgba(255,0,29,0.2)]', aiRecommended: false },
@@ -88,7 +130,7 @@ const ActivityIcon = ({ icon, color }: { icon: string; color: string }) => (
       { id: 'talk-it-out', name: 'Talk It Out', icon: iconEmojis.talkItOut, color: 'bg-[#BF2C4C]', bgColor: 'bg-[rgba(191,44,76,0.2)]', aiRecommended: false },
       { id: 'stress-relief', name: 'Stress Relief', icon: iconEmojis.stressRelief, color: 'bg-[#FC356D]', bgColor: 'bg-[rgba(252,53,109,0.2)]', aiRecommended: true },
     ],
-}
+  }
 
 export default function ChooseProceduresStep() {
   const router = useRouter()
@@ -103,6 +145,7 @@ export default function ChooseProceduresStep() {
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [iconSearchQuery, setIconSearchQuery] = useState('')
+  const [activities, setActivities] = useState(initialActivities)
   
   // Состояние для создания новой категории
   const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] = useState(false)
@@ -115,6 +158,13 @@ export default function ChooseProceduresStep() {
   const [newActivity, setNewActivity] = useState({
     name: '',
     note: '',
+    category: '',
+    color: '',
+    icon: ''
+  })
+  
+  const [activityErrors, setActivityErrors] = useState({
+    name: '',
     category: '',
     color: '',
     icon: ''
@@ -886,37 +936,20 @@ export default function ChooseProceduresStep() {
     )
   }
 
-  const handleCreateActivity = () => {
-    // Здесь можно добавить логику создания новой активности
-    console.log('New activity:', newActivity)
-    setIsCreateActivityModalOpen(false)
-    setNewActivity({
-      name: '',
-      note: '',
-      category: '',
-      color: '',
-      icon: ''
-    })
-  }
-
-  // Функция для создания новой категории
-  const handleCreateCategory = () => {
-    if (newCategory.name && newCategory.color && newCategory.icon) {
-      // Добавляем новую категорию в список
-      setCategories(prev => [...prev, newCategory.name])
-      
-      // Здесь можно добавить логику сохранения новой категории
-      console.log('Creating new category:', newCategory)
-      setIsCreateCategoryModalOpen(false)
-      setNewCategory({ name: '', color: '', icon: '' })
-    }
-  }
 
   const handleNewActivityChange = (field: string, value: string) => {
     setNewActivity(prev => ({
       ...prev,
       [field]: value
     }))
+    
+    // Очищаем ошибку для этого поля
+    if (activityErrors[field as keyof typeof activityErrors]) {
+      setActivityErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }))
+    }
   }
 
   // Функция для изменения полей новой категории
@@ -925,6 +958,127 @@ export default function ChooseProceduresStep() {
       ...prev,
       [field]: value
     }))
+  }
+
+  // Функция для создания новой процедуры
+  const handleCreateActivity = () => {
+    // Валидация полей
+    const errors = {
+      name: !newActivity.name ? 'Name is required' : '',
+      category: !newActivity.category ? 'Category is required' : '',
+      color: !newActivity.color ? 'Color is required' : '',
+      icon: !newActivity.icon ? 'Icon is required' : ''
+    }
+    
+    setActivityErrors(errors)
+    
+    if (!newActivity.name || !newActivity.category || !newActivity.color || !newActivity.icon) {
+      console.log('Missing required fields:', newActivity)
+      return
+    }
+
+    // Создаем новую процедуру
+    const newActivityData = {
+      id: `custom-${Date.now()}`,
+      name: newActivity.name,
+      icon: newActivity.icon,
+      color: newActivity.color, // Сохраняем как есть, без bg-[]
+      bgColor: `rgba(${hexToRgb(newActivity.color).join(',')},0.2)`, // Сохраняем как RGBA строку
+      aiRecommended: false,
+      note: newActivity.note
+    }
+    
+    console.log('Creating activity with color:', newActivity.color, 'bgColor:', newActivityData.bgColor)
+
+    // Добавляем процедуру в соответствующую категорию
+    const categoryMapping: { [key: string]: string } = {
+      'Skin': 'skin',
+      'Hair': 'hair', 
+      'Physical health': 'physical',
+      'Mental Wellness': 'mental'
+    }
+    
+    // Для новых категорий создаем ключ из названия
+    const categoryKey = categoryMapping[newActivity.category] || 
+      newActivity.category.toLowerCase().replace(/\s+/g, '')
+    
+    console.log('Creating activity:', newActivityData, 'in category:', categoryKey)
+    
+    setActivities(prev => {
+      const newState = {
+        ...prev,
+        [categoryKey]: [...((prev as any)[categoryKey] || []), newActivityData]
+      }
+      console.log('New activities state:', newState)
+      return newState
+    })
+
+    // Сбрасываем форму и ошибки
+    setNewActivity({
+      name: '',
+      note: '',
+      category: '',
+      color: '',
+      icon: ''
+    })
+    
+    setActivityErrors({
+      name: '',
+      category: '',
+      color: '',
+      icon: ''
+    })
+
+    // Закрываем модальное окно
+    setIsCreateActivityModalOpen(false)
+  }
+
+  // Функция для создания новой категории
+  const handleCreateCategory = () => {
+    if (!newCategory.name || !newCategory.color || !newCategory.icon) {
+      return
+    }
+
+    // Добавляем новую категорию в список
+    setCategories(prev => [...prev, newCategory.name])
+
+    // Создаем новую категорию в activities
+    const categoryKey = newCategory.name.toLowerCase().replace(/\s+/g, '')
+    setActivities(prev => ({
+      ...prev,
+      [categoryKey]: []
+    }))
+
+    console.log('Created new category:', newCategory.name, 'with key:', categoryKey)
+
+    // Автоматически выбираем новую категорию в форме создания процедуры
+    setNewActivity(prev => ({
+      ...prev,
+      category: newCategory.name
+    }))
+
+    // Сбрасываем форму категории
+    setNewCategory({
+      name: '',
+      color: '',
+      icon: ''
+    })
+
+    // Закрываем модальное окно создания категории
+    setIsCreateCategoryModalOpen(false)
+  }
+
+  // Функция для конвертации HEX в RGB
+  const hexToRgb = (hex: string) => {
+    console.log('Converting hex to RGB:', hex)
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+    const rgb = result ? [
+      parseInt(result[1], 16),
+      parseInt(result[2], 16),
+      parseInt(result[3], 16)
+    ] : [0, 0, 0]
+    console.log('RGB result:', rgb)
+    return rgb
   }
 
   const getColorFromPosition = (e: React.MouseEvent) => {
@@ -1038,20 +1192,22 @@ export default function ChooseProceduresStep() {
     setIconSearchQuery('') // Сбрасываем поиск при открытии
   }
 
-  const filteredActivities = {
-    skin: activities.skin.filter(activity => 
-      activity.name.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-    hair: activities.hair.filter(activity => 
-      activity.name.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-    physical: activities.physical.filter(activity => 
-      activity.name.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-    mental: activities.mental.filter(activity => 
-      activity.name.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
+  // Маппинг ключей категорий на отображаемые названия
+  const categoryDisplayNames: Record<string, string> = {
+    'skin': 'Skin',
+    'hair': 'Hair',
+    'physical': 'Physical health',
+    'mental': 'Mental Wellness',
+    // Для новых категорий используем название как есть
   }
+
+  // Создаем динамический filteredActivities на основе всех доступных категорий
+  const filteredActivities = Object.keys(activities).reduce((acc, categoryKey) => {
+    acc[categoryKey] = ((activities as any)[categoryKey] || []).filter((activity: any) => 
+      activity.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    return acc
+  }, {} as Record<string, any[]>)
 
   return (
     <div className="min-h-screen bg-[#F5F5F5] flex justify-center">
@@ -1101,145 +1257,50 @@ export default function ChooseProceduresStep() {
 
              {/* Activities List */}
              <div className="flex-1 px-6 pb-24">
-               {/* Skin Category */}
-               {filteredActivities.skin.length > 0 && (
-                 <div className="mb-6">
-                   <h3 className="text-sm text-[#969AB7] mb-3">Skin</h3>
-                   <div className="space-y-3">
-                     {filteredActivities.skin.map((activity) => (
-                       <button
-                         key={activity.id}
-                         onClick={() => handleActivityToggle(activity.id)}
-                         className={`w-full flex items-center px-3 py-3 rounded-full transition-colors ${
-                           selectedActivities.includes(activity.id) 
-                             ? `${activity.bgColor} hover:opacity-80` 
-                             : `${activity.bgColor} hover:opacity-80 opacity-50`
-                         }`}
-                       >
-                         <ActivityIcon icon={activity.icon} color={activity.color} />
-                         <div className="ml-3 flex-1 text-left">
-                           <div className="text-[#5C4688] font-medium text-base">{activity.name}</div>
-                           {activity.aiRecommended && (
-                             <div className="text-xs font-medium bg-gradient-to-r from-purple-600 via-pink-500 to-purple-700 bg-clip-text text-transparent">
-                               AI recommendation for you
-      </div>
-                           )}
-                         </div>
-                         {selectedActivities.includes(activity.id) && (
-                           <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-                             <span className="text-white text-sm">✓</span>
+               {/* Dynamic Categories */}
+               {Object.entries(filteredActivities).map(([categoryKey, activitiesList]) => {
+                 if (activitiesList.length === 0) return null
+                 
+                 const displayName = categoryDisplayNames[categoryKey] || 
+                   categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1)
+                 
+                 return (
+                   <div key={categoryKey} className="mb-6">
+                     <h3 className="text-sm text-[#969AB7] mb-3">{displayName}</h3>
+                     <div className="space-y-3">
+                       {activitiesList.map((activity) => (
+                         <button
+                           key={activity.id}
+                           onClick={() => handleActivityToggle(activity.id)}
+                           className={`w-full flex items-center px-3 py-3 rounded-full transition-colors ${
+                             selectedActivities.includes(activity.id) 
+                               ? 'hover:opacity-80' 
+                               : 'hover:opacity-80 opacity-50'
+                           }`}
+                           style={{ 
+                             backgroundColor: extractRgbaFromClass(activity.bgColor)
+                           }}
+                         >
+                           <ActivityIcon icon={activity.icon} color={activity.color} />
+                           <div className="ml-3 flex-1 text-left">
+                             <div className="text-[#5C4688] font-medium text-base">{activity.name}</div>
+                             {activity.aiRecommended && (
+                               <div className="text-xs font-medium bg-gradient-to-r from-purple-600 via-pink-500 to-purple-700 bg-clip-text text-transparent">
+                                 AI recommendation for you
+                               </div>
+                             )}
                            </div>
-                         )}
-                       </button>
-                     ))}
-                   </div>
-                 </div>
-               )}
-
-               {/* Hair Category */}
-               {filteredActivities.hair.length > 0 && (
-                 <div className="mb-6">
-                   <h3 className="text-sm text-[#969AB7] mb-3">Hair</h3>
-                   <div className="space-y-3">
-                     {filteredActivities.hair.map((activity) => (
-                       <button
-              key={activity.id}
-                         onClick={() => handleActivityToggle(activity.id)}
-                         className={`w-full flex items-center px-3 py-3 rounded-full transition-colors ${
-                selectedActivities.includes(activity.id)
-                             ? `${activity.bgColor} hover:opacity-80` 
-                             : `${activity.bgColor} hover:opacity-80 opacity-50`
-                         }`}
-                       >
-                         <ActivityIcon icon={activity.icon} color={activity.color} />
-                         <div className="ml-3 flex-1 text-left">
-                           <div className="text-[#5C4688] font-medium text-base">{activity.name}</div>
-                           {activity.aiRecommended && (
-                             <div className="text-xs font-medium bg-gradient-to-r from-purple-600 via-pink-500 to-purple-700 bg-clip-text text-transparent">
-                               AI recommendation for you
+                           {selectedActivities.includes(activity.id) && (
+                             <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
+                               <span className="text-white text-sm">✓</span>
                              </div>
                            )}
-                         </div>
-                         {selectedActivities.includes(activity.id) && (
-                           <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-                             <span className="text-white text-sm">✓</span>
-                           </div>
-                         )}
-                       </button>
-                     ))}
+                         </button>
+                       ))}
+                     </div>
                    </div>
-      </div>
-               )}
-
-               {/* Physical health Category */}
-               {filteredActivities.physical.length > 0 && (
-                 <div className="mb-6">
-                   <h3 className="text-sm text-[#969AB7] mb-3">Physical health</h3>
-                   <div className="space-y-3">
-                     {filteredActivities.physical.map((activity) => (
-                       <button
-              key={activity.id}
-              onClick={() => handleActivityToggle(activity.id)}
-                         className={`w-full flex items-center px-3 py-3 rounded-full transition-colors ${
-                selectedActivities.includes(activity.id)
-                             ? 'bg-purple-100 border-2 border-purple-300' 
-                             : `${activity.bgColor} hover:opacity-80`
-                         } ${!selectedActivities.includes(activity.id) ? 'opacity-50' : ''}`}
-                       >
-                         <ActivityIcon icon={activity.icon} color={activity.color} />
-                         <div className="ml-3 flex-1 text-left">
-                           <div className="text-[#5C4688] font-medium text-base">{activity.name}</div>
-                           {activity.aiRecommended && (
-                             <div className="text-xs font-medium bg-gradient-to-r from-purple-600 via-pink-500 to-purple-700 bg-clip-text text-transparent">
-                               AI recommendation for you
-              </div>
-                           )}
-                         </div>
-                         {selectedActivities.includes(activity.id) && (
-                           <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-                             <span className="text-white text-sm">✓</span>
-                           </div>
-                         )}
-                       </button>
-          ))}
-        </div>
-      </div>
-               )}
-
-               {/* Mental Wellness Category */}
-               {filteredActivities.mental.length > 0 && (
-                 <div className="mb-6">
-                   <h3 className="text-sm text-[#969AB7] mb-3">Mental Wellness</h3>
-                   <div className="space-y-3">
-                     {filteredActivities.mental.map((activity) => (
-                       <button
-                         key={activity.id}
-              onClick={() => handleActivityToggle(activity.id)}
-                         className={`w-full flex items-center px-3 py-3 rounded-full transition-colors ${
-                           selectedActivities.includes(activity.id) 
-                             ? `${activity.bgColor} hover:opacity-80` 
-                             : `${activity.bgColor} hover:opacity-80 opacity-50`
-                         }`}
-                       >
-                         <ActivityIcon icon={activity.icon} color={activity.color} />
-                         <div className="ml-3 flex-1 text-left">
-                           <div className="text-[#5C4688] font-medium text-base">{activity.name}</div>
-                           {activity.aiRecommended && (
-                             <div className="text-xs font-medium bg-gradient-to-r from-purple-600 via-pink-500 to-purple-700 bg-clip-text text-transparent">
-                               AI recommendation for you
-                             </div>
-                           )}
-                         </div>
-                         {selectedActivities.includes(activity.id) && (
-                           <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-                             <span className="text-white text-sm">✓</span>
-              </div>
-                         )}
-                       </button>
-          ))}
-        </div>
-                 </div>
-               )}
+                 )
+               })}
              </div>
 
              {/* Next Button */}
@@ -1383,8 +1444,13 @@ export default function ChooseProceduresStep() {
                   value={newActivity.name}
                   onChange={(e) => handleNewActivityChange('name', e.target.value)}
                   placeholder="Type the name"
-                  className="w-full p-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#A385E9] focus:border-transparent text-sm text-gray-900"
+                  className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#A385E9] focus:border-transparent text-sm text-gray-900 ${
+                    activityErrors.name ? 'border-red-500' : 'border-purple-200'
+                  }`}
                 />
+                {activityErrors.name && (
+                  <p className="text-red-500 text-xs mt-1">{activityErrors.name}</p>
+                )}
               </div>
 
               {/* Note */}
@@ -1410,7 +1476,9 @@ export default function ChooseProceduresStep() {
                       handleNewActivityChange('category', e.target.value)
                     }
                   }}
-                  className="w-full p-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#A385E9] focus:border-transparent text-sm text-gray-900 bg-white"
+                  className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#A385E9] focus:border-transparent text-sm text-gray-900 bg-white ${
+                    activityErrors.category ? 'border-red-500' : 'border-purple-200'
+                  }`}
                 >
                   <option value="" className="text-gray-500">Choose category</option>
                   {categories.map((category) => (
@@ -1418,12 +1486,17 @@ export default function ChooseProceduresStep() {
                   ))}
                   <option value="add-new-category" className="text-[#A385E9] font-medium">+ Add new category</option>
                 </select>
+                {activityErrors.category && (
+                  <p className="text-red-500 text-xs mt-1">{activityErrors.category}</p>
+                )}
               </div>
 
               {/* Color */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-                <div className="flex gap-1 p-2 border border-purple-200 rounded-lg">
+                <div className={`flex gap-1 p-2 border rounded-lg ${
+                  activityErrors.color ? 'border-red-500' : 'border-purple-200'
+                }`}>
                   {/* Показываем все предустановленные цвета */}
                   {colors.map((color) => {
                     // Простое сравнение цветов
@@ -1459,12 +1532,17 @@ export default function ChooseProceduresStep() {
                     <span className="text-gray-400 text-sm font-bold">+</span>
                   </button>
                 </div>
+                {activityErrors.color && (
+                  <p className="text-red-500 text-xs mt-1">{activityErrors.color}</p>
+                )}
               </div>
 
               {/* Icon */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
-                <div className="flex gap-1 p-2 border border-purple-200 rounded-lg">
+                <div className={`flex gap-1 p-2 border rounded-lg ${
+                  activityErrors.icon ? 'border-red-500' : 'border-purple-200'
+                }`}>
                   {icons.map((icon) => (
                     <button
                       key={icon.id}
@@ -1503,6 +1581,9 @@ export default function ChooseProceduresStep() {
                     <span className="text-gray-400 text-sm font-bold">+</span>
                   </button>
                 </div>
+                {activityErrors.icon && (
+                  <p className="text-red-500 text-xs mt-1">{activityErrors.icon}</p>
+                )}
               </div>
             </div>
 
