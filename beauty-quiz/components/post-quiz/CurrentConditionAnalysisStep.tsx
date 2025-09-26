@@ -177,7 +177,7 @@ export default function CurrentConditionAnalysisStep() {
         {/* To The Activities Button */}
         <div className="text-center">
           <button 
-            onClick={() => router.push('/signup')}
+            onClick={() => router.push('/premium-intro')}
             className="bg-primary text-white px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-primary-700 transition-colors duration-200"
           >
             To The Activities

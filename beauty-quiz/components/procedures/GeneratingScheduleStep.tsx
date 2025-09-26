@@ -6,7 +6,7 @@ import { useQuizStore } from '@/store/quizStore'
 import { useRouter } from 'next/navigation'
 import { motion, animate } from 'framer-motion'
 
-export default function CreatingScheduleStep() {
+export default function GeneratingScheduleStep() {
   const { currentStep, nextStep, answers } = useQuizStore()
   const router = useRouter()
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
@@ -26,9 +26,7 @@ export default function CreatingScheduleStep() {
           clearInterval(interval)
           // Navigate to next step after all steps are complete
           setTimeout(() => {
-            const nextStepIndex = currentStep + 1
-            nextStep()
-            router.push(`/quiz/${nextStepIndex}`)
+            router.push('/procedures/3') // Переходим к NotificationsConsentStep
           }, 3000)
           return prev
         }

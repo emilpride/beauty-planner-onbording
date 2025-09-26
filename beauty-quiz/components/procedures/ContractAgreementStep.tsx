@@ -5,7 +5,7 @@ import { useQuizStore } from '@/store/quizStore'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 
-export default function ContractStep() {
+export default function ContractAgreementStep() {
   const { currentStep, nextStep, answers, setAnswer } = useQuizStore()
   const router = useRouter()
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -115,9 +115,7 @@ export default function ContractStep() {
   const handleFinish = () => {
     if (hasSignature) {
       setAnswer('contractSignature', 'signed')
-      const nextStepIndex = currentStep + 1
-      nextStep()
-      router.push(`/quiz/${nextStepIndex}`)
+      router.push('/procedures/5') // Переходим к RegularCareResultsStep
     }
   }
 

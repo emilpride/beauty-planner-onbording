@@ -26,7 +26,7 @@ export default function PremiumIntroStep() {
   const assistant = searchParams.get('assistant') || 'ellie'
 
   const handleOK = () => {
-    router.push('/quiz/27') // Переходим к ChooseActivitiesStep
+    router.push('/procedures/0') // Переходим к ChooseProceduresStep
   }
 
   return (

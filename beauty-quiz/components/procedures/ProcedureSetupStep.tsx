@@ -23,7 +23,7 @@ interface ActivitySetting {
   remindBefore2: number
 }
 
-export default function ActivitySetupStep() {
+export default function ProcedureSetupStep() {
   const { currentStep, nextStep, answers } = useQuizStore()
   const router = useRouter()
   
@@ -80,9 +80,7 @@ export default function ActivitySetupStep() {
     if (currentActivityIndex < activitySettings.length - 1) {
       setCurrentActivityIndex(currentActivityIndex + 1)
     } else {
-      const nextStepIndex = currentStep + 1
-      nextStep()
-      router.push(`/quiz/${nextStepIndex}`)
+      router.push('/procedures/2') // Переходим к GeneratingScheduleStep
     }
   }
 

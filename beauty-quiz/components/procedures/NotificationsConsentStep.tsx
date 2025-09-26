@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 
-export default function RemindersStep() {
+export default function NotificationsConsentStep() {
   const { currentStep, nextStep, answers, setAnswer } = useQuizStore()
   const router = useRouter()
   const [dailyReminders, setDailyReminders] = useState(answers.dailyReminders || false)
@@ -16,9 +16,7 @@ export default function RemindersStep() {
     setAnswer('dailyReminders', dailyReminders)
     setAnswer('activityReminders', activityReminders)
     
-    const nextStepIndex = currentStep + 1
-    nextStep()
-    router.push(`/quiz/${nextStepIndex}`)
+    router.push('/procedures/4') // Переходим к ContractAgreementStep
   }
 
   const getAssistantImage = () => {
