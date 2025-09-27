@@ -1,6 +1,13 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+export interface ActivityMetaOverridePersisted {
+  name: string
+  iconId: string
+  primary: string
+  surface: string
+}
+
 export interface QuizAnswers {
   // Step 0: Assistant Choice (Implicit)
   assistant: 0 | 1 | 2 // 0 = not selected, 1 = Max, 2 = Ellie
@@ -83,6 +90,7 @@ export interface QuizAnswers {
 
   // Post-quiz screens
   selectedActivities: string[]
+  activityMetaOverrides: Record<string, ActivityMetaOverridePersisted>
   dailyReminders: boolean
   activityReminders: boolean
   contractSignature: string
@@ -146,6 +154,7 @@ const initialAnswers: QuizAnswers = {
   hairImageSkipped: false,
   bodyImageSkipped: false,
   selectedActivities: [],
+  activityMetaOverrides: {},
   dailyReminders: false,
   activityReminders: false,
   contractSignature: '',
