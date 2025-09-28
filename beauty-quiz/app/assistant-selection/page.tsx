@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { useQuizStore } from '@/store/quizStore'
 import Image from 'next/image'
+import AnimatedBackground from '@/components/AnimatedBackground'
 // Remove LoadingAnimation import as it's now on home page
 
 export default function AssistantSelectionPage() {
@@ -56,8 +57,33 @@ export default function AssistantSelectionPage() {
   return (
     <>
       <style>{animationStyles}</style>
-      <div className="min-h-screen bg-light-container flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center bg-white rounded-2xl shadow-xl p-8">
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Animated Background */}
+        <AnimatedBackground />
+        <div className="max-w-md w-full text-center bg-white rounded-2xl shadow-xl p-8 relative z-10">
+          {/* Back Button */}
+          <div className="absolute top-4 left-4">
+            <button
+              onClick={() => router.push('/welcome')}
+              className="w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-6 h-6 text-text-primary"
+              >
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+          </div>
+          
           <h1 className="text-2xl font-bold text-text-primary mb-2">Choose your AI Assistant</h1>
           <p className="text-text-secondary mb-8">Personalize your journey from the start.</p>
           

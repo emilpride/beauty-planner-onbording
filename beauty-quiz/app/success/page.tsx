@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import confettiAnimation from '@/public/images/animations/confetti.json'
 import { useRouter } from 'next/navigation'
 import { useQuizStore } from '@/store/quizStore'
+import AnimatedBackground from '@/components/AnimatedBackground'
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
@@ -97,10 +98,13 @@ export default function SuccessPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5] px-4 py-10 flex justify-center">
-      <div className="w-full max-w-[430px] space-y-6">
-        <SuccessCard onPrimary={handleRestart} />
-        <HomeIndicator />
+    <div className="relative min-h-screen overflow-hidden">
+      <AnimatedBackground />
+      <div className="relative z-10 min-h-screen px-4 py-10 flex justify-center">
+        <div className="w-full max-w-[430px] space-y-6">
+          <SuccessCard onPrimary={handleRestart} />
+          <HomeIndicator />
+        </div>
       </div>
     </div>
   )

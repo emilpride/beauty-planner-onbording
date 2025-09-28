@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import OnboardingAppbar from '@/components/quiz/OnboardingAppbar' // To be created
 import CircularProgressAnimation from '@/components/animations/CircularProgressAnimation'
+import AnimatedBackground from '@/components/AnimatedBackground'
 
 // Import all step components (we will create these next)
 import GenderStep from '@/components/quiz/steps/GenderStep'
@@ -244,13 +245,8 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
 
   return (
     <div className={`w-full relative ${isFullScreen ? 'min-h-screen' : 'min-h-screen overflow-hidden'}`}>
-      {/* Background Ellipse - only for quiz steps, not for step 0 */}
-      {stepNumber > 0 && (
-        <div 
-          className="absolute -top-[20vh] left-1/2 -translate-x-1/2 w-[150vw] h-[60vh] bg-primary opacity-20 rounded-[50%]"
-          style={{ filter: 'blur(100px)' }}
-        />
-      )}
+      {/* Animated Background */}
+      <AnimatedBackground />
       
       {stepNumber < 27 && stepNumber >= 0 && <OnboardingAppbar onBackAnimation={startBackAnimation} />}
 

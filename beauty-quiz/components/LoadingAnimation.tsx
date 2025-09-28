@@ -38,8 +38,8 @@ export default function LoadingAnimation({ onComplete, duration = 3000 }: Loadin
     <div className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-500 ${
       isVisible ? 'opacity-100' : 'opacity-0'
     }`}>
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-purple-50 to-purple-100" />
+      {/* Background - прозрачный, чтобы показать анимированный фон */}
+      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm" />
       
       {/* Animated Circles - Based on Design */}
       <div className="relative w-[490px] h-[490px] flex items-center justify-center">

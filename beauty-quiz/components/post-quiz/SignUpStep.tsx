@@ -24,7 +24,30 @@ export default function SignUpStep() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 relative">
+    <div className="min-h-screen relative">
+      {/* Back Button */}
+      <div className="absolute top-8 left-6 z-20">
+        <button
+          onClick={() => router.push('/quiz/27')}
+          className="w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-6 h-6 text-text-primary"
+          >
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+      </div>
+      
       {/* Navbar */}
       <div className="pt-8 px-6">
         <div className="flex items-center justify-center">

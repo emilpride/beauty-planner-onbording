@@ -34,7 +34,7 @@ export default function GenderStep({ onExitAnimation, onBackAnimation }: GenderS
           >
             <div
               className={`
-                w-40 h-40 rounded-full overflow-hidden 
+                w-32 h-32 rounded-full overflow-hidden 
                 border-4 transition-all duration-200 p-1
                 ${
                   answers.gender === option.id
@@ -51,8 +51,8 @@ export default function GenderStep({ onExitAnimation, onBackAnimation }: GenderS
                 <Image
                   src={option.image}
                   alt={option.label}
-                  width={144}
-                  height={144}
+                  width={120}
+                  height={120}
                   className="w-full h-full object-cover scale-110"
                 />
               </div>
