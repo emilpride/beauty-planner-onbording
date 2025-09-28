@@ -169,7 +169,7 @@ export const useQuizStore = create<QuizStore>()(
     (set, get) => ({
       answers: initialAnswers,
       currentStep: 0,
-      totalSteps: 29, // 27 quiz steps (0-26) + 2 post-quiz screens (27-28)
+          totalSteps: 30, // 27 quiz steps (0-26) + 3 post-quiz screens (27-29)
       
       hydrate: () => {
         set((state) => state)

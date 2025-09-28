@@ -4,7 +4,12 @@ import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
 import Image from 'next/image'
 
-export default function GenderStep() {
+interface GenderStepProps {
+  onExitAnimation?: () => void
+  onBackAnimation?: () => void
+}
+
+export default function GenderStep({ onExitAnimation, onBackAnimation }: GenderStepProps) {
   const { answers, setAnswer } = useQuizStore()
 
   const options = [
@@ -17,6 +22,8 @@ export default function GenderStep() {
       title="Select Your Gender"
       subtitle="Let us know a bit about you!"
       condition={answers.gender !== 0}
+      onExitAnimation={onExitAnimation}
+      onBackAnimation={onBackAnimation}
     >
       <div className="flex justify-center gap-6">
         {options.map((option) => (
@@ -27,7 +34,7 @@ export default function GenderStep() {
           >
             <div
               className={`
-                w-36 h-36 rounded-full overflow-hidden 
+                w-40 h-40 rounded-full overflow-hidden 
                 border-4 transition-all duration-200 p-1
                 ${
                   answers.gender === option.id
@@ -44,9 +51,9 @@ export default function GenderStep() {
                 <Image
                   src={option.image}
                   alt={option.label}
-                  width={128}
-                  height={128}
-                  className="w-full h-full object-cover"
+                  width={144}
+                  height={144}
+                  className="w-full h-full object-cover scale-110"
                 />
               </div>
             </div>

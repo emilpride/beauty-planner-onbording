@@ -37,6 +37,7 @@ import PhotoUploadStep from '@/components/quiz/steps/PhotoUploadStep'
 import AIResultsStep from '@/components/quiz/steps/AIResultsStep'
 
 // Post-quiz screens (remaining ones)
+import CurrentConditionAnalysisStep from '@/components/post-quiz/CurrentConditionAnalysisStep'
 import ChoosePlanStep from '@/components/post-quiz/ChoosePlanStep'
 import PricingStep from '@/components/post-quiz/PricingStep'
 
@@ -70,8 +71,9 @@ const stepComponents: { [key: number]: React.ComponentType } = {
   26: AIResultsStep,
   
   // Post-quiz screens (remaining ones)
-  27: ChoosePlanStep,
-  28: PricingStep,
+  27: CurrentConditionAnalysisStep,
+  28: ChoosePlanStep,
+  29: PricingStep,
 }
 
 // Card heights from Flutter design
@@ -87,10 +89,24 @@ interface QuizStepClientProps {
 
 export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   const router = useRouter()
-  const { totalSteps, goToStep, answers } = useQuizStore()
   const [isReady, setIsReady] = useState(false)
+  const [isHydrated, setIsHydrated] = useState(false)
+  const [showQuestion, setShowQuestion] = useState(false)
+  const [showCharacter, setShowCharacter] = useState(false)
+  const [isExiting, setIsExiting] = useState(false)
+  const [isGoingBack, setIsGoingBack] = useState(false)
+  
+  // Only use Zustand on client side
+  const quizStore = useQuizStore()
+  const { totalSteps, goToStep, answers } = quizStore || { totalSteps: 30, goToStep: () => {}, answers: { assistant: 0 } }
   
   useEffect(() => {
+    setIsHydrated(true)
+  }, [])
+  
+  useEffect(() => {
+    if (!isHydrated) return
+    
     // Если пользователь еще не выбрал ассистента, перенаправляем на страницу выбора
     if (answers.assistant === 0) {
       router.push('/assistant-selection')
@@ -102,17 +118,60 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
     } else {
       goToStep(stepNumber)
     }
-  }, [stepNumber, goToStep, totalSteps, router, answers.assistant])
+  }, [stepNumber, goToStep, totalSteps, router, answers.assistant, isHydrated])
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsReady(true), 100)
-    return () => clearTimeout(timer)
+    // Сброс состояний при смене шага
+    setIsExiting(false)
+    setIsGoingBack(false)
+    setShowQuestion(false)
+    setShowCharacter(false)
+    setIsReady(false)
+    
+    // Сначала показываем вопрос
+    const questionTimer = setTimeout(() => {
+      setShowQuestion(true)
+    }, 100)
+    
+    // Затем показываем персонажа с задержкой
+    const characterTimer = setTimeout(() => {
+      setShowCharacter(true)
+    }, 600)
+    
+    // Общее состояние готовности
+    const readyTimer = setTimeout(() => {
+      setIsReady(true)
+    }, 800)
+    
+    return () => {
+      clearTimeout(questionTimer)
+      clearTimeout(characterTimer)
+      clearTimeout(readyTimer)
+    }
   }, [stepNumber])
+
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen bg-light-container flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    )
+  }
 
   const StepComponent = stepComponents[stepNumber]
   const currentCardHeight = cardHeights[stepNumber] || 0.5;
 
   const assistantName = answers.assistant === 2 ? 'ellie' : 'max'
+  
+  // Функция для запуска анимации исчезновения
+  const startExitAnimation = () => {
+    setIsExiting(true)
+  }
+  
+  // Функция для запуска анимации возврата назад
+  const startBackAnimation = () => {
+    setIsGoingBack(true)
+  }
   
   // Correct image mapping for each step using actual existing files
   const getImageForStep = (step: number, assistant: 'max' | 'ellie') => {
@@ -193,13 +252,17 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
         />
       )}
       
-      {stepNumber < 27 && stepNumber >= 0 && <OnboardingAppbar />}
+      {stepNumber < 27 && stepNumber >= 0 && <OnboardingAppbar onBackAnimation={startBackAnimation} />}
 
       <main className="w-full h-full max-w-lg mx-auto relative">
         {!isFullScreen && stepNumber !== 25 && stepNumber !== 26 && stepNumber !== 27 && stepNumber !== 6 && (
            <div className="absolute top-0 left-0 right-0 z-10 flex justify-center items-end" style={{ height: '42vh', pointerEvents: 'none' }}>
             <div 
-              className={`transition-all duration-500 h-[85%] ${isReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+              className={`transition-all duration-700 ease-out h-[85%] ${
+                showCharacter && !isExiting && !isGoingBack
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-16'
+              }`}
               style={{ pointerEvents: 'auto' }}
             >
               {stepNumber === 4 ? (
@@ -223,7 +286,11 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
         )}
 
         <div 
-          className={`absolute left-0 right-0 z-20 transition-all duration-700 ease-in-out ${isReady ? 'opacity-100 bottom-0' : 'opacity-0 -bottom-full'}`}
+          className={`absolute left-0 right-0 z-20 transition-all duration-700 ease-out ${
+            showQuestion && !isExiting && !isGoingBack
+              ? 'opacity-100 translate-y-0' 
+              : 'opacity-0 translate-y-full'
+          }`}
           style={!isFullScreen ? { 
             top: stepNumber === 1 ? '35vh' : stepNumber === 6 ? '15vh' : stepNumber === 20 ? '30vh' : stepNumber === 25 ? '15vh' : stepNumber === 26 ? '15vh' : '42vh'
           } : { top: '0' }}
@@ -232,7 +299,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
             className={`bg-white shadow-2xl ${isFullScreen ? 'min-h-screen' : 'rounded-t-3xl overflow-hidden'}`}
             style={isFullScreen ? {} : { height: stepNumber === 6 ? '85vh' : stepNumber === 25 || stepNumber === 26 ? '85vh' : stepNumber === 20 ? '70vh' : '58vh' }}
           >
-             <StepComponent />
+             <StepComponent onExitAnimation={startExitAnimation} onBackAnimation={startBackAnimation} />
           </div>
         </div>
       </main>

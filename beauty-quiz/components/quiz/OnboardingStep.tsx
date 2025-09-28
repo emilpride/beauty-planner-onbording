@@ -16,6 +16,8 @@ interface OnboardingStepProps {
   onSkip?: () => void
   centerContent?: boolean
   hideButton?: boolean
+  onExitAnimation?: () => void
+  onBackAnimation?: () => void
 }
 
 export default function OnboardingStep({
@@ -31,6 +33,8 @@ export default function OnboardingStep({
   onSkip,
   centerContent = false,
   hideButton = false,
+  onExitAnimation,
+  onBackAnimation,
 }: OnboardingStepProps) {
   const router = useRouter()
   const { nextStep, currentStep } = useQuizStore()
@@ -40,9 +44,16 @@ export default function OnboardingStep({
       if (onNext) {
         onNext()
       }
-      const nextStepIndex = currentStep + 1
-      router.push(`/quiz/${nextStepIndex}`)
-      nextStep()
+      // Запускаем анимацию исчезновения
+      if (onExitAnimation) {
+        onExitAnimation()
+      }
+      // Добавляем задержку для анимации исчезновения
+      setTimeout(() => {
+        const nextStepIndex = currentStep + 1
+        router.push(`/quiz/${nextStepIndex}`)
+        nextStep()
+      }, 500)
     } else if (onDisabledTap) {
       onDisabledTap()
     }

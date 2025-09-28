@@ -13,7 +13,11 @@ const progressSections = [
   { name: 'AI', steps: 3 },         // Steps 26-28
 ]
 
-export default function OnboardingAppbar() {
+interface OnboardingAppbarProps {
+  onBackAnimation?: () => void
+}
+
+export default function OnboardingAppbar({ onBackAnimation }: OnboardingAppbarProps) {
   const router = useRouter()
   const { currentStep } = useQuizStore()
 
@@ -43,7 +47,14 @@ export default function OnboardingAppbar() {
     <header className="absolute top-0 left-0 right-0 z-30 p-4 max-w-lg mx-auto">
       <div className="flex items-center space-x-4">
         <button
-          onClick={() => router.back()}
+          onClick={() => {
+            if (onBackAnimation) {
+              onBackAnimation()
+            }
+            setTimeout(() => {
+              router.back()
+            }, 300)
+          }}
           className="w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg flex-shrink-0"
         >
           <svg

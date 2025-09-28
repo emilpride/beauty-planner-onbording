@@ -6,11 +6,11 @@ import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
 const options = [
-  { id: 'great', label: 'Great', icon: '😄' },
-  { id: 'good', label: 'Good', icon: '😊' },
-  { id: 'okay', label: 'Okay', icon: '😐' },
-  { id: 'bad', label: 'Bad', icon: '😟' },
-  { id: 'terrible', label: 'Terrible', icon: '😢' },
+  { id: 'great', label: 'Great' },
+  { id: 'good', label: 'Good' },
+  { id: 'okay', label: 'Okay' },
+  { id: 'bad', label: 'Bad' },
+  { id: 'terrible', label: 'Terrible' },
 ]
 
 export default function MoodStep() {
@@ -60,8 +60,7 @@ export default function MoodStep() {
                 : 'opacity-60 hover:opacity-100 hover:bg-gray-50'
             }`}
           >
-            <span className="text-5xl">{option.icon}</span>
-            <span className={`font-semibold ${answers.mood === option.id ? 'text-primary' : 'text-text-secondary'}`}>{option.label}</span>
+            <span className={`text-2xl font-bold ${answers.mood === option.id ? 'text-primary' : 'text-text-secondary'}`}>{option.label}</span>
           </button>
         ))}
       </div>
