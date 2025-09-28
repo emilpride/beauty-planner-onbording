@@ -340,7 +340,7 @@ export default function CurrentConditionAnalysisStep() {
               type="button"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => router.push('/procedures/1')}
+              onClick={() => router.push('/signup')}
               className="inline-flex w-full items-center justify-center rounded-full bg-[#5C4688] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#5C4688]/30 transition hover:bg-[#473574]"
             >
               To The Activities

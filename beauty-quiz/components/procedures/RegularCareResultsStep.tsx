@@ -125,7 +125,7 @@ export default function RegularCareResultsStep() {
   }, [timelineControls, timelineInView])
 
   const handleContinue = () => {
-    router.push('/pricing')
+    router.push('/payment')
   }
 
   return (
