@@ -256,14 +256,37 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
 
       <main className="w-full h-full max-w-lg mx-auto relative">
         {!isFullScreen && stepNumber !== 25 && stepNumber !== 26 && stepNumber !== 27 && stepNumber !== 6 && (
-           <div className="absolute top-0 left-0 right-0 z-10 flex justify-center items-end" style={{ height: '42vh', pointerEvents: 'none' }}>
+           <div 
+             className="absolute top-0 left-0 right-0 z-10 flex justify-center items-end" 
+             style={{ 
+               height: '42vh', 
+               pointerEvents: 'none',
+               // Специальное позиционирование для Max на проблемных экранах
+               ...(assistantName === 'max' && [12, 13, 14, 15, 16, 17].includes(stepNumber) 
+                 ? { 
+                     alignItems: 'flex-end', 
+                     paddingBottom: stepNumber === 16 ? '40px' : stepNumber === 17 ? '30px' : '20px',
+                     transform: 'translateY(20px)'
+                   }
+                 : {})
+             }}
+           >
             <div 
               className={`transition-all duration-700 ease-out h-[85%] ${
                 showCharacter && !isExiting && !isGoingBack
                   ? 'opacity-100 translate-y-0' 
                   : 'opacity-0 translate-y-16'
               }`}
-              style={{ pointerEvents: 'auto' }}
+              style={{ 
+                pointerEvents: 'auto',
+                // Дополнительное позиционирование для Max на проблемных экранах
+                ...(assistantName === 'max' && [12, 13, 14, 15, 16, 17].includes(stepNumber) 
+                  ? { 
+                      transform: 'translateY(30px)',
+                      marginBottom: stepNumber === 16 ? '20px' : '10px'
+                    }
+                  : {})
+              }}
             >
               {stepNumber === 4 ? (
                 // Если это 4-й шаг, показываем нашу новую анимацию
@@ -292,12 +315,28 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
               : 'opacity-0 translate-y-full'
           }`}
           style={!isFullScreen ? { 
-            top: stepNumber === 1 ? '35vh' : stepNumber === 6 ? '15vh' : stepNumber === 20 ? '30vh' : stepNumber === 25 ? '15vh' : stepNumber === 26 ? '15vh' : '42vh'
+            top: stepNumber === 1 ? '35vh' : 
+                 stepNumber === 6 ? '15vh' : 
+                 stepNumber === 20 ? '30vh' : 
+                 stepNumber === 25 ? '15vh' : 
+                 stepNumber === 26 ? '15vh' : 
+                 // Специальное позиционирование для Max на проблемных экранах
+                 (assistantName === 'max' && [12, 13, 14, 15, 16, 17].includes(stepNumber)) 
+                   ? (stepNumber === 16 ? '35vh' : stepNumber === 17 ? '37vh' : '38vh') // Сильнее поднимаем область вопроса
+                   : '42vh'
           } : { top: '0' }}
         >
           <div 
             className={`bg-white shadow-2xl ${isFullScreen ? 'min-h-screen' : 'rounded-t-3xl overflow-hidden'}`}
-            style={isFullScreen ? {} : { height: stepNumber === 6 ? '85vh' : stepNumber === 25 || stepNumber === 26 ? '85vh' : stepNumber === 20 ? '70vh' : '58vh' }}
+            style={isFullScreen ? {} : { 
+              height: stepNumber === 6 ? '85vh' : 
+                     stepNumber === 25 || stepNumber === 26 ? '85vh' : 
+                     stepNumber === 20 ? '70vh' : 
+                     // Увеличиваем высоту для Max на проблемных экранах
+                     (assistantName === 'max' && [12, 13, 14, 15, 16, 17].includes(stepNumber)) 
+                       ? (stepNumber === 16 ? '65vh' : '62vh') // Увеличиваем высоту поля вопроса
+                       : '58vh' 
+            }}
           >
              <StepComponent onExitAnimation={startExitAnimation} onBackAnimation={startBackAnimation} />
           </div>
