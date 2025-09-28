@@ -1,464 +1,567 @@
-﻿
-'use client'
+﻿'use client'
 
-import { useEffect, useMemo, useRef, type CSSProperties } from 'react'
-import { motion, useAnimation, useInView } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion';
+import { useRef, useEffect, useState } from 'react';
 
-type TimelineIcon = 'check' | 'bell' | 'list' | 'star'
-
-interface TimelineItem {
-  icon: TimelineIcon
-  title: string
-  description: string
-}
-
-interface ComparisonItem {
-  icon: 'minus' | 'check'
-  text: string
-}
-
-interface Testimonial {
-  name: string
-  quote: string
-  image: string
-}
-
-const TIMELINE: TimelineItem[] = [
-  {
-    icon: 'check',
-    title: 'Start using the app',
-    description: 'Get personalised routines for skin, hair, fitness and self-care.',
-  },
-  {
-    icon: 'bell',
-    title: 'Stay consistent with your routine',
-    description: 'Automatic reminders help you build healthy habits.',
-  },
-  {
-    icon: 'list',
-    title: 'Complete daily self-care rituals',
-    description: 'Follow your plan to nurture beauty and well-being.',
-  },
-  {
-    icon: 'star',
-    title: 'Unlock achievements and stay motivated',
-    description: 'Reach new milestones as you stick to your routine.',
-  },
-]
-
-const STRUGGLES: ComparisonItem[] = [
-  { icon: 'minus', text: 'Struggle to stay consistent with self-care' },
-  { icon: 'minus', text: 'Forget important skincare, haircare or wellness steps' },
-  { icon: 'minus', text: 'No clear way to track your beauty habits' },
-]
-
-const WINS: ComparisonItem[] = [
-  { icon: 'check', text: 'Follow a structured beauty and wellness routine effortlessly' },
-  { icon: 'check', text: 'Get reminders to keep up with your personalised plan' },
-  { icon: 'check', text: 'See your completed routines and progress over time' },
-  { icon: 'check', text: 'Unlock achievements and stay inspired' },
-]
-
-const TESTIMONIALS: Testimonial[] = [
-  {
-    name: 'Emily',
-    quote: 'This service is a real find! Thanks for the accuracy and professionalism!',
-    image: '/images/reviews/review_1.png',
-  },
-  {
-    name: 'Aisha',
-    quote: 'I plan every procedure a month ahead now. No more guesswork and my clients notice the glow!',
-    image: '/images/reviews/review_2.png',
-  },
-  {
-    name: 'Mira',
-    quote: 'Scheduling spa rituals inside the app keeps me consistent even during busy weeks.',
-    image: '/images/reviews/review_3.png',
-  },
-  {
-    name: 'Beatriz',
-    quote: 'My facial appointments are perfectly spaced. Skin looks luminous and calm.',
-    image: '/images/reviews/review_1.png',
-  },
-  {
-    name: 'Sofia',
-    quote: 'Love how the plan adapts around photoshoots. Beauty prep finally feels stress-free.',
-    image: '/images/reviews/review_2.png',
-  },
-  {
-    name: 'Harper',
-    quote: 'Tracking laser sessions and aftercare steps is effortless. The routine practically runs itself.',
-    image: '/images/reviews/review_3.png',
-  },
-]
-
-const marqueeAnimation = {
-  animate: {
-    x: ['0%', '-50%'],
-    transition: {
-      duration: 26,
-      ease: 'linear',
-      repeat: Infinity,
-    },
-  },
-}
 export default function RegularCareResultsStep() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const gender = searchParams.get('gender') || 'female'
-  const bmiValue = Number(searchParams.get('bmi')) || 24
-  const idealBmi = gender === 'male' ? 22 : 20
 
-  const currentBmiImage = useMemo(() => getBmiImage(gender, bmiValue), [gender, bmiValue])
-  const idealBmiImage = useMemo(() => getBmiImage(gender, idealBmi), [gender, idealBmi])
+  const handlePricePlans = () => {
+    router.push('/payment') // Ведет на payment
+  }
 
-  const timelineControls = useAnimation()
-  const timelineRef = useRef<HTMLDivElement | null>(null)
-  const timelineInView = useInView(timelineRef, { once: true, margin: '-60px 0px -60px 0px' })
+  // Mock data for independent version
+  const mockAnswers = {
+    gender: 1, // female by default
+    name: 'Test User'
+  }
+
+  // Get BMI images based on user's gender
+  const getBMIImages = () => {
+    const isFemale = mockAnswers.gender === 1 // 1 = female, 0 = male
+    const prefix = isFemale ? 'bmi_female' : 'bmi_male'
+    
+    return {
+      current: `/images/on_boarding_images/${prefix}_1.png`, // User's current result
+      target: `/images/on_boarding_images/${prefix}_3.png`   // Target goal
+    }
+  }
+
+  const bmiImages = getBMIImages()
+
+  const benefits = [
+    {
+      icon: (
+        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      ),
+      title: "Start using the app:",
+      description: "Get personalized routines for skin, hair, fitness & self-care."
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+        </svg>
+      ),
+      title: "Stay consistent with your routine:",
+      description: "Automatic reminders help you build healthy habits."
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+      title: "Complete daily self-care rituals:",
+      description: "Follow your plan to nurture beauty & well-being."
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+      ),
+      title: "Unlock achievements & stay motivated:",
+      description: "Reach new milestones as you stick to your routine."
+    }
+  ]
+
+  const struggles = [
+    "Struggle to stay consistent with self-care",
+    "Forget important skincare, haircare, or wellness steps",
+    "No clear way to track your beauty habits"
+  ];
+
+  const solutions = [
+    "Follow a structured beauty & wellness routine effortlessly",
+    "Get reminders to keep up with your personalized plan",
+    "See your completed routines and progress over time",
+    "Unlock achievements and stay inspired"
+  ];
+
+  const benefitsRef = useRef(null);
+  const strugglesRef = useRef(null);
+  const benefitsInView = useInView(benefitsRef, { once: true, amount: 0.3 });
+  const strugglesInView = useInView(strugglesRef, { once: true, amount: 0.3 });
+
+  const pathLength = useMotionValue(0);
+  const withoutAppX = useTransform(pathLength, [0, 1], [65, 315]);
+  const withoutAppY = useTransform(pathLength, [0, 1], [200, 170]);
+  const withAppX = useTransform(pathLength, [0, 1], [65, 315]);
+  const withAppY = useTransform(pathLength, [0, 1], [200, 80]);
 
   useEffect(() => {
-    if (timelineInView) {
-      timelineControls.start({ scaleY: 1, transition: { duration: 0.85, ease: 'easeOut' } })
-    }
-  }, [timelineControls, timelineInView])
+    const animation = animate(pathLength, 1, {
+      duration: 2,
+      ease: "easeInOut",
+      delay: 0.5
+    });
+    return animation.stop;
+  }, [pathLength]);
 
-  const handleContinue = () => {
-    router.push('/payment')
-  }
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+    transition: {
+        type: 'spring' as const,
+        stiffness: 100,
+      },
+    },
+  };
+
+  const testimonials = [
+    { name: 'Emily', image: '/images/reviews/review_1.png', text: 'This service is a real find! Thanks for the accuracy and professionalism!' },
+    { name: 'Aisha', image: '/images/reviews/review_2.png', text: 'I\'m stoked! The results have been a source of inspiration.' },
+    { name: 'Mira', image: '/images/reviews/review_3.png', text: 'I\'m more beautiful than the average in my country!' },
+    { name: 'Lisa', image: '/images/reviews/review_1.png', text: 'The planning feature is amazing! My routine is perfectly organized now.' },
+    { name: 'Sofia', image: '/images/reviews/review_1.png', text: 'Finally found the perfect beauty routine planner! It\'s so easy to follow.' },
+    { name: 'Anna', image: '/images/reviews/review_1.png', text: 'My beauty routine has never been this organized! Love the planning tools.' },
+  ];
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className='flex min-h-screen justify-center bg-[#F5F5F5] px-4 py-10 sm:px-6'
+      className="w-full h-screen bg-white flex flex-col"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
     >
-      <div className='w-full max-w-md space-y-6'>
-        <motion.section
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.45, ease: 'easeOut' }}
-          className='rounded-3xl bg-white p-6 shadow-[0_24px_48px_rgba(92,70,136,0.12)]'
-        >
-          <header className='space-y-3 text-center text-[#5C4688]'>
-            <h1 className='text-2xl font-bold'>Regular Care = Better Results!</h1>
-            <p className='text-sm font-semibold text-[#969AB7]'>
-              On average, our users improve their well-being by 30% within the first month of guided routines.
+      <div className="flex-1 overflow-y-auto scrollbar-hide">
+        <div className="max-w-md mx-auto p-6 space-y-6">
+          {/* Header */}
+          <motion.div className="text-center" variants={itemVariants}>
+            <h1 className="text-3xl font-bold text-[#5C4688] mb-3">Regular Care = Better Results!</h1>
+            <p className="text-gray-600">
+              On average, our users improve their well-being by 30% within the first month!
             </p>
-          </header>
-
-          <motion.div
-            initial={{ scale: 0.96, opacity: 0 }}
-            whileInView={{ scale: 1, opacity: 1 }}
-            viewport={{ once: true, amount: 0.5 }}
-            transition={{ duration: 0.45 }}
-            className='relative mt-5 overflow-hidden rounded-2xl bg-[#F7F6FF] p-5 shadow-[0_18px_44px_rgba(92,70,136,0.12)]'
-          >
-            <HeroChart />
           </motion.div>
 
-          <motion.section
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
-            transition={{ duration: 0.4 }}
-            className='mt-5 space-y-4'
+          {/* Progress Graph */}
+        <motion.div
+            className="flex flex-col justify-center items-start p-4"
+            style={{
+              width: '350px',
+              background: '#F7F6FF',
+              borderRadius: '10.77px',
+            }}
+            variants={itemVariants}
           >
-            <div className='flex items-center justify-center gap-6'>
-              <motion.div whileHover={{ scale: 1.05 }} transition={{ type: 'spring', stiffness: 320, damping: 20 }} className='flex flex-col items-center'>
-                <Image src={currentBmiImage} alt='Current BMI' width={96} height={160} className='object-contain' />
-                <span className='mt-2 text-xs font-semibold text-[#969AB7]'>Current - BMI {bmiValue}</span>
-              </motion.div>
-              <motion.div className='relative flex h-14 w-14 items-center justify-center' animate={{ rotate: [0, 6, -6, 0] }} transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}>
-                <svg width='64' height='64' viewBox='0 0 64 64' fill='none'>
-                  <circle cx='32' cy='32' r='30' stroke='#A385E9' strokeOpacity='0.25' strokeWidth='3' />
-                  <motion.path
-                    d='M20 24 L44 32 L20 40'
-                    stroke='#A385E9'
-                    strokeWidth='4'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    animate={{ x: [0, 4, 0] }}
-                    transition={{ duration: 1.6, repeat: Infinity, repeatType: 'mirror' }}
+            <svg viewBox="0 0 350 270" className="w-full h-full">
+                <defs>
+                <linearGradient id="withAppGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#84DE54" />
+                    <stop offset="100%" stopColor="#2AEA5C" />
+                  </linearGradient>
+                <linearGradient id="withoutAppGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#FFA64D" />
+                  <stop offset="100%" stopColor="#FE6C6C" />
+                </linearGradient>
+                <linearGradient id="verticalBarGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="1.04%" stopColor="rgba(111, 221, 141, 0)" />
+                  <stop offset="28.13%" stopColor="#2BAE70" />
+                  <stop offset="66.67%" stopColor="#FE464B" />
+                  <stop offset="98.44%" stopColor="rgba(254, 108, 108, 0)" />
+                  </linearGradient>
+                </defs>
+
+              {/* Vertical Bar */}
+              <motion.rect 
+                x="260" y="40" width="70" height="190" 
+                fill="url(#verticalBarGradient)" 
+                initial={{ opacity: 0, scaleY: 0 }}
+                animate={{ opacity: 0.25, scaleY: 1 }}
+                transition={{ duration: 1, delay: 1 }}
+              />
+
+              {/* Axis Line */}
+              <line x1="20" y1="230" x2="330" y2="230" stroke="#B3D2E8" strokeWidth="2" />
+              <circle cx="35" cy="230" r="5" fill="#7798C3" />
+              <circle cx="315" cy="230" r="5" fill="#7798C3" />
+              <text x="35" y="250" textAnchor="middle" fill="#69798E" fontWeight="600" fontSize="16">Today</text>
+              <text x="315" y="250" textAnchor="middle" fill="#69798E" fontWeight="600" fontSize="16">30 Days</text>
+
+              {/* Graph Lines */}
+              <motion.path 
+                d="M 65 200 C 150 220, 200 200, 315 170" 
+                stroke="url(#withoutAppGradient)" strokeWidth="3" fill="none" 
+                style={{ pathLength }}
+              />
+              <motion.path 
+                d="M 65 200 C 150 220, 200 100, 315 80" 
+                stroke="url(#withAppGradient)" strokeWidth="3" fill="none" 
+                style={{ pathLength }}
+              />
+
+              {/* Line Labels */}
+              <text x="190" y="195" textAnchor="middle" fill="#333333" fontWeight="500" fontSize="15">Without app</text>
+              <text x="190" y="60" textAnchor="middle" fill="#476B9A" fontWeight="700" fontSize="17">With app</text>
+
+              {/* Score Circles */}
+              <motion.g 
+                style={{ x: withoutAppX, y: withoutAppY }}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.5 }}
+              >
+                <circle r="34" fill="#F0D1C8" />
+                <circle r="30" fill="none" stroke="#84DE54" strokeWidth="6" strokeDasharray="113 188.4" transform="rotate(-90 0 0)" />
+                <text textAnchor="middle" y="10" fontWeight="700" fontSize="32" fill="#3C7C1A">
+                  6<tspan fontSize="16" dy="-12" dx="2">/10</tspan>
+                </text>
+              </motion.g>
+
+              <motion.g 
+                style={{ x: withAppX, y: withAppY }}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.5 }}
+              >
+                <circle r="34" fill="#F9FAFF" />
+                <circle r="30" fill="none" stroke="#2AEA5C" strokeWidth="6" strokeDasharray="150.7 188.4" transform="rotate(-90 0 0)" />
+                <text textAnchor="middle" y="10" fontWeight="700" fontSize="32" fill="#187348">
+                  8<tspan fontSize="16" dy="-12" dx="2">/10</tspan>
+                </text>
+              </motion.g>
+
+              {/* Static 5/10 circle at the start */}
+              <g transform="translate(65, 200)">
+                <circle r="34" fill="#FFF2E5" />
+                <circle r="30" fill="none" stroke="#FFA64D" strokeWidth="6" strokeDasharray="94.2 188.4" transform="rotate(-90 0 0)" />
+                <text textAnchor="middle" y="10" fontWeight="700" fontSize="32" fill="#DA7C1D">
+                  5<tspan fontSize="16" dy="-12" dx="2">/10</tspan>
+                </text>
+              </g>
+
+              {/* Triangles */}
+              <motion.text 
+                x="315" y="115" textAnchor="middle" fill="white" fontSize="12"
+                animate={{ opacity: [0.2, 1, 0.2] }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  repeatType: 'loop',
+                  delay: 0,
+                  ease: "easeInOut"
+                }}
+              >▲</motion.text>
+              <motion.text 
+                x="315" y="130" textAnchor="middle" fill="white" fontSize="12"
+                animate={{ opacity: [0.2, 1, 0.2] }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  repeatType: 'loop',
+                  delay: 0.5,
+                  ease: "easeInOut"
+                }}
+              >▲</motion.text>
+              <motion.text 
+                x="315" y="145" textAnchor="middle" fill="white" fontSize="12"
+                animate={{ opacity: [0.2, 1, 0.2] }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  repeatType: 'loop',
+                  delay: 1,
+                  ease: "easeInOut"
+                }}
+              >▲</motion.text>
+              </svg>
+          </motion.div>
+
+          {/* Before/After Images */}
+          <motion.div 
+            className="rounded-xl p-4 -mt-8" style={{ backgroundColor: '#F7F6FF' }}
+            variants={itemVariants}
+          >
+            <div className="flex items-center justify-center gap-0">
+              {/* User's Current Result */}
+              <motion.div
+                className="text-center"
+                initial={{ x: -100, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+              >
+                <div className="relative w-40 h-56 mx-auto">
+                  <Image
+                    src={bmiImages.current}
+                    alt="User's current BMI result"
+                    layout="fill"
+                    objectFit="contain"
                   />
-                </svg>
+                </div>
+                <div className="text-sm text-gray-600 font-medium mt-2">Your Current</div>
               </motion.div>
-              <motion.div whileHover={{ scale: 1.05 }} transition={{ type: 'spring', stiffness: 320, damping: 20 }} className='flex flex-col items-center'>
-                <Image src={idealBmiImage} alt='Ideal BMI' width={96} height={160} className='object-contain' />
-                <span className='mt-2 text-xs font-semibold text-[#969AB7]'>Ideal - BMI {idealBmi}</span>
+              
+              {/* Arrow */}
+              <motion.div
+                className="flex items-center justify-center self-center"
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.5 }}
+              >
+                <div
+                  style={{
+                    width: '124.33px',
+                    height: '124.33px',
+                    position: 'relative',
+                  }}
+                >
+                  <Image
+                    src="/images/content/improvement_arrow.png"
+                    alt="Improvement arrow"
+                    layout="fill"
+                    objectFit="contain"
+                  />
+                </div>
+              </motion.div>
+
+              {/* Target Goal */}
+              <motion.div
+                className="text-center"
+                initial={{ x: 100, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+              >
+                <div className="relative w-40 h-56 mx-auto">
+                  <Image
+                    src={bmiImages.target}
+                    alt="Target goal BMI"
+                    layout="fill"
+                    objectFit="contain"
+                  />
+                </div>
+                <div className="text-sm text-gray-600 font-medium mt-2">Target Goal</div>
               </motion.div>
             </div>
-            <p className='text-center text-sm font-semibold text-[#969AB7]'>
-              The more consistently you follow your personalised plan, the faster you move into the healthy range.
-            </p>
-          </motion.section>
+          </motion.div>
 
-          <motion.section
-            ref={timelineRef}
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45 }}
-            className='relative mt-6 overflow-hidden rounded-2xl bg-[#F7F6FF] p-6'
+          {/* Motivational Text */}
+          <motion.div className="text-center" variants={itemVariants}>
+            <p className="text-gray-800 text-lg">
+              The more consistently you follow your routine, the better your beauty level becomes. See the difference for yourself!
+            </p>
+          </motion.div>
+
+          {/* Benefits Section */}
+          <motion.div 
+            className="space-y-4" 
+            ref={benefitsRef}
+            initial="hidden"
+            animate={benefitsInView ? "visible" : "hidden"}
+            variants={{
+              visible: { transition: { staggerChildren: 0.2 } },
+              hidden: {}
+            }}
           >
-            <div className='absolute left-[28px] top-6 bottom-6 w-[3px] rounded-full bg-gradient-to-b from-[#EBE3FF] via-[#F3EEFF] to-[#FFFFFF]' />
-            <motion.div
-              className='absolute left-[28px] top-6 bottom-6 w-[3px] origin-top rounded-full bg-gradient-to-b from-[#8F74E5] via-[#B69CFF] to-[#D8CBFF]'
-              initial={{ scaleY: 0 }}
-              animate={timelineControls}
-            />
-            <h2 className='mb-6 text-lg font-bold text-[#5C4688]'>Noticeable improvements in one month</h2>
-            <div className='space-y-6'>
-              {TIMELINE.map((item, index) => (
-                <motion.div
-                  key={item.title}
-                  className='relative pl-20'
-                  initial={{ opacity: 0, x: 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, amount: 0.5 }}
-                  transition={{ duration: 0.35, delay: index * 0.08 }}
-                >
-                  <div className='absolute left-8 top-1 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-[0_10px_18px_rgba(92,70,136,0.14)]'>
-                    {renderTimelineIcon(item.icon)}
+            <h3 className="text-xl font-bold text-center text-[#5C4688]">Noticeable Improvements In One Month:</h3>
+            {benefits.map((benefit, index) => (
+              <motion.div key={index} className="flex items-center space-x-4 bg-white p-4 rounded-lg shadow-sm" variants={itemVariants}>
+                <div className="flex-shrink-0 w-10 h-10 bg-[#A385E9] rounded-full flex items-center justify-center text-white">
+                  {benefit.icon}
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-800">{benefit.title}</h4>
+                  <p className="text-sm text-gray-600">{benefit.description}</p>
                   </div>
-                  <h3 className='text-sm font-semibold text-[#5C4688]'>{item.title}</h3>
-                  <p className='text-sm text-[#5A5C71]'>{item.description}</p>
                 </motion.div>
               ))}
-            </div>
-          </motion.section>
+          </motion.div>
 
-          <motion.section
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.45 }}
-            className='mt-6 grid grid-cols-2 gap-3'
+          {/* Struggles vs Solutions */}
+          <motion.div 
+            className="bg-gray-100 rounded-xl p-6" 
+            ref={strugglesRef}
+            initial={{ opacity: 0, y: 50 }}
+            animate={strugglesInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.8 }}
           >
-            <ComparisonCard title='Before Habitly' items={STRUGGLES} tone='neutral' />
-            <ComparisonCard title='With Habitly' items={WINS} tone='positive' />
-          </motion.section>
-
-          <motion.section
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.45 }}
-            className='mt-6'
-          >
-            <div className='mb-3 flex items-center justify-between text-sm font-semibold text-[#5C4688]'>
-              <span>Loved by our community</span>
-              <span className='text-xs font-medium text-[#A385E9]'>Automatic stories</span>
-            </div>
-            <div className='relative overflow-hidden rounded-2xl bg-[#F8F7FF] p-2'>
-              <motion.div
-                className='flex cursor-grab gap-3'
-                variants={marqueeAnimation}
-                animate='animate'
-                drag='x'
-                dragConstraints={{ left: -TESTIMONIALS.length * 160, right: 0 }}
-                whileTap={{ cursor: 'grabbing' }}
+            <div className="grid grid-cols-2 gap-6">
+              {/* Struggles Column */}
+              <motion.div 
+                className="space-y-4"
+                initial={{ x: -50, opacity: 0 }}
+                animate={strugglesInView ? { x: 0, opacity: 1 } : {}}
+                transition={{ duration: 0.8, delay: 0.2 }}
               >
-                {[...TESTIMONIALS, ...TESTIMONIALS].map((item, index) => (
-                  <TestimonialCard key={`${item.name}-${index}`} testimonial={item} />
+                <h4 className="font-bold text-center text-gray-800">Your Struggles</h4>
+                {struggles.map((struggle, index) => (
+                  <div key={index} className="flex items-center space-x-2 text-sm">
+                    <div className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center text-gray-600">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
+                    </div>
+                    <span className="text-gray-700">{struggle}</span>
+                  </div>
+                ))}
+              </motion.div>
+              {/* Solutions Column */}
+              <motion.div 
+                className="space-y-4"
+                initial={{ x: 50, opacity: 0 }}
+                animate={strugglesInView ? { x: 0, opacity: 1 } : {}}
+                transition={{ duration: 0.8, delay: 0.2 }}
+              >
+                <h4 className="font-bold text-center text-gray-800">Our Solutions</h4>
+                {solutions.map((solution, index) => (
+                  <div key={index} className="flex items-center space-x-2 text-sm">
+                    <div className="w-5 h-5 bg-[#A385E9] rounded-full flex items-center justify-center text-white">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <span className="text-gray-700">{solution}</span>
+            </div>
                 ))}
               </motion.div>
             </div>
-          </motion.section>
+          </motion.div>
 
+          {/* Testimonials */}
+          <motion.div className="w-full overflow-hidden relative" variants={itemVariants}>
+            <div 
+              className="flex flex-row items-start gap-2.5"
+              style={{
+                width: 'max-content',
+                animation: 'scroll-left 40s linear infinite'
+              }}
+            >
+              {testimonials.map((review, index) => (
+                 <div 
+                  key={index}
+                  className="flex flex-col items-start p-2 gap-2 bg-white flex-none"
+                  style={{
+                    width: '141px',
+                    height: '298px',
+                    boxShadow: '0.764602px 1.5292px 11.469px rgba(88, 66, 124, 0.1)',
+                    borderRadius: '13.5929px'
+                  }}
+                >
+                  <Image
+                    src={review.image}
+                    alt={`User review ${review.name}`}
+                    width={125}
+                    height={125}
+                    className="w-full h-auto object-cover flex-none"
+                    style={{ borderRadius: '7px' }}
+                  />
+                  <div className="flex flex-row items-center gap-1 flex-none">
+                    <span className="font-bold text-sm" style={{ color: '#5C4688' }}>
+                      {review.name}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <div className="flex-none flex items-center justify-center w-4 h-4" style={{ background: '#A385E9', borderRadius: '50%' }}>
+                        <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><path d="M1 3L2.5 4.5L5 1.5" stroke="white" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+                      <span className="font-bold text-xs" style={{ color: '#A385E9' }}>Verified</span>
+                    </div>
+                  </div>
+                  <div className="flex-none self-stretch" style={{ height: '0px', border: '1px solid rgba(234, 234, 234, 0.92)' }}/>
+                  <div className="flex flex-row items-center gap-2 flex-none">
+                    <div className="flex flex-row items-start flex-none">
+                      {[...Array(5)].map((_, i) => (
+                        <svg key={i} className="flex-none" width="10" height="10" viewBox="0 0 10 10" fill="#FABB05">
+                          <path d="M5 0L6.18 3.82L10 3.82L7.27 6.18L8.45 10L5 7.64L1.55 10L2.73 6.18L0 3.82L3.82 3.82L5 0Z"/>
+                          </svg>
+                      ))}
+                    </div>
+                    <span className="text-xs" style={{ color: '#969AB7' }}>5.0 rating</span>
+                  </div>
+                  <p className="flex-none self-stretch text-sm" style={{ fontWeight: '500', color: '#333333' }}>
+                    {review.text}
+                  </p>
+                </div>
+              ))}
+              {/* Duplicate cards for infinite scroll effect */}
+              {testimonials.map((review, index) => (
+                 <div 
+                  key={`duplicate-${index}`}
+                  className="flex flex-col items-start p-2 gap-2 bg-white flex-none"
+                  style={{
+                    width: '141px',
+                    height: '298px',
+                    boxShadow: '0.764602px 1.5292px 11.469px rgba(88, 66, 124, 0.1)',
+                    borderRadius: '13.5929px'
+                  }}
+                >
+                  <Image
+                    src={review.image}
+                    alt={`User review ${review.name}`}
+                    width={125}
+                    height={125}
+                    className="w-full h-auto object-cover flex-none"
+                    style={{ borderRadius: '7px' }}
+                  />
+                  <div className="flex flex-row items-center gap-1 flex-none">
+                    <span className="font-bold text-sm" style={{ color: '#5C4688' }}>
+                      {review.name}
+                        </span>
+                    <div className="flex items-center gap-1">
+                      <div className="flex-none flex items-center justify-center w-4 h-4" style={{ background: '#A385E9', borderRadius: '50%' }}>
+                        <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><path d="M1 3L2.5 4.5L5 1.5" stroke="white" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </div>
+                      <span className="font-bold text-xs" style={{ color: '#A385E9' }}>Verified</span>
+                    </div>
+                  </div>
+                  <div className="flex-none self-stretch" style={{ height: '0px', border: '1px solid rgba(234, 234, 234, 0.92)' }}/>
+                  <div className="flex flex-row items-center gap-2 flex-none">
+                    <div className="flex flex-row items-start flex-none">
+                      {[...Array(5)].map((_, i) => (
+                        <svg key={i} className="flex-none" width="10" height="10" viewBox="0 0 10 10" fill="#FABB05">
+                          <path d="M5 0L6.18 3.82L10 3.82L7.27 6.18L8.45 10L5 7.64L1.55 10L2.73 6.18L0 3.82L3.82 3.82L5 0Z"/>
+                          </svg>
+                        ))}
+                    </div>
+                    <span className="text-xs" style={{ color: '#969AB7' }}>5.0 rating</span>
+                  </div>
+                  <p className="flex-none self-stretch text-sm" style={{ fontWeight: '500', color: '#333333' }}>
+                    {review.text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+        </div>
+        </div>
+
+      {/* Fixed Bottom Button */}
+      <motion.div 
+        className="bg-white p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] flex justify-center"
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        transition={{ type: 'spring', stiffness: 100, delay: 0.5 }}
+      >
           <motion.button
-            type='button'
-            onClick={handleContinue}
-            initial={{ scale: 0.96, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.35, ease: 'easeOut', delay: 0.1 }}
-            className='mt-6 w-full rounded-2xl bg-[#A385E9] py-3 text-base font-semibold text-white shadow-[0_18px_36px_rgba(163,133,233,0.3)] transition hover:bg-[#8F74E5] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9B8F5]'
+            onClick={handlePricePlans}
+          className="w-full max-w-md bg-[#A385E9] text-white py-3.5 rounded-xl text-lg font-semibold"
+          whileHover={{ scale: 1.05, backgroundColor: '#906fe2' }}
+          whileTap={{ scale: 0.95 }}
+          animate={{
+            scale: [1, 1.02, 1],
+            boxShadow: ['0px 0px 0px rgba(163, 133, 233, 0)', '0px 0px 20px rgba(163, 133, 233, 0.7)', '0px 0px 0px rgba(163, 133, 233, 0)'],
+          }}
+          transition={{
+            duration: 2.5,
+            repeat: Infinity,
+            repeatType: "loop",
+          }}
           >
             Price Plans
           </motion.button>
-        </motion.section>
-      </div>
+        </motion.div>
     </motion.div>
   )
 }
-function HeroChart() {
-  return (
-    <div className='relative h-[220px] w-full'>
-      <svg viewBox='0 0 360 220' className='absolute inset-0' role='presentation'>
-        <defs>
-          <linearGradient id='withArea' x1='0' y1='0' x2='0' y2='1'>
-            <stop offset='0%' stopColor='#34A853' stopOpacity='0.22' />
-            <stop offset='100%' stopColor='#34A853' stopOpacity='0' />
-          </linearGradient>
-          <linearGradient id='withoutArea' x1='0' y1='0' x2='0' y2='1'>
-            <stop offset='0%' stopColor='#FE6C6C' stopOpacity='0.22' />
-            <stop offset='100%' stopColor='#FE6C6C' stopOpacity='0' />
-          </linearGradient>
-          <linearGradient id='withLine' x1='0' y1='1' x2='1' y2='0'>
-            <stop offset='0%' stopColor='#1EB475' />
-            <stop offset='100%' stopColor='#2AEA5C' />
-          </linearGradient>
-          <linearGradient id='withoutLine' x1='0' y1='1' x2='1' y2='0'>
-            <stop offset='0%' stopColor='#FF7A7A' />
-            <stop offset='100%' stopColor='#FE464B' />
-          </linearGradient>
-        </defs>
-        <path d='M30 182 C 135 150, 220 70, 320 40 L 320 220 L 30 220 Z' fill='url(#withArea)' />
-        <path d='M30 192 C 135 182, 220 160, 320 140 L 320 220 L 30 220 Z' fill='url(#withoutArea)' />
-        <path d='M30 182 C 135 150, 220 70, 320 40' stroke='url(#withLine)' strokeWidth='6' fill='none' strokeLinecap='round' />
-        <path d='M30 194 C 135 182, 220 160, 320 140' stroke='url(#withoutLine)' strokeWidth='6' fill='none' strokeLinecap='round' />
-        <circle cx='30' cy='182' r='6' fill='#627CFF' />
-        <circle cx='320' cy='40' r='6' fill='#627CFF' />
-        <circle cx='320' cy='140' r='6' fill='#FF6B6B' />
-      </svg>
-      <ScoreBadge value='5/10' tone='#FFA64D' textClass='text-[#DA7C1D]' style={{ left: '18px', bottom: '60px' }} />
-      <ScoreBadge value='6/10' tone='#7ED957' textClass='text-[#3C7C1A]' style={{ right: '118px', bottom: '78px' }} />
-      <ScoreBadge value='8/10' tone='#2AEA5C' textClass='text-[#187348]' style={{ right: '18px', top: '18px' }} />
-      <div className='absolute left-[118px] top-[52px] text-sm font-semibold text-[#476B9A]'>With app</div>
-      <div className='absolute left-[140px] top-[120px] text-sm font-semibold text-[#333333]'>Without app</div>
-      <div className='absolute left-[22px] bottom-[18px] text-xs font-semibold text-[#627CFF]'>Today</div>
-      <div className='absolute right-[22px] bottom-[18px] text-xs font-semibold text-[#627CFF]'>30 Days</div>
-      <div className='absolute right-[96px] top-[90px] flex flex-col gap-2 text-xs font-semibold text-white'>
-        <ArrowIndicator index={0} />
-        <ArrowIndicator index={1} />
-        <ArrowIndicator index={2} />
-      </div>
-    </div>
-  )
-}
-
-function ScoreBadge({ value, tone, textClass, style }: { value: string; tone: string; textClass: string; style: CSSProperties }) {
-  return (
-    <div
-      className='absolute flex h-[88px] w-[88px] flex-col items-center justify-center rounded-full border-[6px] bg-white shadow-[0_14px_28px_rgba(0,0,0,0.1)]'
-      style={{ ...style, borderColor: tone }}
-    >
-      <span className={`text-xl font-bold ${textClass}`}>{value}</span>
-    </div>
-  )
-}
-
-function ArrowIndicator({ index }: { index: number }) {
-  return (
-    <motion.span
-      className='inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/80 text-[#6E7CA2]'
-      animate={{ opacity: [0.4, 1, 0.4], scale: [0.9, 1, 0.9] }}
-      transition={{ duration: 1.4, repeat: Infinity, delay: index * 0.25 }}
-    >
-      <svg width='12' height='12' viewBox='0 0 24 24' fill='none' aria-hidden='true'>
-        <path d='M12 5v14' stroke='currentColor' strokeWidth='2' strokeLinecap='round' />
-        <path d='M8 9l4-4 4 4' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' />
-      </svg>
-    </motion.span>
-  )
-}
-
-function ComparisonCard({ title, items, tone }: { title: string; items: ComparisonItem[]; tone: 'neutral' | 'positive' }) {
-  const wrapperClass =
-    tone === 'positive'
-      ? 'rounded-2xl border border-[#E5DFFC] bg-gradient-to-br from-white via-[#F9F6FF] to-white p-4 shadow-[0_12px_24px_rgba(163,133,233,0.12)]'
-      : 'rounded-2xl bg-[#F7F6FF] p-4'
-
-  return (
-    <div className={wrapperClass}>
-      <h3 className='mb-3 text-xs font-semibold uppercase tracking-wide text-[#8C8FA9]'>{title}</h3>
-      <ul className='space-y-3 text-sm text-[#332B3C]'>
-        {items.map((item) => (
-          <li key={item.text} className='flex items-start gap-3'>
-            {item.icon === 'check' ? <CheckBullet /> : <MinusBullet />}
-            <span>{item.text}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
-  return (
-    <article className='w-40 shrink-0 rounded-2xl bg-white p-3 shadow-[0_12px_24px_rgba(92,70,136,0.08)]'>
-      <div className='h-28 w-full overflow-hidden rounded-lg bg-[#ECEBFB]'>
-        <Image src={testimonial.image} alt={testimonial.name} width={125} height={125} className='h-full w-full object-cover' />
-      </div>
-      <div className='mt-3 space-y-1 text-xs text-[#5C4688]'>
-        <div className='flex items-center gap-2'>
-          <strong className='text-sm'>{testimonial.name}</strong>
-          <span className='flex items-center gap-1 text-[10px] text-[#A385E9]'>
-            <svg width='12' height='12' viewBox='0 0 24 24' fill='none' aria-hidden='true'>
-              <path d='M19 7l-9 9-5-5' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' />
-            </svg>
-            Verified
-          </span>
-        </div>
-        <span className='flex items-center gap-1 text-[#FABB05]'>
-          {Array.from({ length: 5 }).map((_, index) => (
-            <svg key={index} width='10' height='10' viewBox='0 0 24 24' fill='currentColor' aria-hidden='true'>
-              <path d='M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z' />
-            </svg>
-          ))}
-          <span className='text-[10px] text-[#969AB7]'>5.0 rating</span>
-        </span>
-        <p className='text-[11px] text-[#333333]'>{testimonial.quote}</p>
-      </div>
-    </article>
-  )
-}
-
-function CheckBullet() {
-  return (
-    <span className='flex h-6 w-6 items-center justify-center rounded-full bg-[#A385E9]/15 text-[#A385E9]'>
-      <svg width='14' height='14' viewBox='0 0 24 24' fill='none' aria-hidden='true'>
-        <path d='M19 7l-9 9-5-5' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' />
-      </svg>
-    </span>
-  )
-}
-
-function MinusBullet() {
-  return (
-    <span className='flex h-6 w-6 items-center justify-center rounded-full bg-[#E4E4E4] text-sm font-semibold text-[#818181]'>-</span>
-  )
-}
-
-function renderTimelineIcon(icon: TimelineIcon) {
-  if (icon === 'check') {
-    return (
-      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' aria-hidden='true'>
-        <path d='M20 6l-11 11-5-5' stroke='#8F74E5' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' />
-      </svg>
-    )
-  }
-  if (icon === 'bell') {
-    return (
-      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' aria-hidden='true'>
-        <path d='M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2Z' fill='#8F74E5' />
-        <path d='M18 16a6 6 0 0 1-12 0c0-3.31 2.69-6 6-6s6 2.69 6 6Z' stroke='#8F74E5' strokeWidth='1.8' />
-      </svg>
-    )
-  }
-  if (icon === 'list') {
-    return (
-      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' aria-hidden='true'>
-        <rect x='7' y='6' width='11' height='2' rx='1' fill='#8F74E5' />
-        <rect x='7' y='11' width='9' height='2' rx='1' fill='#8F74E5' />
-        <rect x='7' y='16' width='7' height='2' rx='1' fill='#8F74E5' />
-        <circle cx='4.5' cy='7' r='1.5' fill='#C2B4F8' />
-        <circle cx='4.5' cy='12' r='1.5' fill='#C2B4F8' />
-        <circle cx='4.5' cy='17' r='1.5' fill='#C2B4F8' />
-      </svg>
-    )
-  }
-  return (
-    <svg width='20' height='20' viewBox='0 0 24 24' fill='none' aria-hidden='true'>
-      <path d='M12 3l2.09 4.24L18 8l-3 2.92.71 4.12L12 13.77l-3.71 1.95L9 10.92 6 8l3.91-.76L12 3Z' fill='#8F74E5' />
-    </svg>
-  )
-}
-
-function getBmiImage(gender: string, value: number) {
-  const suffix = gender === 'male' ? 'male' : 'female'
-  const tier = value < 18 ? 1 : value < 21 ? 2 : value < 24 ? 3 : value < 27 ? 4 : 5
-  return `/images/on_boarding_images/bmi_${suffix}_${tier}.png`
-}
-
