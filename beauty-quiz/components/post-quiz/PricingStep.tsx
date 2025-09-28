@@ -12,9 +12,17 @@ export default function PricingStep() {
   const [promoCode, setPromoCode] = useState('')
 
   const handleTryForFree = () => {
-    const nextStepIndex = currentStep + 1
-    nextStep()
-    router.push(`/quiz/${nextStepIndex}`)
+    // Simulate payment processing
+    console.log('Processing payment for plan:', selectedPlan)
+    
+    // Update quiz store with selected plan
+    const { setAnswer } = useQuizStore.getState()
+    setAnswer('selectedPlan', selectedPlan)
+    setAnswer('paymentCompleted', true)
+    setAnswer('subscriptionPlan', selectedPlan)
+    
+    // Redirect to success page
+    router.push('/success')
   }
 
   const handleApplyPromo = () => {
@@ -308,7 +316,7 @@ export default function PricingStep() {
                 repeatType: "loop",
               }}
             >
-              Try for free
+              Get Started
             </motion.button>
             
             <p className="text-center text-sm text-gray-600">

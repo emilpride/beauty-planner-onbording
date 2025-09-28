@@ -67,56 +67,6 @@ const accentGradients = [
 
 const accentGlows = ['rgba(163,133,233,0.45)', 'rgba(255,152,152,0.45)', 'rgba(255,226,120,0.45)']
 
-const quickInsights = [
-  {
-    title: 'Start using the app',
-    description: 'Get personalized routines for skin, hair, fitness & self-care.',
-  },
-  {
-    title: 'Stay consistent with your routine',
-    description: 'Automatic reminders help you build healthy habits.',
-  },
-  {
-    title: 'Complete daily self-care rituals',
-    description: 'Follow your plan to nurture beauty & well-being.',
-  },
-  {
-    title: 'Unlock achievements & stay motivated',
-    description: 'Reach new milestones as you stick to your routine.',
-  },
-]
-
-const challengeList = [
-  'Struggle to stay consistent with self-care',
-  'Forget important skincare, haircare, or wellness steps',
-  'No clear way to track your beauty habits',
-]
-
-const winHighlights = [
-  'Follow a structured beauty & wellness routine effortlessly',
-  'Get reminders to keep up with your personalized plan',
-  'See your completed routines and progress over time',
-  'Unlock achievements and stay inspired',
-]
-
-const testimonials = [
-  {
-    name: 'Emily',
-    quote: 'This service is a real find! Thanks for the accuracy and professionalism!',
-    rating: '5.0',
-  },
-  {
-    name: 'Mira',
-    quote: 'The reminders keep me on track and the routine finally feels easy to follow.',
-    rating: '5.0',
-  },
-  {
-    name: 'Sofia',
-    quote: 'Loving the structure—my skincare and wellness steps now flow together.',
-    rating: '5.0',
-  },
-]
-
 const floatTransition = { duration: 8, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }
 const pillSpring = { type: 'spring', stiffness: 380, damping: 32, mass: 0.8 }
 
@@ -361,153 +311,6 @@ const QuickStat = ({ label, value, detail, delay }: QuickStatProps) => {
   )
 }
 
-function InsightsPanel({ totalActivities, remindCount }: { totalActivities: number; remindCount: number }) {
-  const reminderLabel = remindCount
-    ? `${remindCount} reminder${remindCount === 1 ? '' : 's'} active`
-    : 'Reminders off for now'
-
-  return (
-    <div className="flex flex-col gap-6">
-      <motion.section
-        initial={{ opacity: 0, translateY: 24 }}
-        whileInView={{ opacity: 1, translateY: 0 }}
-        transition={{ duration: 0.45, ease: 'easeOut' }}
-        viewport={{ once: true, amount: 0.4 }}
-        className="overflow-hidden rounded-[32px] bg-[#F7F6FF] p-6 shadow-[0_20px_40px_rgba(92,70,136,0.12)]"
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-[#4B3A78]">Regular care = better results!</h2>
-            <p className="mt-1 text-sm text-[#8C8FA9]">
-              Complete {totalActivities} tailored routine{totalActivities === 1 ? '' : 's'} to keep your glow consistent.
-            </p>
-          </div>
-          <span className="hidden shrink-0 rounded-full bg-white/70 px-4 py-2 text-xs font-semibold text-[#5C4688] sm:inline-flex">
-            {reminderLabel}
-          </span>
-        </div>
-        <div className="mt-5 flex flex-col gap-3">
-          {quickInsights.map((item, index) => (
-            <motion.div
-              key={item.title}
-              initial={{ opacity: 0, translateY: 12 }}
-              whileInView={{ opacity: 1, translateY: 0 }}
-              transition={{ duration: 0.35, delay: index * 0.08 }}
-              viewport={{ once: true, amount: 0.6 }}
-              className="flex items-start gap-3 rounded-2xl bg-white/60 px-4 py-3 shadow-[0_12px_20px_rgba(163,133,233,0.1)]"
-            >
-              <span className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#A385E9]/15 text-[#A385E9]">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path
-                    d="M4 8.33333L6.66667 11L12 5"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-[#4B3A78]">{item.title}</p>
-                <p className="text-xs text-[#8C8FA9]">{item.description}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
-
-      <motion.section
-        initial={{ opacity: 0, translateY: 24 }}
-        whileInView={{ opacity: 1, translateY: 0 }}
-        transition={{ duration: 0.45, ease: 'easeOut', delay: 0.1 }}
-        viewport={{ once: true, amount: 0.4 }}
-        className="rounded-[32px] border border-[#E4E6F5] bg-white p-6 shadow-[0_20px_40px_rgba(92,70,136,0.08)]"
-      >
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-[#8C8FA9]">Why finish setup?</h3>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div className="space-y-3">
-            {challengeList.map((item) => (
-              <div key={item} className="flex gap-3 rounded-2xl bg-[#F1F0FA] px-4 py-3 text-sm text-[#4B3A78]">
-                <span className="mt-1 flex h-7 w-7 items-center justify-center rounded-full bg-white text-[#8C8FA9]">−</span>
-                <p>{item}</p>
-              </div>
-            ))}
-          </div>
-          <div className="space-y-3">
-            {winHighlights.map((item) => (
-              <div
-                key={item}
-                className="flex gap-3 rounded-2xl border border-[#E5DFFC] bg-gradient-to-r from-[#F9F6FF] to-white px-4 py-3 text-sm text-[#4B3A78] shadow-[0_12px_24px_rgba(163,133,233,0.12)]"
-              >
-                <span className="mt-1 flex h-7 w-7 items-center justify-center rounded-full bg-[#A385E9]/15 text-[#A385E9]">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path
-                      d="M4 8.33333L6.66667 11L12 5"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </span>
-                <p>{item}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </motion.section>
-
-      <motion.section
-        initial={{ opacity: 0, translateY: 24 }}
-        whileInView={{ opacity: 1, translateY: 0 }}
-        transition={{ duration: 0.45, ease: 'easeOut', delay: 0.15 }}
-        viewport={{ once: true, amount: 0.4 }}
-        className="overflow-hidden rounded-[32px] border border-[#E4E6F5] bg-white p-6 shadow-[0_20px_40px_rgba(92,70,136,0.08)]"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold text-[#4B3A78]">Loved by early users</h3>
-          <span className="text-xs text-[#B4B7D4]">Swipe to explore</span>
-        </div>
-        <div className="mt-4 overflow-hidden">
-          <motion.div
-            className="flex gap-4"
-            animate={{ x: ['0%', '-6%', '0%'] }}
-            transition={{ duration: 24, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            {testimonials.map((item) => (
-              <div
-                key={item.name}
-                className="min-w-[220px] max-w-[220px] rounded-2xl border border-[#F0EFF9] bg-[#FBF9FF] p-4 shadow-[0_12px_24px_rgba(92,70,136,0.08)]"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-[#4B3A78]">{item.name}</p>
-                    <p className="text-xs text-[#A385E9]">Verified user</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-[#FABB05]">
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <svg
-                        key={index}
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path d="M12 3.5l2.47 5.02 5.53.8-4 3.9.94 5.5L12 16.9l-4.94 2.82.94-5.5-4-3.9 5.53-.8L12 3.5z" />
-                      </svg>
-                    ))}
-                  </div>
-                </div>
-                <p className="mt-3 text-sm text-[#5C4688]">{item.quote}</p>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </motion.section>
-    </div>
-  )
-}
 export default function ProcedureSetupStep() {
   const { answers, nextStep } = useQuizStore()
   const router = useRouter()
@@ -707,8 +510,8 @@ export default function ProcedureSetupStep() {
           </div>
         </motion.header>
 
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="flex flex-col gap-8">
+        <div className="flex w-full flex-col items-center gap-8">
+          <div className="flex w-full max-w-4xl flex-col gap-8">
             {activitySettings.map((activity, index) => {
               const override = activityMetaOverrides[activity.id]
               const meta = getActivityMeta(activity.id, override?.name ?? activity.name)
@@ -1113,7 +916,6 @@ export default function ProcedureSetupStep() {
             </motion.div>
           </div>
 
-          <InsightsPanel totalActivities={activitySettings.length} remindCount={remindCount} />
         </div>
       </div>
 

@@ -9,11 +9,11 @@ export default function SuccessPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Если пользователь не завершил онбординг, перенаправляем на главную
-    if (!answers.onboardingComplete) {
-      router.push('/')
+    // Если пользователь не завершил оплату, перенаправляем на страницу оплаты
+    if (!answers.paymentCompleted) {
+      router.push('/payment')
     }
-  }, [answers.onboardingComplete, router])
+  }, [answers.paymentCompleted, router])
 
   const handleStartApp = () => {
     // Здесь будет логика интеграции с Flutter приложением
@@ -26,11 +26,11 @@ export default function SuccessPage() {
     router.push('/')
   }
 
-  if (!answers.onboardingComplete) {
+  if (!answers.paymentCompleted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Loading...</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Redirecting to payment...</h1>
         </div>
       </div>
     )

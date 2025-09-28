@@ -11,9 +11,7 @@ export default function ChoosePlanStep() {
   const router = useRouter()
 
   const handlePricePlans = () => {
-    const nextStepIndex = currentStep + 1
-    nextStep()
-    router.push(`/quiz/${nextStepIndex}`)
+    router.push('/payment')
   }
 
   // Get BMI images based on user's gender
