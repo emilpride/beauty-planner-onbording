@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -136,7 +136,7 @@ export default function RegularCareResultsStep() {
 
   return (
     <motion.div
-      className="w-full h-screen bg-white flex flex-col"
+      className="w-full h-screen bg-surface flex flex-col"
       initial="hidden"
       animate="visible"
       variants={containerVariants}
@@ -145,8 +145,8 @@ export default function RegularCareResultsStep() {
         <div className="max-w-md mx-auto p-6 space-y-6">
           {/* Header */}
           <motion.div className="text-center" variants={itemVariants}>
-            <h1 className="text-3xl font-bold text-[#5C4688] mb-3">Regular Care = Better Results!</h1>
-            <p className="text-gray-600">
+            <h1 className="text-3xl font-bold text-text-primary mb-3">Regular Care = Better Results!</h1>
+            <p className="text-text-secondary">
               On average, our users improve their well-being by 30% within the first month!
             </p>
           </motion.div>
@@ -305,7 +305,7 @@ export default function RegularCareResultsStep() {
                     objectFit="contain"
                   />
                 </div>
-                <div className="text-sm text-gray-600 font-medium mt-2">Your Current</div>
+                <div className="text-sm text-text-secondary font-medium mt-2">Your Current</div>
               </motion.div>
               
               {/* Arrow */}
@@ -346,7 +346,7 @@ export default function RegularCareResultsStep() {
                     objectFit="contain"
                   />
                 </div>
-                <div className="text-sm text-gray-600 font-medium mt-2">Target Goal</div>
+                <div className="text-sm text-text-secondary font-medium mt-2">Target Goal</div>
               </motion.div>
             </div>
           </motion.div>
@@ -369,15 +369,15 @@ export default function RegularCareResultsStep() {
               hidden: {}
             }}
           >
-            <h3 className="text-xl font-bold text-center text-[#5C4688]">Noticeable Improvements In One Month:</h3>
+            <h3 className="text-xl font-bold text-center text-text-primary">Noticeable Improvements In One Month:</h3>
             {benefits.map((benefit, index) => (
-              <motion.div key={index} className="flex items-center space-x-4 bg-white p-4 rounded-lg shadow-sm" variants={itemVariants}>
+              <motion.div key={index} className="flex items-center space-x-4 bg-surface p-4 rounded-lg shadow-sm" variants={itemVariants}>
                 <div className="flex-shrink-0 w-10 h-10 bg-[#A385E9] rounded-full flex items-center justify-center text-white">
                   {benefit.icon}
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-800">{benefit.title}</h4>
-                  <p className="text-sm text-gray-600">{benefit.description}</p>
+                  <p className="text-sm text-text-secondary">{benefit.description}</p>
                   </div>
                 </motion.div>
               ))}
@@ -385,7 +385,7 @@ export default function RegularCareResultsStep() {
 
           {/* Struggles vs Solutions */}
           <motion.div 
-            className="bg-gray-100 rounded-xl p-6" 
+            className="bg-surface-muted/80 rounded-xl p-6" 
             ref={strugglesRef}
             initial={{ opacity: 0, y: 50 }}
             animate={strugglesInView ? { opacity: 1, y: 0 } : {}}
@@ -402,10 +402,10 @@ export default function RegularCareResultsStep() {
                 <h4 className="font-bold text-center text-gray-800">Your Struggles</h4>
                 {struggles.map((struggle, index) => (
                   <div key={index} className="flex items-center space-x-2 text-sm">
-                    <div className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center text-gray-600">
+                    <div className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center text-text-secondary">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
                     </div>
-                    <span className="text-gray-700">{struggle}</span>
+                    <span className="text-text-primary">{struggle}</span>
                   </div>
                 ))}
               </motion.div>
@@ -422,7 +422,7 @@ export default function RegularCareResultsStep() {
                     <div className="w-5 h-5 bg-[#A385E9] rounded-full flex items-center justify-center text-white">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                     </div>
-                    <span className="text-gray-700">{solution}</span>
+                    <span className="text-text-primary">{solution}</span>
             </div>
                 ))}
               </motion.div>
@@ -441,7 +441,7 @@ export default function RegularCareResultsStep() {
               {testimonials.map((review, index) => (
                  <div 
                   key={index}
-                  className="flex flex-col items-start p-2 gap-2 bg-white flex-none"
+                  className="flex flex-col items-start p-2 gap-2 bg-surface flex-none"
                   style={{
                     width: '141px',
                     height: '298px',
@@ -488,7 +488,7 @@ export default function RegularCareResultsStep() {
               {testimonials.map((review, index) => (
                  <div 
                   key={`duplicate-${index}`}
-                  className="flex flex-col items-start p-2 gap-2 bg-white flex-none"
+                  className="flex flex-col items-start p-2 gap-2 bg-surface flex-none"
                   style={{
                     width: '141px',
                     height: '298px',
@@ -539,7 +539,7 @@ export default function RegularCareResultsStep() {
 
       {/* Fixed Bottom Button */}
       <motion.div 
-        className="bg-white p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] flex justify-center"
+        className="bg-surface p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] flex justify-center"
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 100, delay: 0.5 }}

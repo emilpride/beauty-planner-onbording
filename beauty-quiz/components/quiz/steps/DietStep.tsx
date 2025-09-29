@@ -63,7 +63,7 @@ export default function DietStep() {
         subtitle="Select all that apply."
         condition={answers.diet.length > 0}
       >
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2 py-1">
           {diets.map((diet) => (
             <button
               key={diet}
@@ -71,7 +71,7 @@ export default function DietStep() {
               className={`px-4 py-2 border-2 rounded-full text-center transition-all duration-200 font-medium ${
                 isDietSelected(diet)
                   ? 'border-primary bg-primary bg-opacity-10 text-primary'
-                  : 'border-gray-300 hover:border-primary text-text-primary'
+                  : 'border-border-subtle/60 bg-surface/80 hover:border-primary/40 text-text-secondary hover:text-text-primary'
               }`}
             >
               {diet === 'Other' ? (

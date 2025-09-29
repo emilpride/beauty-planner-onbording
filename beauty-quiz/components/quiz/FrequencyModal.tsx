@@ -177,7 +177,7 @@ export default function FrequencyModal({
         <div className="flex space-x-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-colors duration-200"
+            className="flex-1 py-3 px-4 bg-gray-200 text-text-primary font-semibold rounded-xl hover:bg-surface transition-colors duration-200"
           >
             Cancel
           </button>

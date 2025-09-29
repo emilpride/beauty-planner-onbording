@@ -242,7 +242,7 @@ export default function CustomActivitiesModal({
 
         <button
           onClick={addNewActivity}
-          className="w-full py-3 px-4 border-2 border-dashed border-gray-300 text-gray-500 font-semibold rounded-xl hover:border-primary hover:text-primary transition-colors duration-200 mb-4"
+          className="w-full py-3 px-4 border-2 border-dashed border-gray-300 text-text-secondary font-semibold rounded-xl hover:border-primary hover:text-primary transition-colors duration-200 mb-4"
         >
           <div className="flex items-center justify-center">
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,7 +255,7 @@ export default function CustomActivitiesModal({
         <div className="flex space-x-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-colors duration-200"
+            className="flex-1 py-3 px-4 bg-gray-200 text-text-primary font-semibold rounded-xl hover:bg-surface transition-colors duration-200"
           >
             Cancel
           </button>

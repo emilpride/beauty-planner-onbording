@@ -71,7 +71,7 @@ export default function SkinProblemsStep() {
       skipText="Skip"
       onSkip={handleSkip}
     >
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2 py-1">
         {problems.map((problem) => (
           <button
             key={problem}
@@ -79,7 +79,7 @@ export default function SkinProblemsStep() {
             className={`px-4 py-2 border-2 rounded-full text-center transition-all duration-200 font-medium ${
               answers.skinProblems.includes(problem)
                 ? 'border-primary bg-primary bg-opacity-10 text-primary'
-                : 'border-gray-300 hover:border-primary text-text-primary'
+                : 'border-border-subtle/60 bg-surface/80 hover:border-primary/40 text-text-secondary hover:text-text-primary'
             }`}
           >
             {problem}
@@ -92,7 +92,7 @@ export default function SkinProblemsStep() {
           className={`px-4 py-2 border-2 rounded-full text-center transition-all duration-200 font-medium ${
             answers.skinProblems.includes('no_problems')
               ? 'border-primary bg-primary bg-opacity-10 text-primary'
-              : 'border-gray-300 hover:border-primary text-text-primary'
+              : 'border-border-subtle/60 bg-surface/80 hover:border-primary/40 text-text-secondary hover:text-text-primary'
           }`}
         >
           No problems
@@ -104,7 +104,7 @@ export default function SkinProblemsStep() {
           className={`px-4 py-2 border-2 rounded-full text-center transition-all duration-200 font-medium ${
             answers.skinProblems.includes('ai_analyze')
               ? 'border-primary bg-primary bg-opacity-10 text-primary'
-              : 'border-gray-300 hover:border-primary text-purple-500'
+              : 'border-border-subtle/60 hover:border-primary/40 text-purple-500'
           }`}
         >
           Let AI Analyze

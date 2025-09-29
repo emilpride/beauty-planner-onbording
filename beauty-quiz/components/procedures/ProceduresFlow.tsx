@@ -40,16 +40,16 @@ export default function ProceduresFlow({ step }: ProceduresFlowProps) {
   if (!StepComponent) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center p-8">
-          <h1 className="text-2xl font-bold text-[#5C4688] mb-4">Step {step}: Component not found</h1>
-          <p className="text-gray-600">This procedure step is under construction.</p>
+        <div className="text-text-primaryenter p-8">
+          <h1 className="text-2xl font-bold text-text-primary mb-4">Step {step}: Component not found</h1>
+          <p className="text-text-secondary">This procedure step is under construction.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="w-full h-screen bg-white">
+    <div className="w-full h-screen bg-background">
       <StepComponent />
     </div>
   )

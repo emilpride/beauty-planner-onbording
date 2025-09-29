@@ -29,7 +29,7 @@ export default function SignUpStep() {
       <div className="absolute top-8 left-6 z-20">
         <button
           onClick={() => router.push('/quiz/27')}
-          className="w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg"
+          className="w-10 h-10 bg-surface/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -70,7 +70,7 @@ export default function SignUpStep() {
           </div>
 
           {/* Sign Up Card */}
-          <div className="w-full max-w-sm bg-white rounded-lg p-6 space-y-6">
+          <div className="w-full max-w-sm bg-surface rounded-lg p-6 space-y-6">
             {/* Header */}
             <div className="text-center space-y-3">
               <h2 className="text-2xl font-bold text-purple-800">Join Beauty Mirror Today</h2>
@@ -155,7 +155,7 @@ export default function SignUpStep() {
               {/* Google */}
               <button
                 onClick={() => handleSocialSignUp('Google')}
-                className="w-full flex items-center justify-center space-x-5 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-center space-x-5 py-3 border border-border-subtle/60 rounded-xl hover:bg-gray-50 transition-colors"
               >
                 <div className="w-5 h-5">
                   <svg viewBox="0 0 24 24" width="20" height="20">
@@ -172,7 +172,7 @@ export default function SignUpStep() {
               {/* Apple */}
               <button
                 onClick={() => handleSocialSignUp('Apple')}
-                className="w-full flex items-center justify-center space-x-5 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-center space-x-5 py-3 border border-border-subtle/60 rounded-xl hover:bg-gray-50 transition-colors"
               >
                 <div className="w-5 h-5">
                   <svg viewBox="0 0 24 24" width="20" height="20">
@@ -186,7 +186,7 @@ export default function SignUpStep() {
               {/* Facebook */}
               <button
                 onClick={() => handleSocialSignUp('Facebook')}
-                className="w-full flex items-center justify-center space-x-5 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-center space-x-5 py-3 border border-border-subtle/60 rounded-xl hover:bg-gray-50 transition-colors"
               >
                 <div className="w-5 h-5">
                   <svg viewBox="0 0 24 24" width="20" height="20">
@@ -200,7 +200,7 @@ export default function SignUpStep() {
               {/* Twitter */}
               <button
                 onClick={() => handleSocialSignUp('Twitter')}
-                className="w-full flex items-center justify-center space-x-5 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-center space-x-5 py-3 border border-border-subtle/60 rounded-xl hover:bg-gray-50 transition-colors"
               >
                 <div className="w-5 h-5">
                   <svg viewBox="0 0 24 24" width="20" height="20">

@@ -323,7 +323,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
           } : { top: '0' }}
         >
           <div 
-            className={`bg-white shadow-2xl ${isFullScreen ? 'min-h-screen' : 'rounded-t-3xl overflow-hidden'}`}
+            className={`bg-white shadow-2xl ${isFullScreen ? 'min-h-screen' : 'rounded-3xl overflow-hidden'}`}
             style={isFullScreen ? {} : { 
               height: stepNumber === 6 ? '85vh' : 
                      stepNumber === 25 || stepNumber === 26 ? '85vh' : 

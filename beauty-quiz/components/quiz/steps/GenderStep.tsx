@@ -25,7 +25,7 @@ export default function GenderStep({ onExitAnimation, onBackAnimation }: GenderS
       onExitAnimation={onExitAnimation}
       onBackAnimation={onBackAnimation}
     >
-      <div className="flex justify-center gap-6">
+      <div className="flex justify-center gap-4 py-2">
         {options.map((option) => (
           <div
             key={option.id}

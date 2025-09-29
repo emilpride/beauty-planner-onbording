@@ -4,7 +4,8 @@ import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuizStore } from '@/store/quizStore'
 import Image from 'next/image'
-import { ICON_CATALOG, getIconById, type IconCatalogEntry } from './iconCatalog'
+import { PROCEDURES_ICON_CATALOG, getProceduresIconById, getProceduresIconCategories, type ProceduresIconEntry } from './proceduresIconCatalog'
+import { getIconById } from './iconCatalog'
 import { getActivityMeta } from './activityMeta'
 
 const extractColorFromClass = (colorClass: string): string => {
@@ -223,12 +224,12 @@ export default function ChooseProceduresStep() {
     { id: 'yellow', value: '#FFEAA7', name: 'Yellow' }
   ]
 
-  const quickIconOptions = useMemo<IconCatalogEntry[]>(() => {
+  const quickIconOptions = useMemo<ProceduresIconEntry[]>(() => {
     const seen = new Set<string>()
-    const picks: IconCatalogEntry[] = []
+    const picks: ProceduresIconEntry[] = []
 
     for (const id of QUICK_ICON_IDS) {
-      const entry = getIconById(id)
+      const entry = getProceduresIconById(id)
       if (entry && !seen.has(entry.id)) {
         seen.add(entry.id)
         picks.push(entry)
@@ -236,7 +237,7 @@ export default function ChooseProceduresStep() {
     }
 
     if (!picks.length) {
-      for (const entry of ICON_CATALOG) {
+      for (const entry of PROCEDURES_ICON_CATALOG) {
         if (!seen.has(entry.id)) {
           seen.add(entry.id)
           picks.push(entry)
@@ -251,11 +252,7 @@ export default function ChooseProceduresStep() {
   }, [])
 
   const iconCategories = useMemo(() => {
-    const categories = new Set<string>()
-    ICON_CATALOG.forEach((entry) => {
-      categories.add(entry.category)
-    })
-    return Array.from(categories).sort((a, b) => a.localeCompare(b))
+    return getProceduresIconCategories()
   }, [])
 
   const [iconCategoryFilter, setIconCategoryFilter] = useState<string>('all')
@@ -264,7 +261,7 @@ export default function ChooseProceduresStep() {
   const normalizedIconSearch = iconSearchQuery.trim().toLowerCase()
 
   const filteredIconEntries = useMemo(() => {
-    return ICON_CATALOG.filter((entry) => {
+    return PROCEDURES_ICON_CATALOG.filter((entry) => {
       const matchesCategory = iconCategoryFilter === 'all' || entry.category === iconCategoryFilter
       if (!matchesCategory) {
         return false
@@ -307,10 +304,10 @@ export default function ChooseProceduresStep() {
     return filteredIconEntries.slice(startIndex, startIndex + ICONS_PER_PAGE)
   }, [filteredIconEntries, iconPage, totalIconPages])
 
-  const selectedActivityIcon = newActivity.iconId ? getIconById(newActivity.iconId) : null
-  const selectedCategoryIcon = newCategory.iconId ? getIconById(newCategory.iconId) : null
+  const selectedActivityIcon = newActivity.iconId ? getProceduresIconById(newActivity.iconId) : null
+  const selectedCategoryIcon = newCategory.iconId ? getProceduresIconById(newCategory.iconId) : null
   const activeIconId = isCreateCategoryModalOpen ? newCategory.iconId : newActivity.iconId
-  const activeIconColor = isCreateCategoryModalOpen ? (newCategory.color || '#A385E9') : (newActivity.color || '#A385E9')
+  const activeIconColor = isCreateCategoryModalOpen ? (newCategory.color || 'rgb(var(--color-primary))') : (newActivity.color || 'rgb(var(--color-primary))')
 
   useEffect(() => {
     const stored = answers.selectedActivities
@@ -634,22 +631,22 @@ export default function ChooseProceduresStep() {
   }, {} as Record<string, any[]>)
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5] flex justify-center">
-      <div className="w-11/12 max-w-xl">
+    <div className="h-screen bg-background flex justify-center">
+      <div className="w-11/12 max-w-xl flex flex-col">
       {/* Header */}
         <div className="flex items-center justify-between px-6 py-3">
           <button 
             onClick={() => router.back()}
             className="w-7 h-7 flex items-center justify-center"
           >
-            <span className="text-black text-xl">‹</span>
+            <span className="text-text-primary text-xl">‹</span>
           </button>
-          <h1 className="text-2xl font-bold text-[#5C4688]">Choose Activities</h1>
+          <h1 className="text-2xl font-bold text-text-primary">Choose Activities</h1>
           <button 
             onClick={() => setIsCreateActivityModalOpen(true)}
-            className="w-10 h-10 bg-white border-2 border-[#A385E9] rounded-full flex items-center justify-center hover:bg-[#A385E9] hover:text-white transition-all duration-200 shadow-sm"
+            className="w-10 h-10 bg-surface border-2 border-primary rounded-full flex items-center justify-center hover:bg-primary hover:text-white transition-all duration-200 shadow-sm"
           >
-            <span className="text-[#A385E9] text-xl font-medium">+</span>
+            <span className="text-primary text-xl font-medium">+</span>
           </button>
         </div>
 
@@ -658,7 +655,7 @@ export default function ChooseProceduresStep() {
           <div className="flex gap-3">
             <div className="relative flex-1">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-6 w-6 text-[#969AB7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-6 w-6 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -667,20 +664,25 @@ export default function ChooseProceduresStep() {
                 placeholder="Type something"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-[70px] pl-10 pr-4 bg-white border border-[#969AB7] rounded-lg text-gray-900 placeholder-[#969AB7] focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full h-12 pl-10 pr-4 bg-surface border border-border-subtle/70 rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary"
           />
             </div>
           <button
               onClick={() => setIsPromptModalOpen(true)}
-              className="px-6 py-3 bg-[#A385E9] text-white rounded-lg font-medium hover:bg-[#906fe2] transition-colors whitespace-nowrap"
+              className="w-14 h-12 bg-transparent border border-border-subtle/70 rounded-lg flex items-center justify-center hover:bg-surface-muted transition-colors"
           >
-              Use prompt
+              <Image 
+                src="/custom-icons/misc/analysis.svg" 
+                alt="Analysis" 
+                width={24} 
+                height={24}
+              />
           </button>
           </div>
         </div>
 
              {/* Activities List */}
-             <div className="flex-1 px-6 pb-24">
+             <div className="flex-1 px-6 pb-32 overflow-y-auto min-h-0 scrollbar-hide">
                {/* Dynamic Categories */}
                {Object.entries(filteredActivities).map(([categoryKey, activitiesList]) => {
                  if (activitiesList.length === 0) return null
@@ -690,7 +692,7 @@ export default function ChooseProceduresStep() {
                  
                  return (
                    <div key={categoryKey} className="mb-6">
-                     <h3 className="text-sm text-[#969AB7] mb-3">{displayName}</h3>
+                     <h3 className="text-sm text-text-secondary mb-3">{displayName}</h3>
                      <div className="space-y-3">
                        {activitiesList.map((activity) => (
                          <button
@@ -707,7 +709,7 @@ export default function ChooseProceduresStep() {
                          >
                            <ActivityIcon activityId={activity.id} iconId={activity.iconId} color={activity.color} label={activity.name} />
                            <div className="ml-3 flex-1 text-left">
-                             <div className="text-[#5C4688] font-medium text-base">{activity.name}</div>
+                             <div className="text-text-primary font-medium text-base">{activity.name}</div>
                              {activity.aiRecommended && (
                                <div className="text-xs font-medium bg-gradient-to-r from-purple-600 via-pink-500 to-purple-700 bg-clip-text text-transparent">
                                  AI recommendation for you
@@ -715,8 +717,10 @@ export default function ChooseProceduresStep() {
                              )}
                            </div>
                            {selectedActivities.includes(activity.id) && (
-                             <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-                               <span className="text-white text-sm">✓</span>
+                             <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                               </svg>
                              </div>
                            )}
                          </button>
@@ -728,15 +732,15 @@ export default function ChooseProceduresStep() {
              </div>
 
              {/* Next Button */}
-             <div className="fixed bottom-0 left-0 right-0 p-6 bg-[#F5F5F5]">
+             <div className="fixed bottom-0 left-0 right-0 p-6 bg-background">
                <div className="w-11/12 max-w-xl mx-auto">
         <button
           onClick={handleNext}
           disabled={selectedActivities.length === 0}
                    className={`w-full py-4 rounded-xl font-semibold text-sm transition-colors ${
                      selectedActivities.length > 0
-                       ? 'bg-[#A385E9] text-white hover:bg-[#906fe2]'
-                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                       ? 'bg-primary text-white hover:bg-primary/90'
+                       : 'bg-gray-300 text-text-secondary cursor-not-allowed'
                    }`}
         >
           Next
@@ -748,15 +752,15 @@ export default function ChooseProceduresStep() {
       {/* Prompt Modal */}
       {isPromptModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl border border-gray-100">
+          <div className="bg-surface rounded-3xl p-8 w-full max-w-lg shadow-2xl border border-border-subtle/40">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-[#5C4688]">Create Custom Schedule</h2>
-                <div className="w-16 h-1 bg-gradient-to-r from-[#A385E9] to-[#906fe2] rounded-full mt-2"></div>
+                <h2 className="text-2xl font-bold text-text-primary">Create Custom Schedule</h2>
+                <div className="w-16 h-1 bg-gradient-to-r from-primary to-primary/80 rounded-full mt-2"></div>
               </div>
               <button
                 onClick={() => setIsPromptModalOpen(false)}
-                className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-all duration-200"
+                className="w-10 h-10 rounded-full hover:bg-surface-muted/80 flex items-center justify-center text-text-secondary hover:text-text-primary transition-all duration-200"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -764,14 +768,14 @@ export default function ChooseProceduresStep() {
         </button>
       </div>
 
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4 mb-6 border border-purple-100">
-              <p className="text-gray-700 text-sm leading-relaxed">
+            <div className="bg-gradient-to-r from-surface-muted to-surface-muted/80 rounded-2xl p-4 mb-6 border border-border-subtle/40">
+              <p className="text-text-primary text-sm leading-relaxed">
                 Describe what procedures and how often you want to do, and we'll create a personalized schedule for you, or choose from our ready-made templates.
               </p>
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-800 mb-3">
+              <label className="block text-sm font-semibold text-text-primary mb-3">
                 Describe your ideal routine:
               </label>
               <div className="relative">
@@ -779,16 +783,16 @@ export default function ChooseProceduresStep() {
                   value={promptText}
                   onChange={(e) => setPromptText(e.target.value)}
                   placeholder="e.g., I want to do morning skincare routine with cleansing and moisturizing, evening routine with exfoliation twice a week, and yoga 3 times a week..."
-                  className="w-full h-28 p-4 border-2 border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[#A385E9] focus:border-transparent transition-all duration-200 placeholder-gray-400 scrollbar-hide text-gray-900"
+                  className="w-full h-28 p-4 border-2 border-border-subtle/50 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 placeholder-text-secondary scrollbar-hide text-text-primary"
                 />
-                <div className="absolute bottom-3 right-3 text-xs text-gray-400 bg-white px-2 py-1 rounded">
+                <div className="absolute bottom-3 right-3 text-xs text-text-secondary bg-surface px-2 py-1 rounded">
                   {promptText.length}/500
                 </div>
               </div>
             </div>
 
             <div className="mb-8">
-              <label className="block text-sm font-semibold text-gray-800 mb-3">
+              <label className="block text-sm font-semibold text-text-primary mb-3">
                 Or choose from templates (multiple selection):
               </label>
               <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto scrollbar-hide">
@@ -798,17 +802,17 @@ export default function ChooseProceduresStep() {
                     onClick={() => handleTemplateSelect(template.id)}
                     className={`p-3 text-left border rounded-lg transition-all duration-200 ${
                       selectedTemplates.includes(template.id)
-                        ? 'border-[#A385E9] bg-purple-50'
-                        : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                        ? 'border-primary bg-surface-muted'
+                        : 'border-border-subtle/50 hover:border-primary/60 hover:bg-surface-muted'
                     }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-gray-900 text-xs truncate">{template.name}</div>
-                        <div className="text-xs text-gray-600 mt-1 line-clamp-2">{template.description}</div>
+                        <div className="font-medium text-text-primary text-xs truncate">{template.name}</div>
+                        <div className="text-xs text-text-secondary mt-1 line-clamp-2">{template.description}</div>
                       </div>
                       {selectedTemplates.includes(template.id) && (
-                        <div className="w-4 h-4 bg-[#A385E9] rounded-full flex items-center justify-center ml-2 flex-shrink-0">
+                        <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center ml-2 flex-shrink-0">
                           <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
@@ -819,7 +823,7 @@ export default function ChooseProceduresStep() {
                 ))}
               </div>
               {selectedTemplates.length > 0 && (
-                <div className="mt-3 text-xs text-gray-600">
+                <div className="mt-3 text-xs text-text-secondary">
                   Selected: {selectedTemplates.length} template{selectedTemplates.length !== 1 ? 's' : ''}
                 </div>
               )}
@@ -828,13 +832,13 @@ export default function ChooseProceduresStep() {
             <div className="flex gap-4">
               <button
                 onClick={() => setIsPromptModalOpen(false)}
-                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
+                className="flex-1 px-6 py-3 border-2 border-border-subtle/60 text-text-primary rounded-xl hover:bg-surface-muted hover:border-primary/60 transition-all duration-200 font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handlePromptSubmit}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-[#A385E9] to-[#906fe2] text-white rounded-xl hover:from-[#906fe2] hover:to-[#7c5fb8] transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-primary/90 text-white rounded-xl hover:from-primary/90 hover:to-primary/80 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
               >
                 Create Schedule
               </button>
@@ -846,12 +850,12 @@ export default function ChooseProceduresStep() {
       {/* Create Activity Modal */}
       {isCreateActivityModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+          <div className="bg-surface rounded-2xl p-6 w-full max-w-sm shadow-xl">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-[#5C4688]">Create New Activity</h2>
+              <h2 className="text-xl font-bold text-text-primary">Create New Activity</h2>
               <button
                 onClick={() => setIsCreateActivityModalOpen(false)}
-                className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors"
+                className="w-8 h-8 rounded-full hover:bg-surface-muted/80 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -862,14 +866,14 @@ export default function ChooseProceduresStep() {
             <div className="space-y-4">
               {/* Task name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Task name</label>
+                <label className="block text-sm font-medium text-text-primary mb-1">Task name</label>
             <input
               type="text"
                   value={newActivity.name}
                   onChange={(e) => handleNewActivityChange('name', e.target.value)}
                   placeholder="Type the name"
-                  className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#A385E9] focus:border-transparent text-sm text-gray-900 ${
-                    activityErrors.name ? 'border-red-500' : 'border-purple-200'
+                  className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent text-sm text-text-primary ${
+                    activityErrors.name ? 'border-red-500' : 'border-border-subtle/60'
                   }`}
                 />
                 {activityErrors.name && (
@@ -879,18 +883,18 @@ export default function ChooseProceduresStep() {
 
               {/* Note */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
+                <label className="block text-sm font-medium text-text-primary mb-1">Note</label>
                 <textarea
                   value={newActivity.note}
                   onChange={(e) => handleNewActivityChange('note', e.target.value)}
                   placeholder="Type the note here..."
-                  className="w-full h-16 p-2 border border-purple-200 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-[#A385E9] focus:border-transparent text-sm scrollbar-hide text-gray-900"
+                  className="w-full h-16 p-2 border border-border-subtle/60 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent text-sm scrollbar-hide text-text-primary"
                 />
               </div>
 
               {/* Category */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <label className="block text-sm font-medium text-text-primary mb-1">Category</label>
                 <select
                   value={newActivity.category}
                   onChange={(e) => {
@@ -900,15 +904,15 @@ export default function ChooseProceduresStep() {
                       handleNewActivityChange('category', e.target.value)
                     }
                   }}
-                  className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#A385E9] focus:border-transparent text-sm text-gray-900 bg-white ${
-                    activityErrors.category ? 'border-red-500' : 'border-purple-200'
+                  className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent text-sm text-text-primary bg-surface ${
+                    activityErrors.category ? 'border-red-500' : 'border-border-subtle/60'
                   }`}
                 >
-                  <option value="" className="text-gray-500">Choose category</option>
+                  <option value="" className="text-text-secondary">Choose category</option>
                   {categories.map((category) => (
-                    <option key={category} value={category} className="text-gray-900">{category}</option>
+                    <option key={category} value={category} className="text-text-primary">{category}</option>
                   ))}
-                  <option value="add-new-category" className="text-[#A385E9] font-medium">+ Add new category</option>
+                  <option value="add-new-category" className="text-primary font-medium">+ Add new category</option>
                 </select>
                 {activityErrors.category && (
                   <p className="text-red-500 text-xs mt-1">{activityErrors.category}</p>
@@ -917,9 +921,9 @@ export default function ChooseProceduresStep() {
 
               {/* Color */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                <label className="block text-sm font-medium text-text-primary mb-1">Color</label>
                 <div className={`flex gap-1 p-2 border rounded-lg ${
-                  activityErrors.color ? 'border-red-500' : 'border-purple-200'
+                  activityErrors.color ? 'border-red-500' : 'border-border-subtle/60'
                 }`}>
                   {}
                   {colors.map((color) => {
@@ -927,13 +931,13 @@ export default function ChooseProceduresStep() {
                     const isSelected = newActivity.color === color.value
                     
                     return (
-              <button
+                      <button
                         key={color.id}
                         onClick={() => handleNewActivityChange('color', color.value)}
                         className={`w-7 h-7 rounded-full border-2 transition-all duration-200 ${
                           isSelected
-                            ? 'border-[#A385E9] scale-110 ring-2 ring-[#A385E9] ring-opacity-50 shadow-lg'
-                            : 'border-gray-300 hover:scale-105 hover:border-gray-400'
+                            ? 'border-primary scale-110 ring-2 ring-primary ring-opacity-50 shadow-lg'
+                            : 'border-border-subtle/60 hover:scale-105 hover:border-primary/60'
                         }`}
                         style={{ backgroundColor: color.value }}
                       />
@@ -944,16 +948,16 @@ export default function ChooseProceduresStep() {
                   {newActivity.color && !colors.some(c => c.value === newActivity.color) && (
                     <button
                       onClick={() => handleNewActivityChange('color', newActivity.color)}
-                      className="w-7 h-7 rounded-full border-2 border-[#A385E9] scale-110 ring-2 ring-[#A385E9] ring-opacity-50 shadow-lg transition-all duration-200"
+                      className="w-7 h-7 rounded-full border-2 border-primary scale-110 ring-2 ring-primary ring-opacity-50 shadow-lg transition-all duration-200"
                       style={{ backgroundColor: newActivity.color }}
                       title="Selected color"
                     />
                   )}
                   <button
                     onClick={() => setIsColorPickerOpen(true)}
-                    className="w-7 h-7 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center hover:border-[#A385E9] hover:bg-purple-50 transition-all duration-200"
+                    className="w-7 h-7 rounded-full border-2 border-dashed border-border-subtle/60 flex items-center justify-center hover:border-primary hover:bg-surface-muted transition-all duration-200"
                   >
-                    <span className="text-gray-400 text-sm font-bold">+</span>
+                    <span className="text-text-secondary text-sm font-bold">+</span>
                   </button>
                 </div>
                 {activityErrors.color && (
@@ -963,10 +967,10 @@ export default function ChooseProceduresStep() {
 
               {/* Icon */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
+                <label className="block text-sm font-medium text-text-primary mb-1">Icon</label>
                 <div
                   className={`flex gap-1 p-2 border rounded-lg ${
-                    activityErrors.iconId ? 'border-red-500' : 'border-purple-200'
+                    activityErrors.iconId ? 'border-red-500' : 'border-border-subtle/60'
                   }`}
                 >
                   {quickIconOptions.map((option) => {
@@ -977,10 +981,10 @@ export default function ChooseProceduresStep() {
                         key={`activity-${option.id}`}
                         onClick={() => handleNewActivityChange('iconId', option.id)}
                         className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 box-border ${
-                          isSelected ? 'ring-2 ring-[#A385E9] ring-offset-1 scale-110' : 'hover:scale-105'
+                          isSelected ? 'ring-2 ring-primary ring-offset-1 scale-110' : 'hover:scale-105'
                         }`}
                         style={{
-                          backgroundColor: isSelected ? (newActivity.color || '#A385E9') : '#f3f4f6',
+                          backgroundColor: isSelected ? (newActivity.color || 'rgb(var(--color-primary))') : (newActivity.color || 'rgb(var(--color-primary))'),
                         }}
                       >
                         <Image src={option.path} alt={`${option.label} icon`} width={20} height={20} />
@@ -993,8 +997,8 @@ export default function ChooseProceduresStep() {
                       <button
                         key={`activity-selected-${selectedActivityIcon.id}`}
                         onClick={() => handleNewActivityChange('iconId', selectedActivityIcon.id)}
-                        className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ring-2 ring-[#A385E9] ring-offset-1 scale-105 box-border"
-                        style={{ backgroundColor: newActivity.color || '#A385E9' }}
+                        className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ring-2 ring-primary ring-offset-1 scale-105 box-border"
+                        style={{ backgroundColor: newActivity.color || 'rgb(var(--color-primary))' }}
                         title="Selected icon"
                       >
                         <Image
@@ -1008,7 +1012,7 @@ export default function ChooseProceduresStep() {
 
                   <button
                     onClick={handleIconPickerOpen}
-                    className="w-9 h-9 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center hover:border-[#A385E9] hover:bg-purple-50 transition-all duration-200 box-border"
+                    className="w-9 h-9 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center hover:border-primary hover:bg-purple-50 transition-all duration-200 box-border"
                   >
                     <span className="text-gray-400 text-sm font-bold">+</span>
                   </button>
@@ -1023,13 +1027,13 @@ export default function ChooseProceduresStep() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setIsCreateActivityModalOpen(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                className="flex-1 px-4 py-2 border border-border-subtle/60 text-text-primary rounded-lg hover:bg-surface-muted transition-colors text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateActivity}
-                className="flex-1 px-4 py-2 bg-[#A385E9] text-white rounded-lg hover:bg-[#906fe2] transition-colors text-sm font-medium"
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
               >
                 Create
               </button>
@@ -1042,14 +1046,14 @@ export default function ChooseProceduresStep() {
       {isColorPickerOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div 
-            className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl"
+            className="bg-surface rounded-3xl p-8 w-full max-w-md shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-[#5C4688]">Choose Color</h3>
+              <h3 className="text-xl font-bold text-text-primary">Choose Color</h3>
               <button
                 onClick={() => setIsColorPickerOpen(false)}
-                className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors"
+                className="w-10 h-10 rounded-full hover:bg-surface-muted/80 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1071,7 +1075,7 @@ export default function ChooseProceduresStep() {
                   onClick={handleColorPickerClick}
                 >
                   {}
-                  <div className="absolute inset-8 bg-white rounded-full"></div>
+                  <div className="absolute inset-8 bg-surface rounded-full"></div>
                   
                   {}
                   {newActivity.color && (
@@ -1092,7 +1096,7 @@ export default function ChooseProceduresStep() {
             <div className="text-center">
               <button
                 onClick={() => setIsColorPickerOpen(false)}
-                className="px-8 py-3 bg-[#A385E9] text-white rounded-xl hover:bg-[#906fe2] transition-colors font-medium"
+                className="px-8 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors font-medium"
               >
                 Done
               </button>
@@ -1105,14 +1109,14 @@ export default function ChooseProceduresStep() {
       {isIconPickerOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div
-            className="bg-white rounded-3xl w-full max-w-4xl max-h-[80vh] shadow-2xl flex flex-col"
+            className="bg-surface rounded-3xl w-full max-w-4xl max-h-[80vh] shadow-2xl flex flex-col"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex justify-between items-center p-8 pb-4">
-              <h3 className="text-xl font-bold text-[#5C4688]">Choose Icon</h3>
+              <h3 className="text-xl font-bold text-text-primary">Choose Icon</h3>
               <button
                 onClick={() => setIsIconPickerOpen(false)}
-                className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors"
+                className="w-10 h-10 rounded-full hover:bg-surface-muted/80 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1127,9 +1131,9 @@ export default function ChooseProceduresStep() {
                   placeholder="Search icons..."
                   value={iconSearchQuery}
                   onChange={(event) => setIconSearchQuery(event.target.value)}
-                  className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A385E9] focus:border-transparent text-gray-900 placeholder-gray-500"
+                  className="w-full px-4 py-3 pl-10 border border-border-subtle/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-text-primary placeholder-text-secondary"
                 />
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
@@ -1140,11 +1144,11 @@ export default function ChooseProceduresStep() {
                 <button
                   type="button"
                   onClick={() => setIconCategoryFilter('all')}
-                  className={`px-3 py-1 text-sm rounded-full border transition ${
-                    iconCategoryFilter === 'all'
-                      ? 'bg-[#A385E9] text-white border-[#A385E9]'
-                      : 'border-[#D9DCEF] text-[#5C4688] hover:border-[#A385E9]'
-                  }`}
+                    className={`px-3 py-1 text-sm rounded-full border transition ${
+                      iconCategoryFilter === 'all'
+                        ? 'bg-primary text-white border-primary'
+                        : 'border-border-subtle/60 text-text-primary hover:border-primary'
+                    }`}
                 >
                   All
                 </button>
@@ -1155,8 +1159,8 @@ export default function ChooseProceduresStep() {
                     onClick={() => setIconCategoryFilter(category)}
                     className={`px-3 py-1 text-sm rounded-full border transition ${
                       iconCategoryFilter === category
-                        ? 'bg-[#A385E9] text-white border-[#A385E9]'
-                        : 'border-[#D9DCEF] text-[#5C4688] hover:border-[#A385E9]'
+                        ? 'bg-primary text-white border-primary'
+                        : 'border-border-subtle/60 text-text-primary hover:border-primary'
                     }`}
                   >
                     {category.replace(/[-_]/g, ' ')}
@@ -1165,7 +1169,7 @@ export default function ChooseProceduresStep() {
               </div>
             </div>
 
-            <div className="px-8 text-sm text-[#969AB7]">
+            <div className="px-8 text-sm text-text-secondary">
               Showing {paginatedIconEntries.length} of {filteredIconEntries.length} icons
             </div>
 
@@ -1186,9 +1190,9 @@ export default function ChooseProceduresStep() {
                           }
                         }}
                         className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-200 ${
-                          isSelected ? 'ring-2 ring-[#A385E9] ring-offset-1 scale-105' : 'hover:scale-105'
+                          isSelected ? 'ring-2 ring-primary ring-offset-1 scale-105' : 'hover:scale-105'
                         }`}
-                        style={{ backgroundColor: isSelected ? activeIconColor : '#f3f4f6' }}
+                        style={{ backgroundColor: isSelected ? activeIconColor : activeIconColor }}
                         title={entry.label}
                       >
                         <Image src={entry.path} alt={`${entry.label} icon`} width={24} height={24} />
@@ -1197,7 +1201,7 @@ export default function ChooseProceduresStep() {
                   })}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-[#969AB7]">
+                <div className="flex flex-col items-center justify-center py-12 text-text-secondary">
                   <p className="text-base font-medium">No icons match your search.</p>
                   <p className="text-sm">Try a different keyword or category.</p>
                 </div>
@@ -1212,21 +1216,21 @@ export default function ChooseProceduresStep() {
                   disabled={iconPage === 0}
                   className={`px-3 py-1 rounded-full border text-sm transition ${
                     iconPage === 0
-                      ? 'border-[#D9DCEF] text-[#D9DCEF] cursor-not-allowed'
-                      : 'border-[#A385E9] text-[#5C4688] hover:bg-[#F3EDFF]'
+                      ? 'border-border-subtle/60 text-[#D9DCEF] cursor-not-allowed'
+                      : 'border-primary text-text-primary hover:bg-[#F3EDFF]'
                   }`}
                 >
                   Prev
                 </button>
-                <span className="text-sm text-[#5C4688]">Page {totalIconPages ? iconPage + 1 : 0} of {totalIconPages}</span>
+                <span className="text-sm text-text-primary">Page {totalIconPages ? iconPage + 1 : 0} of {totalIconPages}</span>
                 <button
                   type="button"
                   onClick={() => setIconPage((prev) => Math.min(prev + 1, Math.max(totalIconPages - 1, 0)))}
                   disabled={iconPage >= totalIconPages - 1}
                   className={`px-3 py-1 rounded-full border text-sm transition ${
                     iconPage >= totalIconPages - 1
-                      ? 'border-[#D9DCEF] text-[#D9DCEF] cursor-not-allowed'
-                      : 'border-[#A385E9] text-[#5C4688] hover:bg-[#F3EDFF]'
+                      ? 'border-border-subtle/60 text-[#D9DCEF] cursor-not-allowed'
+                      : 'border-primary text-text-primary hover:bg-[#F3EDFF]'
                   }`}
                 >
                   Next
@@ -1235,7 +1239,7 @@ export default function ChooseProceduresStep() {
 
               <button
                 onClick={() => setIsIconPickerOpen(false)}
-                className="self-end sm:self-auto px-8 py-3 bg-[#A385E9] text-white rounded-xl hover:bg-[#906fe2] transition-colors font-medium"
+                className="self-end sm:self-auto px-8 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors font-medium"
               >
                 Done
               </button>
@@ -1247,26 +1251,26 @@ export default function ChooseProceduresStep() {
       {}
       {isCreateCategoryModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-[#5C4688] mb-6 text-center">Create New Category</h2>
+          <div className="bg-surface rounded-2xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-text-primary mb-6 text-center">Create New Category</h2>
             
             <div className="space-y-4">
               {/* Category Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category name</label>
+                <label className="block text-sm font-medium text-text-primary mb-1">Category name</label>
                 <input
                   type="text"
                   value={newCategory.name}
                   onChange={(e) => handleNewCategoryChange('name', e.target.value)}
                   placeholder="Type the name"
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#A385E9] focus:border-transparent text-sm text-gray-900"
+                  className="w-full p-2 border border-border-subtle/60 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent text-sm text-text-primary"
                 />
               </div>
 
               {/* Color */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-                <div className="flex gap-1 p-2 border border-purple-200 rounded-lg">
+                <label className="block text-sm font-medium text-text-primary mb-1">Color</label>
+                <div className="flex gap-1 p-2 border border-border-subtle/60 rounded-lg">
                   {}
                   {colors.map((color) => {
 
@@ -1278,8 +1282,8 @@ export default function ChooseProceduresStep() {
                         onClick={() => handleNewCategoryChange('color', color.value)}
                         className={`w-7 h-7 rounded-full border-2 transition-all duration-200 ${
                           isSelected
-                            ? 'border-[#A385E9] scale-110 ring-2 ring-[#A385E9] ring-opacity-50 shadow-lg'
-                            : 'border-gray-300 hover:scale-105 hover:border-gray-400'
+                            ? 'border-primary scale-110 ring-2 ring-primary ring-opacity-50 shadow-lg'
+                            : 'border-border-subtle/60 hover:scale-105 hover:border-primary/60'
                         }`}
                         style={{ backgroundColor: color.value }}
                       />
@@ -1290,24 +1294,24 @@ export default function ChooseProceduresStep() {
                   {newCategory.color && !colors.some(c => c.value === newCategory.color) && (
                     <button
                       onClick={() => handleNewCategoryChange('color', newCategory.color)}
-                      className="w-7 h-7 rounded-full border-2 border-[#A385E9] scale-110 ring-2 ring-[#A385E9] ring-opacity-50 shadow-lg transition-all duration-200"
+                      className="w-7 h-7 rounded-full border-2 border-primary scale-110 ring-2 ring-primary ring-opacity-50 shadow-lg transition-all duration-200"
                       style={{ backgroundColor: newCategory.color }}
                       title="Selected color"
                     />
                   )}
                   <button
                     onClick={() => setIsColorPickerOpen(true)}
-                    className="w-7 h-7 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center hover:border-[#A385E9] hover:bg-purple-50 transition-all duration-200"
+                    className="w-7 h-7 rounded-full border-2 border-dashed border-border-subtle/60 flex items-center justify-center hover:border-primary hover:bg-surface-muted transition-all duration-200"
                   >
-                    <span className="text-gray-400 text-sm font-bold">+</span>
+                    <span className="text-text-secondary text-sm font-bold">+</span>
                   </button>
                 </div>
               </div>
 
               {/* Icon */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
-                <div className="flex gap-1 p-2 border border-purple-200 rounded-lg">
+                <label className="block text-sm font-medium text-text-primary mb-1">Icon</label>
+                <div className="flex gap-1 p-2 border border-border-subtle/60 rounded-lg">
                   {quickIconOptions.map((option) => {
                     const isSelected = newCategory.iconId === option.id
 
@@ -1316,10 +1320,10 @@ export default function ChooseProceduresStep() {
                         key={`category-${option.id}`}
                         onClick={() => handleNewCategoryChange('iconId', option.id)}
                         className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 box-border ${
-                          isSelected ? 'ring-2 ring-[#A385E9] ring-offset-1 scale-110' : 'hover:scale-105'
+                          isSelected ? 'ring-2 ring-primary ring-offset-1 scale-110' : 'hover:scale-105'
                         }`}
                         style={{
-                          backgroundColor: isSelected ? (newCategory.color || '#A385E9') : '#f3f4f6',
+                          backgroundColor: isSelected ? (newCategory.color || 'rgb(var(--color-primary))') : (newCategory.color || 'rgb(var(--color-primary))'),
                         }}
                       >
                         <Image src={option.path} alt={`${option.label} icon`} width={20} height={20} />
@@ -1332,8 +1336,8 @@ export default function ChooseProceduresStep() {
                       <button
                         key={`category-selected-${selectedCategoryIcon.id}`}
                         onClick={() => handleNewCategoryChange('iconId', selectedCategoryIcon.id)}
-                        className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ring-2 ring-[#A385E9] ring-offset-1 scale-105 box-border"
-                        style={{ backgroundColor: newCategory.color || '#A385E9' }}
+                        className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ring-2 ring-primary ring-offset-1 scale-105 box-border"
+                        style={{ backgroundColor: newCategory.color || 'rgb(var(--color-primary))' }}
                         title="Selected icon"
                       >
                         <Image
@@ -1347,9 +1351,9 @@ export default function ChooseProceduresStep() {
 
                   <button
                     onClick={handleIconPickerOpen}
-                    className="w-9 h-9 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center hover:border-[#A385E9] hover:bg-purple-50 transition-all duration-200 box-border"
+                    className="w-9 h-9 rounded-full border-2 border-dashed border-border-subtle/60 flex items-center justify-center hover:border-primary hover:bg-surface-muted transition-all duration-200 box-border"
                   >
-                    <span className="text-gray-400 text-sm font-bold">+</span>
+                    <span className="text-text-secondary text-sm font-bold">+</span>
                   </button>
                 </div>
               </div>
@@ -1359,14 +1363,14 @@ export default function ChooseProceduresStep() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setIsCreateCategoryModalOpen(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border border-border-subtle/60 text-text-primary rounded-lg hover:bg-surface-muted transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateCategory}
                 disabled={!newCategory.name || !newCategory.color || !newCategory.iconId}
-                className="flex-1 px-4 py-2 bg-[#A385E9] text-white rounded-lg hover:bg-[#8B6BC2] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Create
               </button>

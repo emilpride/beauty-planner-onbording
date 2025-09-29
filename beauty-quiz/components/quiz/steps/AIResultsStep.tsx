@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -38,7 +38,7 @@ export default function AIResultsStep() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-light-container p-8">
+    <div className="flex flex-col items-center justify-center h-full bg-background p-8">
       <h1 className="text-3xl font-bold text-text-primary mb-4">
         AI Analysis in Progress
       </h1>
@@ -64,4 +64,5 @@ export default function AIResultsStep() {
     </div>
   )
 }
+
 

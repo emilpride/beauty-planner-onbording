@@ -120,19 +120,19 @@ export default function ContractAgreementStep() {
   }
 
   return (
-    <div className="h-full bg-white flex flex-col scrollbar-hide">
+    <div className="h-full bg-surface flex flex-col scrollbar-hide">
       {/* Header */}
-      <div className="p-6 border-b border-gray-100">
+      <div className="p-6 border-b border-border-subtle/40">
         <div className="flex items-center justify-between mb-4">
           <button 
             onClick={() => router.back()}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-surface-muted/80 rounded-full transition-colors"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-xl font-bold text-[#5C4688]">Let's Make A Contract</h1>
+          <h1 className="text-xl font-bold text-text-primary">Let's Make A Contract</h1>
           <div className="w-10"></div>
         </div>
       </div>
@@ -154,7 +154,7 @@ export default function ContractAgreementStep() {
             </div>
             <div>
               <h3 className="font-semibold text-gray-800 mb-1">Commitment to Consistency</h3>
-              <p className="text-sm text-gray-600">I commit to following my personalized beauty routine consistently for the next 30 days.</p>
+              <p className="text-sm text-text-secondary">I commit to following my personalized beauty routine consistently for the next 30 days.</p>
             </div>
           </motion.div>
 
@@ -171,7 +171,7 @@ export default function ContractAgreementStep() {
             </div>
             <div>
               <h3 className="font-semibold text-gray-800 mb-1">Daily Progress Tracking</h3>
-              <p className="text-sm text-gray-600">I will log my daily activities and mood to track my progress and stay motivated.</p>
+              <p className="text-sm text-text-secondary">I will log my daily activities and mood to track my progress and stay motivated.</p>
             </div>
           </motion.div>
 
@@ -188,7 +188,7 @@ export default function ContractAgreementStep() {
             </div>
             <div>
               <h3 className="font-semibold text-gray-800 mb-1">Mindful Self-Care</h3>
-              <p className="text-sm text-gray-600">I will approach my beauty routine with mindfulness and self-compassion.</p>
+              <p className="text-sm text-text-secondary">I will approach my beauty routine with mindfulness and self-compassion.</p>
             </div>
           </motion.div>
 
@@ -205,7 +205,7 @@ export default function ContractAgreementStep() {
             </div>
             <div>
               <h3 className="font-semibold text-gray-800 mb-1">Celebrate Progress</h3>
-              <p className="text-sm text-gray-600">I will celebrate small wins and acknowledge my progress along this journey.</p>
+              <p className="text-sm text-text-secondary">I will celebrate small wins and acknowledge my progress along this journey.</p>
             </div>
           </motion.div>
         </div>
@@ -218,10 +218,10 @@ export default function ContractAgreementStep() {
           transition={{ delay: 0.5 }}
         >
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Your Digital Signature</h3>
-          <div className="border-2 border-gray-200 rounded-xl p-4">
+          <div className="border-2 border-border-subtle/50 rounded-xl p-4">
             <canvas
               ref={canvasRef}
-              className="w-full h-32 border border-gray-300 rounded-lg cursor-crosshair"
+              className="w-full h-32 border border-border-subtle/60 rounded-lg cursor-crosshair"
               onMouseDown={startDrawing}
               onMouseMove={draw}
               onMouseUp={stopDrawing}
@@ -233,7 +233,7 @@ export default function ContractAgreementStep() {
             <div className="flex justify-between items-center mt-4">
               <button
                 onClick={clearSignature}
-                className="text-sm text-gray-500 hover:text-gray-700 underline"
+                className="text-sm text-text-secondary hover:text-text-primary underline"
               >
                 Clear and sign again
               </button>
@@ -244,7 +244,7 @@ export default function ContractAgreementStep() {
       </div>
 
       {/* Bottom Button */}
-      <div className="p-6 border-t border-gray-100">
+      <div className="p-6 border-t border-border-subtle/40">
         <button
           onClick={handleFinish}
           disabled={!hasSignature}

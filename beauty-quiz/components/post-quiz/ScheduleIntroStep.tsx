@@ -31,7 +31,7 @@ export default function ScheduleIntroStep() {
     : "/images/content/assistant_ellie.png";
 
   return (
-    <div className="w-full max-w-[430px] mx-auto h-screen font-sans flex flex-col bg-white">
+    <div className="w-full max-w-[430px] mx-auto h-screen font-sans flex flex-col bg-surface">
       {/* Header */}
       <div className="flex items-center p-4 shrink-0 z-10">
         <button onClick={() => router.back()} className="p-2">
@@ -56,9 +56,9 @@ export default function ScheduleIntroStep() {
       </div>
       
       {/* Content Section */}
-      <div className="flex-1 flex flex-col justify-between p-8 bg-white rounded-t-3xl -mt-8 z-10">
+      <div className="flex-1 flex flex-col justify-between p-8 bg-surface rounded-3xl -mt-8 z-10">
         <div>
-          <h1 className="text-3xl font-bold text-[#5C4688] mb-4">Let's Create Your Schedule</h1>
+          <h1 className="text-3xl font-bold text-text-primary mb-4">Let's Create Your Schedule</h1>
           <p className="text-gray-600 mb-6">
             Our users save an average of 12 hours a year! Imagine what you could do with that time.
           </p>
@@ -75,7 +75,7 @@ export default function ScheduleIntroStep() {
           </ul>
         </div>
 
-        <button onClick={handleNext} className="w-full bg-[#A385E9] text-white font-bold py-4 rounded-xl shadow-lg mt-6">
+        <button onClick={handleNext} className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg mt-6">
           Let's Go
         </button>
       </div>

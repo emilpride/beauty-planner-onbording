@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
@@ -61,15 +61,15 @@ export default function HairTypeStep() {
       skipText="Skip"
       onSkip={handleSkip}
     >
-      <div className="space-y-3">
+      <div className="space-y-2 py-1">
         {types.map((type) => (
           <button
             key={type}
             onClick={() => handleOptionSelect(type)}
             className={`w-full p-3 border-2 rounded-lg text-left transition-all duration-300 ${
               answers.hairType === type
-                ? 'border-primary bg-primary bg-opacity-15 shadow-lg'
-                : 'border-gray-300 hover:border-primary hover:bg-gray-50'
+                ? 'border-primary bg-surface shadow-soft'
+                : 'border-border-subtle/60 bg-surface-muted hover:border-primary/40 hover:bg-surface hover:text-text-primary'
             }`}
           >
             <div className="flex items-center justify-between">
@@ -90,8 +90,8 @@ export default function HairTypeStep() {
           onClick={() => handleOptionSelect('ai_analyze')}
           className={`w-full p-3 border-2 rounded-lg text-left transition-all duration-300 ${
             answers.hairType === 'ai_analyze'
-              ? 'border-primary bg-primary bg-opacity-15 shadow-lg'
-              : 'border-gray-300 hover:border-primary hover:bg-gray-50'
+              ? 'border-primary bg-surface shadow-soft'
+              : 'border-border-subtle/60 bg-surface-muted hover:border-primary/40 hover:bg-surface hover:text-text-primary'
           }`}
         >
           <div>
@@ -102,4 +102,6 @@ export default function HairTypeStep() {
     </OnboardingStep>
   )
 }
+
+
 

@@ -82,7 +82,7 @@ export default function AssistantWelcomePage() {
         </div>
 
         <div className="px-8 pb-8 flex-shrink-0 -mt-16 relative z-20">
-          <div className="bg-surface rounded-t-3xl px-6 pt-6 pb-8 max-w-sm mx-auto border border-border-subtle/70 shadow-elevated backdrop-blur">
+          <div className="bg-surface rounded-3xl px-6 pt-6 pb-8 max-w-sm mx-auto border border-border-subtle/70 shadow-elevated backdrop-blur">
             <h1 className="text-2xl font-bold text-text-primary mb-3 text-center">
               Hi! I'm {assistantName}, Your Personal AI Assistant
             </h1>

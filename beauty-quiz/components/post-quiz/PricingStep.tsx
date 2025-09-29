@@ -227,7 +227,7 @@ function CountdownBanner({ totalSeconds }: { totalSeconds: number }) {
         className={
           compact
             ? 'flex items-center gap-2 rounded-full bg-gradient-to-r from-[#45C997] via-[#2BAE70] to-[#1D8A5A] px-4 py-1.5 text-white shadow-[0_16px_30px_rgba(43,174,112,0.28)]'
-            : 'flex w-full max-w-[360px] items-center justify-between gap-2 rounded-full border border-[#E5DFFC] bg-white/90 px-4 py-2 text-[#2F2C45] shadow-[0_12px_24px_rgba(91,69,136,0.14)] backdrop-blur'
+            : 'flex w-full max-w-[360px] items-center justify-between gap-2 rounded-full border border-border-subtle/70 bg-surface/90 px-4 py-2 text-text-primary shadow-[0_12px_24px_rgba(91,69,136,0.14)] backdrop-blur'
         }
       >
         {!compact && <span className="text-xs font-semibold uppercase tracking-[0.22em] text-[#6F54A8]">Offer ends soon</span>}
@@ -266,8 +266,8 @@ function PlanCard({ plan, active, onSelect }: { plan: PlanOption; active: boolea
       onClick={onSelect}
       className={`flex h-full flex-col justify-between rounded-3xl border px-5 py-6 text-left transition focus:outline-none focus:ring-2 focus:ring-[#7C5CCB] focus:ring-offset-2 focus:ring-offset-white ${
         active
-          ? 'border-[#7C5CCB] bg-white shadow-[0_18px_38px_rgba(124,92,203,0.2)]'
-          : 'border-[#E1DCF5] bg-white shadow-sm hover:-translate-y-1 hover:shadow-[0_16px_30px_rgba(91,69,136,0.14)]'
+          ? 'border-[#7C5CCB] bg-surface shadow-[0_18px_38px_rgba(124,92,203,0.2)]'
+          : 'border-[#E1DCF5] bg-surface shadow-sm hover:-translate-y-1 hover:shadow-[0_16px_30px_rgba(91,69,136,0.14)]'
       }`}
     >
       <div className="space-y-4">
@@ -322,7 +322,7 @@ function FeaturesGrid({ items }: { items: FeatureItem[] }) {
 
 function FeatureRow({ feature }: { feature: FeatureItem }) {
   return (
-    <div className="flex h-full items-start gap-4 rounded-2xl border border-[#E6E2FB] bg-white px-4 py-3 shadow-[0_12px_24px_rgba(86,63,140,0.08)]">
+    <div className="flex h-full items-start gap-4 rounded-2xl border border-[#E6E2FB] bg-surface px-4 py-3 shadow-[0_12px_24px_rgba(86,63,140,0.08)]">
       <div className={`flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-gradient-to-br ${feature.gradient}`}>
         <Image src={feature.iconSrc} alt={feature.label} width={28} height={28} className="h-7 w-7 object-contain" />
       </div>
@@ -347,7 +347,7 @@ function TrustSignals() {
 function TrustPill({ title, description }: { title: string; description: string }) {
   return (
     <div className="flex items-start gap-3 rounded-2xl border border-[#EBE6FF] bg-[#F9F7FF] px-4 py-3 shadow-[0_10px_22px_rgba(102,76,167,0.08)]">
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-[0_8px_16px_rgba(134,108,203,0.12)]">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface shadow-[0_8px_16px_rgba(134,108,203,0.12)]">
         <MiniCheckIcon className="h-4 w-4 text-[#2BAE70]" />
       </div>
       <div className="space-y-1">
@@ -404,12 +404,12 @@ function PaymentModal({ selectedPlanId, discountOffered, promoCode, onPromoChang
     <motion.div className="fixed inset-0 z-50 flex items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className="absolute inset-0 bg-[#0B102066] backdrop-blur-sm" onClick={onClose} />
       <motion.div
-        className="relative w-full max-w-[520px] rounded-3xl bg-white px-6 py-8 shadow-[0_28px_60px_rgba(43,33,76,0.25)]"
+        className="relative w-full max-w-[520px] rounded-3xl bg-surface px-6 py-8 shadow-[0_28px_60px_rgba(43,33,76,0.25)]"
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
       >
-        <button type="button" onClick={onClose} className="absolute right-6 top-6 text-[#A1A4C2] transition hover:text-[#5C4688]" aria-label="Close payment modal">
+        <button type="button" onClick={onClose} className="absolute right-6 top-6 text-[#A1A4C2] transition hover:text-text-primary" aria-label="Close payment modal">
           ×
         </button>
         <div className="space-y-6">
@@ -437,7 +437,7 @@ function PaymentModal({ selectedPlanId, discountOffered, promoCode, onPromoChang
             </div>
             <div className="flex flex-wrap gap-2">
               {plan.sellingPoints.map((point) => (
-                <span key={point} className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6F54A8]">
+                <span key={point} className="inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1 text-xs font-semibold text-[#6F54A8]">
                   <MiniCheckIcon className="h-3.5 w-3.5 text-[#2BAE70]" />
                   {point}
                 </span>
@@ -482,7 +482,7 @@ function PaymentModal({ selectedPlanId, discountOffered, promoCode, onPromoChang
             </div>
             <label className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8A82C0]">
               Promo code
-              <div className="mt-1 flex items-center gap-2 rounded-xl border border-[#D6D9EE] bg-white px-3 py-2 text-sm shadow-sm focus-within:border-[#9B87D5] focus-within:ring-2 focus-within:ring-[#C9B8F5]">
+              <div className="mt-1 flex items-center gap-2 rounded-xl border border-[#D6D9EE] bg-surface px-3 py-2 text-sm shadow-sm focus-within:border-[#9B87D5] focus-within:ring-2 focus-within:ring-[#C9B8F5]">
               <input
                 value={promoCode}
                   onChange={(event) => onPromoChange(event.target.value)}

@@ -53,7 +53,7 @@ export default function GeneratingScheduleStep() {
 
     if (isCurrent) {
       return (
-        <div className="w-8 h-8 bg-[#A385E9] rounded-full flex items-center justify-center">
+        <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
         </div>
       )
@@ -71,13 +71,13 @@ export default function GeneratingScheduleStep() {
   }
 
   return (
-    <div className="h-full bg-gradient-to-br from-blue-100 to-pink-100 flex flex-col">
+    <div className="h-full bg-gradient-to-br from-background to-surface-muted flex flex-col">
       {/* Floating Icons */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(8)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center"
+            className="absolute w-12 h-12 bg-surface bg-opacity-20 rounded-full flex items-center justify-center"
             style={{
               left: `${10 + (i * 12)}%`,
               top: `${20 + (i % 3) * 25}%`,
@@ -93,7 +93,7 @@ export default function GeneratingScheduleStep() {
               delay: i * 0.3,
             }}
           >
-            <div className="w-6 h-6 bg-[#A385E9] rounded-full"></div>
+            <div className="w-6 h-6 bg-primary rounded-full"></div>
           </motion.div>
         ))}
       </div>
@@ -122,14 +122,14 @@ export default function GeneratingScheduleStep() {
           {steps.map((step, index) => (
             <motion.div
               key={step.id}
-              className="flex items-center space-x-4 p-4 bg-white bg-opacity-80 rounded-xl backdrop-blur-sm"
+              className="flex items-center space-x-4 p-4 bg-surface bg-opacity-80 rounded-xl backdrop-blur-sm"
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: index * 0.2 }}
             >
               {getStatusIcon(index)}
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-800">{step.title}</h3>
+                <h3 className="font-semibold text-text-primary">{step.title}</h3>
               </div>
             </motion.div>
           ))}
@@ -142,7 +142,7 @@ export default function GeneratingScheduleStep() {
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
         >
-          <p className="text-gray-600">
+          <p className="text-text-secondary">
             Please wait while we create your personalized beauty routine...
           </p>
         </motion.div>

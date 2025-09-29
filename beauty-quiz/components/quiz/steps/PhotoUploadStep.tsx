@@ -106,7 +106,7 @@ export default function PhotoUploadStep() {
               onClick={() => handleToggleSkip(type)}
               className="w-full h-full flex flex-col items-center justify-center bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200 cursor-pointer"
             >
-                <p className="font-semibold text-gray-500">Skipped</p>
+                <p className="font-semibold text-text-secondary">Skipped</p>
                 <p className="text-xs text-gray-400 mt-1">Click to undo</p>
             </button>
           ) : (
@@ -142,7 +142,7 @@ export default function PhotoUploadStep() {
       condition={canProceed}
     >
         <div className="p-1 border-2 border-dotted border-blue-300 rounded-2xl">
-            <div className="space-y-6 p-4">
+            <div className="space-y-4 p-3">
                 {renderUploadBox('face', 'Face')}
                 {renderUploadBox('hair', 'Hair')}
                 {renderUploadBox('body', 'Body')}

@@ -44,7 +44,7 @@ export default function JoinBeautyMirrorStep() {
             <h3 className="text-2xl font-bold text-text-primary mb-6 text-center">
               Your Improvement Journey
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {[
                 { week: "Week 1", title: "Foundation Building", desc: "Establish healthy habits" },
                 { week: "Week 4", title: "Visible Changes", desc: "First improvements appear" },
@@ -74,7 +74,7 @@ export default function JoinBeautyMirrorStep() {
                 </svg>
                 With Beauty Mirror
               </h3>
-              <ul className="space-y-2">
+              <ul className="space-y-1">
                 <li className="flex items-center text-green-700">
                   <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
                   Personalized daily routines
@@ -102,7 +102,7 @@ export default function JoinBeautyMirrorStep() {
                 </svg>
                 Without Beauty Mirror
               </h3>
-              <ul className="space-y-2">
+              <ul className="space-y-1">
                 <li className="flex items-center text-red-700">
                   <span className="w-2 h-2 bg-red-500 rounded-full mr-3"></span>
                   Inconsistent routines

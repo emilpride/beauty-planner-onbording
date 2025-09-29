@@ -2,43 +2,29 @@
 
 import AnimatedBackground from '@/components/AnimatedBackground'
 import { useTheme, type ThemeVariant } from '@/components/theme/ThemeProvider'
-import { Moon, Sparkles, Sun } from 'lucide-react'
-import Image from 'next/image'
+import { Sparkles, Sun, Moon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useMemo, useState } from 'react'
-
-const assistantPreview = {
-  light: {
-    image: '/images/on_boarding_images/onboarding_img_1.png',
-    greeting: "Hi! I'm Ellie, Your Personal Assistant.",
-    description:
-      'I thrive in a bright, optimistic space. Let me guide you through a fresh and energetic wellness journey.',
-  },
-  dark: {
-    image: '/images/on_boarding_images/onboarding_img_1_max.png',
-    greeting: "Hey! I'm Max, Your Personal AI Coach.",
-    description:
-      'I keep things calm and focused. Choose a moody, immersive vibe for a grounded self-care experience.',
-  },
-} satisfies Record<ThemeVariant, { image: string; greeting: string; description: string }>
+import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
 
 export default function ThemeSelectionPage() {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
   const [activeTheme, setActiveTheme] = useState<ThemeVariant>(theme)
-  const isDark = activeTheme === 'dark'
 
   useEffect(() => {
     setActiveTheme(theme)
   }, [theme])
 
-  const preview = useMemo(() => assistantPreview[activeTheme], [activeTheme])
+  const isDark = activeTheme === 'dark'
 
-  const handleToggle = (nextTheme: ThemeVariant) => {
-    setActiveTheme(nextTheme)
-    setTheme(nextTheme)
+  const handleSelect = (mode: ThemeVariant) => {
+    if (mode === activeTheme) return
+    setActiveTheme(mode)
+    setTheme(mode)
   }
+
+  const toggle = () => handleSelect(isDark ? 'light' : 'dark')
 
   const handleContinue = () => {
     router.push('/welcome')
@@ -47,97 +33,161 @@ export default function ThemeSelectionPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-background transition-colors duration-500">
       <AnimatedBackground />
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-12">
-        <div className="w-full max-w-3xl space-y-12">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle/60 bg-surface/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary backdrop-blur">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Personalize your experience
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-16">
+        <div className="w-full max-w-3xl space-y-12 text-center">
+          <div className="space-y-4">
+            <span className="inline-flex items-center justify-center gap-2 rounded-full border border-border-subtle/60 bg-surface/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-text-secondary backdrop-blur">
+              <Sparkles className="h-4 w-4 text-primary" /> Personalize your experience
             </span>
             <h1 className="text-3xl font-bold text-text-primary sm:text-4xl">
-              Choose the mood that fits you best
+              Choose the mood that feels right
             </h1>
-            <p className="max-w-2xl text-base text-text-secondary sm:text-lg">
-              Light or dark? Pick a theme to match your vibe. You can always switch it later from the settings menu.
+            <p className="mx-auto max-w-xl text-base text-text-secondary sm:text-lg">
+              Pick between light and dark. We’ll remember your choice, and you can switch it anytime in settings.
             </p>
           </div>
 
-          <div className="flex flex-col items-center gap-12">
+          <div className="space-y-10">
             <motion.div
+              className="mx-auto h-24 w-full max-w-lg rounded-full border border-border-subtle/70 bg-surface/80 p-3 shadow-soft backdrop-blur"
               layout
-              className="relative flex h-24 w-full max-w-lg items-center justify-center rounded-full border border-border-subtle/80 bg-surface/80 px-4 text-text-secondary shadow-soft backdrop-blur"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             >
-              <button
-                type="button"
-                onClick={() => handleToggle('light')}
-                className={`z-10 flex flex-1 items-center justify-center gap-2 text-sm font-semibold transition-colors ${
-                  isDark ? 'text-text-secondary/70' : 'text-text-primary'
-                }`}
+              <div
+                className="relative flex h-full w-full items-center rounded-full px-6"
+                role="switch"
+                aria-checked={isDark}
+                tabIndex={0}
+                onClick={toggle}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    toggle()
+                  }
+                }}
               >
-                <Sun className="h-5 w-5" /> Light
-              </button>
-              <button
-                type="button"
-                onClick={() => handleToggle('dark')}
-                className={`z-10 flex flex-1 items-center justify-center gap-2 text-sm font-semibold transition-colors ${
-                  isDark ? 'text-text-primary' : 'text-text-secondary/70'
-                }`}
-              >
-                Dark <Moon className="h-5 w-5" />
-              </button>
-              <motion.div
-                layout
-                transition={{ type: 'spring', stiffness: 260, damping: 25 }}
-                className={`absolute top-2 bottom-2 w-[calc(50%-8px)] rounded-full bg-primary/15 shadow-elevated ${
-                  isDark ? 'right-2' : 'left-2'
-                }`}
-              />
+                <motion.div
+                  layout
+                  transition={{ 
+                    type: 'spring', 
+                    stiffness: 300, 
+                    damping: 25,
+                    mass: 0.8
+                  }}
+                  className={`absolute top-1 bottom-1 w-[calc(50%-6px)] rounded-full bg-primary/15 shadow-elevated ${
+                    isDark ? 'right-1' : 'left-1'
+                  }`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                />
+
+                <motion.button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    handleSelect('light')
+                  }}
+                  className={`z-10 flex flex-1 items-center justify-center gap-2 text-sm font-semibold transition-colors ${
+                    isDark ? 'text-text-secondary' : 'text-text-primary'
+                  }`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                >
+                  <motion.div
+                    animate={{ 
+                      rotate: isDark ? 0 : 360,
+                      scale: isDark ? 0.9 : 1.1
+                    }}
+                    transition={{ 
+                      type: 'spring', 
+                      stiffness: 300, 
+                      damping: 20 
+                    }}
+                  >
+                    <Sun className="h-5 w-5" />
+                  </motion.div>
+                  <motion.span
+                    animate={{ 
+                      opacity: isDark ? 0.6 : 1,
+                      scale: isDark ? 0.95 : 1.05
+                    }}
+                    transition={{ 
+                      type: 'spring', 
+                      stiffness: 300, 
+                      damping: 20 
+                    }}
+                  >
+                    Light
+                  </motion.span>
+                </motion.button>
+                
+                <motion.button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    handleSelect('dark')
+                  }}
+                  className={`z-10 flex flex-1 items-center justify-center gap-2 text-sm font-semibold transition-colors ${
+                    isDark ? 'text-text-primary' : 'text-text-secondary'
+                  }`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                >
+                  <motion.span
+                    animate={{ 
+                      opacity: isDark ? 1 : 0.6,
+                      scale: isDark ? 1.05 : 0.95
+                    }}
+                    transition={{ 
+                      type: 'spring', 
+                      stiffness: 300, 
+                      damping: 20 
+                    }}
+                  >
+                    Dark
+                  </motion.span>
+                  <motion.div
+                    animate={{ 
+                      rotate: isDark ? 360 : 0,
+                      scale: isDark ? 1.1 : 0.9
+                    }}
+                    transition={{ 
+                      type: 'spring', 
+                      stiffness: 300, 
+                      damping: 20 
+                    }}
+                  >
+                    <Moon className="h-5 w-5" />
+                  </motion.div>
+                </motion.button>
+              </div>
             </motion.div>
 
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTheme}
-                initial={{ opacity: 0, y: 20 }}
+
+            <motion.button
+              onClick={handleContinue}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-7 py-3 text-base font-semibold text-white shadow-soft transition-all duration-200 hover:scale-[1.02] hover:shadow-elevated"
+              whileHover={{ 
+                scale: 1.05,
+                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+              }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            >
+              <motion.span
+                key={isDark ? 'dark' : 'light'}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
-                className="relative w-full overflow-hidden rounded-[32px] border border-border-subtle/70 bg-surface/90 px-6 py-10 shadow-elevated backdrop-blur sm:px-10"
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
               >
-                <div className="absolute inset-x-0 -top-40 h-64 rounded-full bg-primary/20 blur-[120px]" />
-                <div className="relative flex flex-col items-center gap-8 text-left md:flex-row md:items-end md:justify-between">
-                  <div className="relative flex w-full max-w-xs items-center justify-center">
-                    <div className="relative h-64 w-64">
-                      <Image
-                        src={preview.image}
-                        alt={preview.greeting}
-                        fill
-                        priority
-                        className="object-contain drop-shadow-[0_32px_60px_rgba(76,45,130,0.35)]"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex w-full max-w-md flex-col gap-4 text-center md:text-left">
-                    <div>
-                      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                        Preview
-                      </p>
-                      <h2 className="text-2xl font-bold text-text-primary sm:text-3xl">
-                        {preview.greeting}
-                      </h2>
-                    </div>
-                    <p className="text-base text-text-secondary sm:text-lg">
-                      {preview.description}
-                    </p>
-                    <button
-                      onClick={handleContinue}
-                      className="mt-4 inline-flex items-center justify-center rounded-xl bg-primary px-6 py-3 text-base font-semibold text-white shadow-soft transition-transform duration-200 hover:scale-[1.02] hover:shadow-elevated"
-                    >
-                      Continue with {activeTheme === 'light' ? 'Light' : 'Dark'} Mode
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
+                Continue in {isDark ? 'Dark' : 'Light'} Mode
+              </motion.span>
+            </motion.button>
           </div>
         </div>
       </div>

@@ -132,7 +132,7 @@ export default function ChoosePlanStep() {
 
   return (
     <motion.div 
-      className="w-full h-screen bg-white flex flex-col"
+      className="w-full h-screen bg-surface flex flex-col"
       initial="hidden"
       animate="visible"
       variants={containerVariants}
@@ -141,7 +141,7 @@ export default function ChoosePlanStep() {
         <div className="max-w-md mx-auto p-6 space-y-6">
           {/* Header */}
           <motion.div className="text-center" variants={itemVariants}>
-            <h1 className="text-3xl font-bold text-[#5C4688] mb-3">Regular Care = Better Results!</h1>
+            <h1 className="text-3xl font-bold text-text-primary mb-3">Regular Care = Better Results!</h1>
             <p className="text-gray-600">
               On average, our users improve their well-being by 30% within the first month!
             </p>
@@ -152,7 +152,7 @@ export default function ChoosePlanStep() {
             className="flex flex-col justify-center items-start p-4"
             style={{
               width: '350px',
-              background: '#F7F6FF',
+              background: 'linear-gradient(135deg, rgba(var(--color-card-muted), 1) 0%, rgba(var(--color-primary), 0.08) 100%)',
               borderRadius: '10.77px',
             }}
             variants={itemVariants}
@@ -282,7 +282,7 @@ export default function ChoosePlanStep() {
 
           {/* Before/After Images */}
           <motion.div 
-            className="rounded-xl p-4 -mt-8" style={{ backgroundColor: '#F7F6FF' }}
+            className="rounded-xl p-4 -mt-8" style={{ backgroundColor: 'rgb(var(--color-card-muted))' }}
             variants={itemVariants}
           >
             <div className="flex items-center justify-center gap-0">
@@ -365,10 +365,10 @@ export default function ChoosePlanStep() {
               hidden: {}
             }}
           >
-            <h3 className="text-xl font-bold text-center text-[#5C4688]">Noticeable Improvements In One Month:</h3>
+            <h3 className="text-xl font-bold text-center text-text-primary">Noticeable Improvements In One Month:</h3>
             {benefits.map((benefit, index) => (
-              <motion.div key={index} className="flex items-center space-x-4 bg-white p-4 rounded-lg shadow-sm" variants={itemVariants}>
-                <div className="flex-shrink-0 w-10 h-10 bg-[#A385E9] rounded-full flex items-center justify-center text-white">
+              <motion.div key={index} className="flex items-center space-x-4 bg-surface p-4 rounded-lg shadow-sm" variants={itemVariants}>
+                <div className="flex-shrink-0 w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white">
                   {benefit.icon}
                 </div>
                 <div>
@@ -415,7 +415,7 @@ export default function ChoosePlanStep() {
                 <h4 className="font-bold text-center text-gray-800">Our Solutions</h4>
                 {solutions.map((solution, index) => (
                   <div key={index} className="flex items-center space-x-2 text-sm">
-                    <div className="w-5 h-5 bg-[#A385E9] rounded-full flex items-center justify-center text-white">
+                    <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center text-white">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                     </div>
                     <span className="text-gray-700">{solution}</span>
@@ -437,7 +437,7 @@ export default function ChoosePlanStep() {
               {testimonials.map((review, index) => (
                  <div 
                   key={index}
-                  className="flex flex-col items-start p-2 gap-2 bg-white flex-none"
+                  className="flex flex-col items-start p-2 gap-2 bg-surface flex-none"
                   style={{
                     width: '141px',
                     height: '298px',
@@ -484,7 +484,7 @@ export default function ChoosePlanStep() {
               {testimonials.map((review, index) => (
                  <div 
                   key={`duplicate-${index}`}
-                  className="flex flex-col items-start p-2 gap-2 bg-white flex-none"
+                  className="flex flex-col items-start p-2 gap-2 bg-surface flex-none"
                   style={{
                     width: '141px',
                     height: '298px',
@@ -535,15 +535,15 @@ export default function ChoosePlanStep() {
 
       {/* Fixed Bottom Button */}
       <motion.div 
-        className="bg-white p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]"
+        className="bg-surface p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]"
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 100, delay: 0.5 }}
       >
         <motion.button 
           onClick={handlePricePlans}
-          className="w-full max-w-md mx-auto bg-[#A385E9] text-white py-3.5 rounded-xl text-lg font-semibold"
-          whileHover={{ scale: 1.05, backgroundColor: '#906fe2' }}
+          className="w-full max-w-md mx-auto bg-primary text-white py-3.5 rounded-xl text-lg font-semibold"
+          whileHover={{ scale: 1.05, backgroundColor: 'rgb(var(--color-primary))' }}
           whileTap={{ scale: 0.95 }}
           animate={{
             scale: [1, 1.02, 1],

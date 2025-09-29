@@ -10,7 +10,7 @@ export default function PrivacyStep() {
       buttonText="I Understand"
     >
       <div className="text-center">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-text-secondary">
           By continuing, you agree to our privacy policy and terms of service.
         </p>
       </div>

@@ -134,7 +134,7 @@ export default function EndDayStep() {
       subtitle="This helps us plan your evening wind-down routines."
       condition={answers.endDayTime !== ''}
     >
-      <div className="space-y-6">
+      <div className="space-y-4 py-1">
         <div className="flex justify-center">
           <div className="flex items-center space-x-8">
           {}
@@ -154,7 +154,7 @@ export default function EndDayStep() {
                   className={`relative z-10 w-full h-1/2 rounded-full py-2 text-center text-sm font-semibold transition-colors duration-300 ${
                     answers.timeFormat === option.value
                       ? 'text-white' 
-                      : 'text-gray-500'
+                      : 'text-text-secondary'
                   }`}
                 >
                   {option.label}
@@ -236,7 +236,7 @@ export default function EndDayStep() {
                     className={`relative z-10 w-full h-1/2 rounded-full py-2 text-center text-sm font-semibold transition-colors duration-300 ${
                       (period === 'AM' && isAM) || (period === 'PM' && !isAM)
                         ? 'text-white' 
-                        : 'text-gray-500'
+                        : 'text-text-secondary'
                     }`}
                   >
                     {period}

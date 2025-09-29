@@ -76,7 +76,7 @@ export default function CongratulationsFinalStep() {
         </div>
 
         {/* Congratulations Text */}
-        <h1 className="text-3xl font-bold text-[#5C4688] mb-4">
+        <h1 className="text-3xl font-bold text-text-primary mb-4">
           Congratulations! 🎉
         </h1>
         
@@ -85,8 +85,8 @@ export default function CongratulationsFinalStep() {
         </p>
 
         {/* Unlocked Benefits */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
-          <h2 className="text-xl font-bold text-[#5C4688] mb-4">
+        <div className="bg-surface rounded-2xl p-6 shadow-lg mb-6">
+          <h2 className="text-xl font-bold text-text-primary mb-4">
             🎁 You've Unlocked:
           </h2>
           
@@ -117,7 +117,7 @@ export default function CongratulationsFinalStep() {
           <p className="text-purple-100 mb-4">
             Your personalized beauty routine is waiting for you!
           </p>
-          <button className="bg-white text-purple-600 font-bold py-3 px-8 rounded-xl hover:bg-purple-50 transition-colors">
+          <button className="bg-surface text-purple-600 font-bold py-3 px-8 rounded-xl hover:bg-purple-50 transition-colors">
             Access Your Routine
           </button>
         </div>

@@ -2,23 +2,23 @@ import ProceduresFlow from '@/components/procedures/ProceduresFlow'
 import AnimatedBackground from '@/components/AnimatedBackground'
 import { Suspense } from 'react'
 
+const SUPPORTED_STEPS = ['0', '1', '2', '3', '4', '5']
+
+export const dynamicParams = false
+
+export function generateStaticParams() {
+  return SUPPORTED_STEPS.map((step) => ({ step }))
+}
+
 interface ProceduresPageProps {
-  params: Promise<{
+  params: {
     step: string
-  }>
+  }
 }
 
-export async function generateStaticParams() {
-  // Generate static params for all possible procedure steps
-  return Array.from({ length: 10 }, (_, i) => ({
-    step: (i + 1).toString(),
-  }))
-}
+export default function ProceduresPage({ params }: ProceduresPageProps) {
+  const step = Number(params.step)
 
-export default async function ProceduresPage({ params }: ProceduresPageProps) {
-  const { step: stepParam } = await params
-  const step = parseInt(stepParam, 10)
-  
   return (
     <div className="relative min-h-screen overflow-hidden">
       <AnimatedBackground />

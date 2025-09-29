@@ -71,8 +71,8 @@ export default function OnboardingStep({
 
   return (
     <div className={`h-full flex flex-col p-6 ${centerContent ? 'justify-center' : ''}`}>
-      <div className="overflow-y-auto pb-4 scrollbar-hide">
-        <div className="space-y-2 mb-6">
+      <div className="flex-1 overflow-y-auto scrollbar-hide">
+        <div className="space-y-1 mb-4">
           <h1 className="text-2xl font-bold text-text-primary leading-tight">
             {title}
           </h1>
@@ -86,14 +86,14 @@ export default function OnboardingStep({
       </div>
 
       {!hideButton && (
-        <div className={`${centerContent ? 'pt-6' : 'mt-auto pt-4'}`}>
+        <div className="pt-4 flex-shrink-0">
           <button
             onClick={handleNext}
             disabled={!condition}
             className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-200 ${
               condition
                 ? 'bg-primary text-white shadow-lg hover:shadow-xl'
-                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                : 'bg-gray-200 text-text-secondary cursor-not-allowed'
             }`}
           >
             {buttonText}
@@ -102,7 +102,7 @@ export default function OnboardingStep({
           {skip && (
             <button
               onClick={handleSkip}
-              className="w-full mt-3 py-3 px-6 text-gray-500 font-medium hover:text-gray-700 transition-colors duration-200"
+              className="w-full mt-3 py-3 px-6 text-text-secondary font-medium hover:text-text-primary transition-colors duration-200"
             >
               {skipText}
             </button>
@@ -114,7 +114,7 @@ export default function OnboardingStep({
         <div className={`${centerContent ? 'pt-6' : 'mt-auto pt-4'}`}>
           <button
             onClick={handleSkip}
-            className="w-full py-3 px-6 text-gray-500 font-medium hover:text-gray-700 transition-colors duration-200"
+            className="w-full py-3 px-6 text-text-secondary font-medium hover:text-text-primary transition-colors duration-200"
           >
             {skipText}
           </button>

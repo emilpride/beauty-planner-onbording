@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { LayoutGroup, motion } from 'framer-motion'
@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useQuizStore } from '@/store/quizStore'
 import { getActivityMeta } from './activityMeta'
-import { getIconById } from './iconCatalog'
+import { getProceduresIconById } from './proceduresIconCatalog'
 
 interface ActivitySetting {
   id: string
@@ -138,7 +138,7 @@ const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: (valu
       }`}
     >
       <span
-        className={`inline-block h-6 w-6 rounded-full bg-white shadow transition-transform ${
+        className={`inline-block h-6 w-6 rounded-full bg-surface shadow transition-transform ${
           checked ? 'translate-x-5' : 'translate-x-1'
         }`}
       />
@@ -175,7 +175,7 @@ const OptionPill = ({
       } ${
         active
           ? 'border-transparent text-white shadow-[0_12px_24px_rgba(92,70,136,0.15)]'
-          : 'border-[#D8DAEE] text-[#5C4688] hover:border-[#9E90D9]'
+          : 'border-border-subtle/60 text-text-primary hover:border-[#9E90D9]'
       }`}
     >
       <span className="relative z-10 px-5 py-2">{label}</span>
@@ -200,7 +200,7 @@ const Modal = ({ children, onClose }: { children: ReactNode; onClose: () => void
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="relative w-full max-w-lg overflow-hidden rounded-[32px] bg-white p-6 shadow-[0_32px_64px_rgba(36,23,78,0.25)]"
+        className="relative w-full max-w-lg overflow-hidden rounded-[32px] bg-surface p-6 shadow-[0_32px_64px_rgba(36,23,78,0.25)]"
       >
         {children}
       </motion.div>
@@ -260,7 +260,7 @@ const MonthlyDaysModal = ({ open, initialSelection, onCancel, onSave }: MonthlyD
                 className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition ${
                   isSelected
                     ? 'bg-[#5C4688] text-white shadow-[0_10px_20px_rgba(92,70,136,0.18)]'
-                    : 'text-[#5C4688] hover:bg-[#ECE9FF]'
+                    : 'text-text-primary hover:bg-[#ECE9FF]'
                 }`}
               >
                 {day}
@@ -272,7 +272,7 @@ const MonthlyDaysModal = ({ open, initialSelection, onCancel, onSave }: MonthlyD
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-full border border-[#D8DAEE] px-5 py-2 text-sm font-medium text-[#5C4688] transition hover:border-[#8F74E5] hover:text-[#8F74E5]"
+            className="rounded-full border border-border-subtle/60 px-5 py-2 text-sm font-medium text-text-primary transition hover:border-[#8F74E5] hover:text-[#8F74E5]"
           >
             Cancel
           </button>
@@ -302,7 +302,7 @@ const QuickStat = ({ label, value, detail, delay }: QuickStatProps) => {
       initial={{ opacity: 0, translateY: 12 }}
       animate={{ opacity: 1, translateY: 0 }}
       transition={{ duration: 0.4, delay }}
-      className="rounded-2xl border border-white/60 bg-white/70 px-4 py-3 text-left shadow-[0_12px_24px_rgba(92,70,136,0.12)] backdrop-blur"
+      className="rounded-2xl border border-white/60 bg-surface/70 px-4 py-3 text-left shadow-[0_12px_24px_rgba(92,70,136,0.12)] backdrop-blur"
     >
       <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8C8FA9]">{label}</p>
       <p className="text-xl font-semibold text-[#4B3A78]">{value}</p>
@@ -459,13 +459,13 @@ export default function ProcedureSetupStep() {
     ]
   }, [activitySettings, remindCount])
   return (
-    <div className="min-h-screen bg-[#F5F5F5] text-[#5C4688]">
+    <div className="min-h-screen bg-background text-text-primary">
       <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-8 sm:px-6 lg:px-12">
         <motion.header
           initial={{ opacity: 0, translateY: 24 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="relative mb-10 overflow-hidden rounded-[36px] bg-white px-6 py-8 shadow-[0_24px_48px_rgba(92,70,136,0.12)] sm:px-8"
+          className="relative mb-10 overflow-hidden rounded-[36px] bg-surface px-6 py-8 shadow-[0_24px_48px_rgba(92,70,136,0.12)] sm:px-8"
         >
           <motion.div
             className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full blur-3xl"
@@ -478,7 +478,7 @@ export default function ProcedureSetupStep() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-[#E0E2F4] bg-white text-[#5C4688] transition hover:border-[#C0C4ED] hover:bg-[#F5F3FF]"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-border-subtle/60 bg-surface text-text-primary transition hover:border-[#C0C4ED] hover:bg-[#F5F3FF]"
                 aria-label="Go back"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -492,11 +492,11 @@ export default function ProcedureSetupStep() {
                 </svg>
               </button>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#A385E9]">Procedure Setup</p>
-                <h1 className="mt-2 text-3xl font-semibold text-[#4B3A78] sm:text-4xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Procedure Setup</p>
+                <h1 className="mt-2 text-3xl font-semibold text-text-primary sm:text-4xl">
                   Design your beauty routines
                 </h1>
-                <p className="mt-3 text-sm text-[#8C8FA9] sm:max-w-xl">
+                <p className="mt-3 text-sm text-text-secondary sm:max-w-xl">
                   Craft a schedule that feels effortless. Tune cadence, reminders, and notes for each procedure so your
                   self-care flows naturally.
                 </p>
@@ -515,7 +515,7 @@ export default function ProcedureSetupStep() {
             {activitySettings.map((activity, index) => {
               const override = activityMetaOverrides[activity.id]
               const meta = getActivityMeta(activity.id, override?.name ?? activity.name)
-              const iconEntry = override?.iconId ? getIconById(override.iconId) : null
+              const iconEntry = override?.iconId ? getProceduresIconById(override.iconId) : null
               const iconPath = iconEntry?.path ?? meta.iconPath
               const primaryColor = override?.primary ?? meta.primary
               const surfaceColor = override?.surface ?? meta.surface
@@ -541,7 +541,7 @@ export default function ProcedureSetupStep() {
                   animate={{ opacity: 1, translateY: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                   whileHover={{ translateY: -4 }}
-                  className="relative overflow-hidden rounded-[32px] border border-[#E4E6F5] bg-white shadow-[0_24px_48px_rgba(92,70,136,0.1)]"
+                  className="relative overflow-hidden rounded-[32px] border border-border-subtle/60 bg-surface shadow-[0_24px_48px_rgba(92,70,136,0.1)]"
                 >
                   <motion.div
                     className="pointer-events-none absolute -right-32 -top-32 h-72 w-72 rounded-full"
@@ -582,7 +582,7 @@ export default function ProcedureSetupStep() {
                           </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-wide text-[#8C8FA9]">
-                          <span className="inline-flex items-center gap-2 rounded-full border border-[#ECEBFB] bg-white/80 px-4 py-2">
+                          <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle/50 bg-surface/80 px-4 py-2">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                               <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.5" />
                               <path
@@ -595,13 +595,13 @@ export default function ProcedureSetupStep() {
                             </svg>
                             {displayTime}
                           </span>
-                          <span className="inline-flex items-center gap-2 rounded-full border border-[#ECEBFB] bg-white/80 px-4 py-2">
+                          <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle/50 bg-surface/80 px-4 py-2">
                             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: primaryColor }} />
                             {activity.timePeriod}
                           </span>
                         </div>
                       </div>
-                      <div className="rounded-3xl border border-[#ECEBFB] bg-white/60 px-5 py-4 text-sm text-[#5C4688] shadow-[0_16px_32px_rgba(92,70,136,0.08)] backdrop-blur">
+                      <div className="rounded-3xl border border-border-subtle/50 bg-surface/60 px-5 py-4 text-sm text-text-primary shadow-[0_16px_32px_rgba(92,70,136,0.08)] backdrop-blur">
                         <p className="font-semibold">At a glance</p>
                         <p className="mt-1 text-xs text-[#8C8FA9]">{reminderSummary}</p>
                       </div>
@@ -615,7 +615,7 @@ export default function ProcedureSetupStep() {
                             value={activity.note}
                             onChange={(event) => updateActivity(index, { note: event.target.value })}
                             placeholder="Add a note about this activity"
-                            className="min-h-[120px] rounded-2xl border border-[#D9DCEF] bg-[#FBFBFE] px-4 py-3 text-sm text-[#5C4688] placeholder:text-[#B4B7D4] focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
+                            className="min-h-[120px] rounded-2xl border border-border-subtle/60 bg-[#FBFBFE] px-4 py-3 text-sm text-text-primary placeholder:text-[#B4B7D4] focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
                           />
                         </div>
 
@@ -651,7 +651,7 @@ export default function ProcedureSetupStep() {
                                     className={`h-10 w-10 rounded-full text-sm font-medium transition ${
                                       isActive
                                         ? 'bg-[#5C4688] text-white shadow-[0_10px_20px_rgba(92,70,136,0.18)]'
-                                        : 'border border-[#D8DAEE] bg-white text-[#5C4688] hover:border-[#8F74E5]'
+                                        : 'border border-border-subtle/60 bg-surface text-text-primary hover:border-[#8F74E5]'
                                     }`}
                                   >
                                     {label}
@@ -666,7 +666,7 @@ export default function ProcedureSetupStep() {
                               {weeklyNumberLabels.map((label) => (
                                 <span
                                   key={label}
-                                  className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-[#E0E2F4] text-xs font-semibold text-[#8C8FA9]"
+                                  className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-border-subtle/60 text-xs font-semibold text-[#8C8FA9]"
                                 >
                                   #{label}
                                 </span>
@@ -678,7 +678,7 @@ export default function ProcedureSetupStep() {
                             <button
                               type="button"
                               onClick={() => setOpenMonthlyModal({ index, days: activity.monthlyDays })}
-                              className="flex items-center justify-between rounded-2xl border border-[#D9DCEF] bg-[#FBFBFE] px-4 py-3 text-left text-sm font-medium text-[#4B3A78] transition hover:border-[#8F74E5]"
+                              className="flex items-center justify-between rounded-2xl border border-border-subtle/60 bg-[#FBFBFE] px-4 py-3 text-left text-sm font-medium text-[#4B3A78] transition hover:border-[#8F74E5]"
                             >
                               <span className="flex flex-col">
                                 <span>{formatMonthlySummary(activity.monthlyDays)}</span>
@@ -699,7 +699,7 @@ export default function ProcedureSetupStep() {
                       </div>
 
                       <div className="space-y-6">
-                        <div className="flex flex-col gap-3 rounded-2xl border border-[#E4E6F5] bg-[#FCFBFF] p-4 shadow-[0_16px_32px_rgba(92,70,136,0.08)]">
+                        <div className="flex flex-col gap-3 rounded-2xl border border-border-subtle/60 bg-[#FCFBFF] p-4 shadow-[0_16px_32px_rgba(92,70,136,0.08)]">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-semibold text-[#4B3A78]">All day activity</span>
                             <ToggleSwitch
@@ -722,7 +722,7 @@ export default function ProcedureSetupStep() {
                                   type="time"
                                   value={activity.time}
                                   onChange={(event) => updateActivity(index, { time: event.target.value })}
-                                  className="w-full rounded-2xl border border-[#D9DCEF] bg-white px-4 py-3 pr-12 text-sm text-[#5C4688] focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
+                                  className="w-full rounded-2xl border border-border-subtle/60 bg-surface px-4 py-3 pr-12 text-sm text-text-primary focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
                                 />
                                 <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#8C8FA9]">
                                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -755,7 +755,7 @@ export default function ProcedureSetupStep() {
                           )}
                         </div>
 
-                        <div className="flex flex-col gap-3 rounded-2xl border border-[#E4E6F5] bg-white p-4 shadow-[0_16px_32px_rgba(92,70,136,0.08)]">
+                        <div className="flex flex-col gap-3 rounded-2xl border border-border-subtle/60 bg-surface p-4 shadow-[0_16px_32px_rgba(92,70,136,0.08)]">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-semibold text-[#4B3A78]">End activity</span>
                             <ToggleSwitch
@@ -785,7 +785,7 @@ export default function ProcedureSetupStep() {
                                   type="date"
                                   value={activity.endDateValue}
                                   onChange={(event) => updateActivity(index, { endDateValue: event.target.value })}
-                                  className="w-full rounded-2xl border border-[#D9DCEF] bg-white px-4 py-3 text-sm text-[#5C4688] focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
+                                  className="w-full rounded-2xl border border-border-subtle/60 bg-surface px-4 py-3 text-sm text-text-primary focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
                                 />
                               ) : (
                                 <div className="flex items-center gap-3">
@@ -798,16 +798,16 @@ export default function ProcedureSetupStep() {
                                         endDaysValue: Number(event.target.value) || activity.endDaysValue,
                                       })
                                     }
-                                    className="w-24 rounded-2xl border border-[#D9DCEF] bg-white px-4 py-3 text-sm text-[#5C4688] focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
+                                    className="w-24 rounded-2xl border border-border-subtle/60 bg-surface px-4 py-3 text-sm text-text-primary focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
                                   />
-                                  <span className="text-sm text-[#5C4688]">days</span>
+                                  <span className="text-sm text-text-primary">days</span>
                                 </div>
                               )}
                             </div>
                           )}
                         </div>
 
-                        <div className="flex flex-col gap-3 rounded-2xl border border-[#E4E6F5] bg-white p-4 shadow-[0_16px_32px_rgba(92,70,136,0.08)]">
+                        <div className="flex flex-col gap-3 rounded-2xl border border-border-subtle/60 bg-surface p-4 shadow-[0_16px_32px_rgba(92,70,136,0.08)]">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-semibold text-[#4B3A78]">Smart reminders</span>
                             <ToggleSwitch
@@ -825,7 +825,7 @@ export default function ProcedureSetupStep() {
                                 <select
                                   value={activity.remindBefore}
                                   onChange={(event) => updateActivity(index, { remindBefore: Number(event.target.value) })}
-                                  className="w-full rounded-2xl border border-[#D9DCEF] bg-white px-4 py-3 text-sm text-[#5C4688] focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
+                                  className="w-full rounded-2xl border border-border-subtle/60 bg-surface px-4 py-3 text-sm text-text-primary focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
                                 >
                                   {remindPrimaryOptions.map((option) => (
                                     <option key={option} value={option}>
@@ -841,7 +841,7 @@ export default function ProcedureSetupStep() {
                                 <select
                                   value={activity.remindBefore2}
                                   onChange={(event) => updateActivity(index, { remindBefore2: Number(event.target.value) })}
-                                  className="w-full rounded-2xl border border-[#D9DCEF] bg-white px-4 py-3 text-sm text-[#5C4688] focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
+                                  className="w-full rounded-2xl border border-border-subtle/60 bg-surface px-4 py-3 text-sm text-text-primary focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
                                 >
                                   {remindSecondaryOptions.map((option) => (
                                     <option key={option} value={option}>
@@ -860,7 +860,7 @@ export default function ProcedureSetupStep() {
                       initial={{ opacity: 0, translateY: 8 }}
                       animate={{ opacity: 1, translateY: 0 }}
                       transition={{ duration: 0.3, delay: 0.1 }}
-                      className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-white/85 via-[#F7F3FF] to-white px-5 py-4 text-sm text-[#5C4688] shadow-[0_16px_32px_rgba(92,70,136,0.08)]"
+                      className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-white/85 via-[#F7F3FF] to-white px-5 py-4 text-sm text-text-primary shadow-[0_16px_32px_rgba(92,70,136,0.08)]"
                     >
                       <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#A385E9]/15 text-[#A385E9]">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -896,7 +896,7 @@ export default function ProcedureSetupStep() {
               initial={{ opacity: 0, translateY: 16 }}
               animate={{ opacity: 1, translateY: 0 }}
               transition={{ duration: 0.4, delay: 0.15 }}
-              className="sticky bottom-8 rounded-[32px] border border-[#E4E6F5] bg-white/80 px-6 py-6 shadow-[0_-12px_32px_rgba(92,70,136,0.08)] backdrop-blur"
+              className="sticky bottom-8 rounded-[32px] border border-border-subtle/60 bg-surface/80 px-6 py-6 shadow-[0_-12px_32px_rgba(92,70,136,0.08)] backdrop-blur"
             >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>

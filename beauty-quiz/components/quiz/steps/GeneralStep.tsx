@@ -54,7 +54,7 @@ export default function GeneralStep() {
       subtitle="This helps us create a personalized plan just for you"
       condition={isFormValid()}
     >
-      <div className="space-y-4">
+      <div className="space-y-3 py-1">
         <div>
           <label className="block text-sm font-medium text-text-secondary mb-1">
             Name

@@ -106,7 +106,7 @@ export default function PhysicalActivitiesStep() {
         subtitle="Select activities and set their frequency."
         condition={answers.activityFrequency.length > 0}
       >
-        <div className="space-y-3">
+        <div className="space-y-2 py-1">
           {activities.map((activity) => (
             <div
               key={activity}
@@ -114,13 +114,13 @@ export default function PhysicalActivitiesStep() {
               className={`p-4 border-2 rounded-xl flex items-center justify-between cursor-pointer transition-all duration-200 ${
                 isActivitySelected(activity)
                   ? 'border-primary bg-primary bg-opacity-10'
-                  : 'border-gray-300 hover:border-primary'
+                  : 'border-border-subtle/60 hover:border-primary/40'
               }`}
             >
               <div className="flex flex-col">
                 <span className="text-lg font-semibold text-text-primary">{activity}</span>
                 <span className={`text-sm ${
-                  isActivitySelected(activity) ? 'text-primary' : 'text-gray-500'
+                  isActivitySelected(activity) ? 'text-primary' : 'text-text-secondary'
                 }`}>
                   {activity === 'Other' ? getCustomActivitiesText() : getFrequencyText(activity)}
                 </span>
