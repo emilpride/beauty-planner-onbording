@@ -334,7 +334,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
                        : '58vh' 
             }}
           >
-             <StepComponent onExitAnimation={startExitAnimation} onBackAnimation={startBackAnimation} />
+              <StepComponent />
           </div>
         </div>
       </main>

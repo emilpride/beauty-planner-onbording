@@ -1,16 +1,15 @@
 {
   "projects": {
-    "default": "your-firebase-project-id"
+    "default": "beauty-planner-26cc0"
   },
   "targets": {
-    "your-firebase-project-id": {
+    "beauty-planner-26cc0": {
       "hosting": {
         "quiz": [
           "quiz-beautymirror-app"
         ]
       }
     }
-  }
+  },
+  "etags": {}
 }
-
-
