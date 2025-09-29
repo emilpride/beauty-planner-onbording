@@ -7,7 +7,7 @@ import { useEffect } from 'react'
 export default function EnergyLevelStep() {
   const { answers, setAnswer } = useQuizStore()
 
-  // Устанавливаем дефолтное значение 1 при загрузке компонента
+
   useEffect(() => {
     if (!answers.energyLevel) {
       setAnswer('energyLevel', 1)
@@ -15,7 +15,7 @@ export default function EnergyLevelStep() {
   }, [answers.energyLevel, setAnswer])
 
   const getBatteryLevel = (level: number) => {
-    // Возвращаем количество полосок для батарейки (1-5)
+
     return level
   }
 
@@ -68,4 +68,3 @@ export default function EnergyLevelStep() {
     </OnboardingStep>
   )
 }
-

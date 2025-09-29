@@ -44,11 +44,11 @@ export default function OnboardingStep({
       if (onNext) {
         onNext()
       }
-      // Запускаем анимацию исчезновения
+
       if (onExitAnimation) {
         onExitAnimation()
       }
-      // Добавляем задержку для анимации исчезновения
+
       setTimeout(() => {
         const nextStepIndex = currentStep + 1
         router.push(`/quiz/${nextStepIndex}`)

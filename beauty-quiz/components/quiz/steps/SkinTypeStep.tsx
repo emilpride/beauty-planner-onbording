@@ -18,12 +18,12 @@ export default function SkinTypeStep() {
   const hasTransitioned = useRef(false)
 
   const handleOptionSelect = (optionId: string) => {
-    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    if (hasTransitioned.current) return
     
     setAnswer('skinType', optionId as any)
     hasTransitioned.current = true
     
-    // Автоматический переход через небольшую задержку
+
     setTimeout(() => {
       nextStep()
       router.push(`/quiz/${currentStep + 1}`)
@@ -31,21 +31,21 @@ export default function SkinTypeStep() {
   }
 
   const handleSkip = () => {
-    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    if (hasTransitioned.current) return
     
     setAnswer('skinType', '')
     hasTransitioned.current = true
     
-    // Автоматический переход через небольшую задержку
+
     setTimeout(() => {
       nextStep()
       router.push(`/quiz/${currentStep + 1}`)
     }, 800)
   }
 
-  // Сброс значения skinType и флага при монтировании компонента
+
   useEffect(() => {
-    // Сбрасываем значение skinType при заходе на экран
+
     setAnswer('skinType', '')
     hasTransitioned.current = false
     
@@ -58,8 +58,8 @@ export default function SkinTypeStep() {
     <OnboardingStep
       title="What is your skin type?"
       subtitle="Don't know? Let our AI analyze it for you in a later step."
-      hideButton={true} // Убираем кнопку Next
-      skip={true} // Добавляем кнопку Skip
+      hideButton={true}
+      skip={true}
       skipText="Skip"
       onSkip={handleSkip}
     >
@@ -104,5 +104,4 @@ export default function SkinTypeStep() {
     </OnboardingStep>
   )
 }
-
 

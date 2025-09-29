@@ -14,11 +14,11 @@ export default function AIResultsStep() {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(timer)
-          // Автоматическое перенаправление после завершения загрузки
+
           setTimeout(() => {
             nextStep()
-            router.push('/quiz/27') // Переходим к CurrentConditionAnalysisStep в квизе
-          }, 1000) // Небольшая задержка для показа 100%
+            router.push('/quiz/27')
+          }, 1000)
           return 100
         }
         return prev + 1
@@ -64,5 +64,4 @@ export default function AIResultsStep() {
     </div>
   )
 }
-
 

@@ -16,7 +16,7 @@ export default function NotificationsConsentStep() {
     setAnswer('dailyReminders', dailyReminders)
     setAnswer('activityReminders', activityReminders)
     
-    router.push('/procedures/4') // Переходим к ContractAgreementStep
+    router.push('/procedures/4')
   }
 
   const getAssistantImage = () => {

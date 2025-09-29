@@ -69,7 +69,7 @@ export default function PhysicalActivitiesStep() {
   const handleCustomActivitiesConfirm = (activities: CustomActivity[]) => {
     setCustomActivities(activities)
     
-    // Добавляем пользовательские активности к существующим
+
     const existingFrequencies = answers.activityFrequency.filter(a => !a.id.startsWith('custom_'))
     const customFrequencies = activities.map(activity => ({
       id: activity.id,
@@ -156,4 +156,3 @@ export default function PhysicalActivitiesStep() {
     </>
   )
 }
-

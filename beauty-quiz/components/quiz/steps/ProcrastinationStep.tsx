@@ -18,21 +18,21 @@ export default function ProcrastinationStep() {
   const hasTransitioned = useRef(false)
 
   const handleOptionSelect = (optionId: string) => {
-    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    if (hasTransitioned.current) return
     
     setAnswer('procrastination', optionId as any)
     hasTransitioned.current = true
     
-    // Автоматический переход через небольшую задержку
+
     setTimeout(() => {
       nextStep()
       router.push(`/quiz/${currentStep + 1}`)
     }, 800)
   }
 
-  // Сброс значения procrastination и флага при монтировании компонента
+
   useEffect(() => {
-    // Сбрасываем значение procrastination при заходе на экран
+
     setAnswer('procrastination', '')
     hasTransitioned.current = false
     
@@ -46,7 +46,7 @@ export default function ProcrastinationStep() {
       title="How often do you find yourself procrastinating?"
       subtitle="Understanding your productivity patterns is key."
       condition={answers.procrastination !== ''}
-      hideButton={true} // Убираем кнопку Next
+      hideButton={true}
     >
       <div className="space-y-3">
         {options.map((option) => (
@@ -77,5 +77,4 @@ export default function ProcrastinationStep() {
     </OnboardingStep>
   )
 }
-
 

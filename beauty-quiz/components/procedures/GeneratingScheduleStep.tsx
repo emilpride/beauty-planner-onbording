@@ -26,7 +26,7 @@ export default function GeneratingScheduleStep() {
           clearInterval(interval)
           // Navigate to next step after all steps are complete
           setTimeout(() => {
-            router.push('/procedures/3') // Переходим к NotificationsConsentStep
+            router.push('/procedures/3')
           }, 3000)
           return prev
         }

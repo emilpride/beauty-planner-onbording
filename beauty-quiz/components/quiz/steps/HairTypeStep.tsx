@@ -15,12 +15,12 @@ export default function HairTypeStep() {
   const hasTransitioned = useRef(false)
 
   const handleOptionSelect = (type: string) => {
-    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    if (hasTransitioned.current) return
     
     setAnswer('hairType', type)
     hasTransitioned.current = true
     
-    // Автоматический переход через небольшую задержку
+
     setTimeout(() => {
       nextStep()
       router.push(`/quiz/${currentStep + 1}`)
@@ -28,21 +28,21 @@ export default function HairTypeStep() {
   }
 
   const handleSkip = () => {
-    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    if (hasTransitioned.current) return
     
-    setAnswer('hairType', '') // Очищаем hairType при Skip
+    setAnswer('hairType', '')
     hasTransitioned.current = true
     
-    // Автоматический переход через небольшую задержку
+
     setTimeout(() => {
       nextStep()
       router.push(`/quiz/${currentStep + 1}`)
     }, 800)
   }
 
-  // Сброс значения hairType и флага при монтировании компонента
+
   useEffect(() => {
-    // Сбрасываем значение hairType при заходе на экран
+
     setAnswer('hairType', '')
     hasTransitioned.current = false
     
@@ -56,8 +56,8 @@ export default function HairTypeStep() {
       title="What is your hair type?"
       subtitle="Select the type that best describes your hair."
       condition={answers.hairType !== ''}
-      hideButton={true} // Убираем кнопку Next
-      skip={true} // Добавляем кнопку Skip
+      hideButton={true}
+      skip={true}
       skipText="Skip"
       onSkip={handleSkip}
     >
@@ -102,5 +102,4 @@ export default function HairTypeStep() {
     </OnboardingStep>
   )
 }
-
 

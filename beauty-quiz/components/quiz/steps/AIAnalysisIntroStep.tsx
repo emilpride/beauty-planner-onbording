@@ -7,7 +7,7 @@ export default function AIAnalysisIntroStep() {
   const { nextStep } = useQuizStore()
 
   useEffect(() => {
-    // Автоматический переход на следующий экран через 3 секунды
+
     const timer = setTimeout(() => {
       nextStep()
     }, 3000)

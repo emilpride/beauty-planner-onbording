@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -8,7 +8,7 @@ const welcomeSlides = [
   {
     id: 1,
     image: '/images/on_boarding_images/welcome_img_1.png',
-    title: "Beauty is not just about your routine—it's also about mental and physical well-being",
+    title: "Beauty is not just about your routineвЂ”it's also about mental and physical well-being",
     showSignIn: true
   },
   {
@@ -24,7 +24,7 @@ const welcomeSlides = [
   {
     id: 4,
     image: '/images/on_boarding_images/welcome_img_4.png',
-    title: "Unlock Your Best Self with Beauty Mirror! Stay consistent, cultivate healthy beauty & wellness Activities, and unlock your natural glow—inside and out!"
+    title: "Unlock Your Best Self with Beauty Mirror! Stay consistent, cultivate healthy beauty & wellness Activities, and unlock your natural glowвЂ”inside and out!"
   }
 ]
 
@@ -89,7 +89,7 @@ export default function WelcomeCarousel() {
   const currentSlideData = welcomeSlides[currentSlide]
 
   return (
-    <div className="h-[100dvh] bg-white flex flex-col overflow-hidden">
+    <div className="h-[100dvh] bg-surface flex flex-col overflow-hidden">
       {/* Slider Container */}
       <div 
         className="flex-1 relative"

@@ -18,21 +18,21 @@ export default function FocusStep() {
   const hasTransitioned = useRef(false)
 
   const handleOptionSelect = (optionId: string) => {
-    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    if (hasTransitioned.current) return
     
     setAnswer('focus', optionId as any)
     hasTransitioned.current = true
     
-    // Автоматический переход через небольшую задержку
+
     setTimeout(() => {
       nextStep()
       router.push(`/quiz/${currentStep + 1}`)
     }, 800)
   }
 
-  // Сброс значения focus и флага при монтировании компонента
+
   useEffect(() => {
-    // Сбрасываем значение focus при заходе на экран
+
     setAnswer('focus', '')
     hasTransitioned.current = false
     
@@ -46,7 +46,7 @@ export default function FocusStep() {
       title="How would you rate your ability to focus?"
       subtitle="This helps in tailoring mindfulness and productivity exercises."
       condition={answers.focus !== ''}
-      hideButton={true} // Убираем кнопку Next
+      hideButton={true}
     >
       <div className="space-y-3">
         {options.map((option) => (
@@ -77,5 +77,4 @@ export default function FocusStep() {
     </OnboardingStep>
   )
 }
-
 

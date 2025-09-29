@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useRouter } from 'next/navigation'
 import { useQuizStore } from '@/store/quizStore'
@@ -108,7 +108,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   useEffect(() => {
     if (!isHydrated) return
     
-    // Если пользователь еще не выбрал ассистента, перенаправляем на страницу выбора
+
     if (answers.assistant === 0) {
       router.push('/assistant-selection')
       return
@@ -122,24 +122,24 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   }, [stepNumber, goToStep, totalSteps, router, answers.assistant, isHydrated])
 
   useEffect(() => {
-    // Сброс состояний при смене шага
+
     setIsExiting(false)
     setIsGoingBack(false)
     setShowQuestion(false)
     setShowCharacter(false)
     setIsReady(false)
     
-    // Сначала показываем вопрос
+
     const questionTimer = setTimeout(() => {
       setShowQuestion(true)
     }, 100)
     
-    // Затем показываем персонажа с задержкой
+
     const characterTimer = setTimeout(() => {
       setShowCharacter(true)
     }, 600)
     
-    // Общее состояние готовности
+
     const readyTimer = setTimeout(() => {
       setIsReady(true)
     }, 800)
@@ -153,7 +153,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
 
   if (!isHydrated) {
     return (
-      <div className="min-h-screen bg-light-container flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     )
@@ -164,12 +164,12 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
 
   const assistantName = answers.assistant === 2 ? 'ellie' : 'max'
   
-  // Функция для запуска анимации исчезновения
+
   const startExitAnimation = () => {
     setIsExiting(true)
   }
   
-  // Функция для запуска анимации возврата назад
+
   const startBackAnimation = () => {
     setIsGoingBack(true)
   }
@@ -257,7 +257,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
              style={{ 
                height: '42vh', 
                pointerEvents: 'none',
-               // Специальное позиционирование для Max на проблемных экранах
+
                ...(assistantName === 'max' && [12, 13, 14, 15, 16, 17].includes(stepNumber) 
                  ? { 
                      alignItems: 'flex-end', 
@@ -275,7 +275,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
               }`}
               style={{ 
                 pointerEvents: 'auto',
-                // Дополнительное позиционирование для Max на проблемных экранах
+
                 ...(assistantName === 'max' && [12, 13, 14, 15, 16, 17].includes(stepNumber) 
                   ? { 
                       transform: 'translateY(30px)',
@@ -285,12 +285,12 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
               }}
             >
               {stepNumber === 4 ? (
-                // Если это 4-й шаг, показываем нашу новую анимацию
+
                 <div className="flex justify-center items-center h-full">
                   <CircularProgressAnimation percentage={87} />
                 </div>
               ) : (
-                // Для всех остальных шагов показываем картинку, как и раньше
+
                 <Image
                   src={imageUrl}
                   alt={`Assistant for step ${stepNumber}`}
@@ -316,9 +316,9 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
                  stepNumber === 20 ? '30vh' : 
                  stepNumber === 25 ? '15vh' : 
                  stepNumber === 26 ? '15vh' : 
-                 // Специальное позиционирование для Max на проблемных экранах
+
                  (assistantName === 'max' && [12, 13, 14, 15, 16, 17].includes(stepNumber)) 
-                   ? (stepNumber === 16 ? '35vh' : stepNumber === 17 ? '37vh' : '38vh') // Сильнее поднимаем область вопроса
+                   ? (stepNumber === 16 ? '35vh' : stepNumber === 17 ? '37vh' : '38vh')
                    : '42vh'
           } : { top: '0' }}
         >
@@ -328,9 +328,9 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
               height: stepNumber === 6 ? '85vh' : 
                      stepNumber === 25 || stepNumber === 26 ? '85vh' : 
                      stepNumber === 20 ? '70vh' : 
-                     // Увеличиваем высоту для Max на проблемных экранах
+
                      (assistantName === 'max' && [12, 13, 14, 15, 16, 17].includes(stepNumber)) 
-                       ? (stepNumber === 16 ? '65vh' : '62vh') // Увеличиваем высоту поля вопроса
+                       ? (stepNumber === 16 ? '65vh' : '62vh')
                        : '58vh' 
             }}
           >
@@ -341,3 +341,4 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
     </div>
   )
 }
+

@@ -17,21 +17,21 @@ export default function LifestyleStep() {
   const hasTransitioned = useRef(false)
 
   const handleOptionSelect = (optionId: string) => {
-    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    if (hasTransitioned.current) return
     
     setAnswer('lifestyle', optionId as 'sedentary' | 'active' | 'sports')
     hasTransitioned.current = true
     
-    // Автоматический переход через небольшую задержку
+
     setTimeout(() => {
       nextStep()
       router.push(`/quiz/${currentStep + 1}`)
     }, 800)
   }
 
-  // Сброс значения lifestyle и флага при монтировании компонента
+
   useEffect(() => {
-    // Сбрасываем значение lifestyle при заходе на экран
+
     setAnswer('lifestyle', '')
     hasTransitioned.current = false
     
@@ -44,7 +44,7 @@ export default function LifestyleStep() {
     <OnboardingStep
       title="How would you describe your lifestyle?"
       subtitle="This helps us understand your daily activity levels."
-      hideButton={true} // Убираем кнопку Next
+      hideButton={true}
     >
       <div className="space-y-3">
         {options.map((option) => (
@@ -76,5 +76,4 @@ export default function LifestyleStep() {
     </OnboardingStep>
   )
 }
-
 

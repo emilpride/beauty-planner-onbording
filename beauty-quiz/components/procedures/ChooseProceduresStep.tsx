@@ -164,7 +164,7 @@ export default function ChooseProceduresStep() {
   const [iconSearchQuery, setIconSearchQuery] = useState('')
   const [activities, setActivities] = useState(initialActivities)
   
-  // Состояние для создания новой категории
+
   const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] = useState(false)
   const [newCategory, setNewCategory] = useState({
     name: '',
@@ -187,7 +187,7 @@ export default function ChooseProceduresStep() {
     iconId: ''
   })
 
-  // Готовые шаблоны
+
   const templates = [
     { id: 'morning-routine', name: 'Morning Routine', description: 'Cleanse, moisturize, SPF protection' },
     { id: 'evening-routine', name: 'Evening Routine', description: 'Deep cleanse, exfoliate, night cream' },
@@ -207,7 +207,7 @@ export default function ChooseProceduresStep() {
     { id: 'stress-management', name: 'Stress Management', description: 'Breathing, meditation, relaxation' },
   ]
 
-  // Данные для создания новой активности
+
   const [categories, setCategories] = useState([
     'Skin', 'Hair', 'Physical health', 'Mental Wellness'
   ])
@@ -334,7 +334,7 @@ export default function ChooseProceduresStep() {
   }
 
   const handlePromptSubmit = () => {
-    // Здесь можно добавить логику обработки промпта
+
     console.log('Prompt text:', promptText)
     console.log('Selected templates:', selectedTemplates)
     setIsPromptModalOpen(false)
@@ -357,7 +357,7 @@ export default function ChooseProceduresStep() {
       [field]: value
     }))
     
-    // Очищаем ошибку для этого поля
+
     if (activityErrors[field as keyof typeof activityErrors]) {
       setActivityErrors(prev => ({
         ...prev,
@@ -366,7 +366,7 @@ export default function ChooseProceduresStep() {
     }
   }
 
-  // Функция для изменения полей новой категории
+
   const handleNewCategoryChange = (field: string, value: string) => {
     setNewCategory(prev => ({
       ...prev,
@@ -374,9 +374,9 @@ export default function ChooseProceduresStep() {
     }))
   }
 
-  // Функция для создания новой процедуры
+
   const handleCreateActivity = () => {
-    // Валидация полей
+
     const errors = {
       name: !newActivity.name ? 'Name is required' : '',
       category: !newActivity.category ? 'Category is required' : '',
@@ -391,20 +391,20 @@ export default function ChooseProceduresStep() {
       return
     }
 
-    // Создаем новую процедуру
+
     const newActivityData = {
       id: `custom-${Date.now()}`,
       name: newActivity.name,
       iconId: newActivity.iconId,
-      color: newActivity.color, // Сохраняем как есть, без bg-[]
-      bgColor: `rgba(${hexToRgb(newActivity.color).join(',')},0.2)`, // Сохраняем как RGBA строку
+      color: newActivity.color,
+      bgColor: `rgba(${hexToRgb(newActivity.color).join(',')},0.2)`,
       aiRecommended: false,
       note: newActivity.note
     }
     
     console.log('Creating activity with color:', newActivity.color, 'bgColor:', newActivityData.bgColor)
 
-    // Добавляем процедуру в соответствующую категорию
+
     const categoryMapping: { [key: string]: string } = {
       'Skin': 'skin',
       'Hair': 'hair', 
@@ -412,7 +412,7 @@ export default function ChooseProceduresStep() {
       'Mental Wellness': 'mental'
     }
     
-    // Для новых категорий создаем ключ из названия
+
     const categoryKey = categoryMapping[newActivity.category] || 
       newActivity.category.toLowerCase().replace(/\s+/g, '')
     
@@ -437,7 +437,7 @@ export default function ChooseProceduresStep() {
       },
     })
 
-    // Сбрасываем форму и ошибки
+
     setNewActivity({
       name: '',
       note: '',
@@ -453,20 +453,20 @@ export default function ChooseProceduresStep() {
       iconId: ''
     })
 
-    // Закрываем модальное окно
+
     setIsCreateActivityModalOpen(false)
   }
 
-  // Функция для создания новой категории
+
   const handleCreateCategory = () => {
     if (!newCategory.name || !newCategory.color || !newCategory.iconId) {
       return
     }
 
-    // Добавляем новую категорию в список
+
     setCategories(prev => [...prev, newCategory.name])
 
-    // Создаем новую категорию в activities
+
     const categoryKey = newCategory.name.toLowerCase().replace(/\s+/g, '')
     setActivities(prev => ({
       ...prev,
@@ -475,24 +475,24 @@ export default function ChooseProceduresStep() {
 
     console.log('Created new category:', newCategory.name, 'with key:', categoryKey)
 
-    // Автоматически выбираем новую категорию в форме создания процедуры
+
     setNewActivity(prev => ({
       ...prev,
       category: newCategory.name
     }))
 
-    // Сбрасываем форму категории
+
     setNewCategory({
       name: '',
       color: '',
       iconId: ''
     })
 
-    // Закрываем модальное окно создания категории
+
     setIsCreateCategoryModalOpen(false)
   }
 
-  // Функция для конвертации HEX в RGB
+
   const hexToRgb = (hex: string) => {
     console.log('Converting hex to RGB:', hex)
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
@@ -512,22 +512,22 @@ export default function ChooseProceduresStep() {
     const x = e.clientX - rect.left - centerX
     const y = e.clientY - rect.top - centerY
     
-    // Вычисляем расстояние от центра
+
     const distance = Math.sqrt(x * x + y * y)
-    const maxRadius = rect.width / 2 - 32 // Учитываем белый центр
+    const maxRadius = rect.width / 2 - 32
     
-    // Если клик внутри белого центра, не выбираем цвет
+
     if (distance < 32) return null
     
-    // Нормализуем расстояние для насыщенности (0-1)
+
     const saturation = Math.min(distance / maxRadius, 1)
     
-    // Вычисляем угол (начинаем с 0 градусов вверху)
+
     const angle = (Math.atan2(y, x) * (180 / Math.PI) + 90 + 360) % 360
     
-    // Конвертируем в HSL
+
     const hue = angle
-    const lightness = 0.5 // Фиксированная яркость для ярких цветов
+    const lightness = 0.5
     
     return `hsl(${hue}, ${Math.round(saturation * 100)}%, ${Math.round(lightness * 100)}%)`
   }
@@ -560,7 +560,7 @@ export default function ChooseProceduresStep() {
     setIsDragging(false)
   }
 
-  // Функция для конвертации HSL в HEX
+
   const hslToHex = (hsl: string) => {
     if (!hsl.startsWith('hsl')) return hsl
     
@@ -600,32 +600,32 @@ export default function ChooseProceduresStep() {
   }
 
   const handleColorSelect = (color: string) => {
-    // Конвертируем HSL в HEX для лучшего сравнения
+
     const hexColor = hslToHex(color)
     if (isCreateCategoryModalOpen) {
       handleNewCategoryChange('color', hexColor)
     } else {
       handleNewActivityChange('color', hexColor)
     }
-    // НЕ закрываем палитру автоматически - пользователь сам нажмет Done
+
   }
 
 
   const handleIconPickerOpen = () => {
     setIsIconPickerOpen(true)
-    setIconSearchQuery('') // Сбрасываем поиск при открытии
+    setIconSearchQuery('')
   }
 
-  // Маппинг ключей категорий на отображаемые названия
+
   const categoryDisplayNames: Record<string, string> = {
     'skin': 'Skin',
     'hair': 'Hair',
     'physical': 'Physical health',
     'mental': 'Mental Wellness',
-    // Для новых категорий используем название как есть
+
   }
 
-  // Создаем динамический filteredActivities на основе всех доступных категорий
+
   const filteredActivities = Object.keys(activities).reduce((acc, categoryKey) => {
     acc[categoryKey] = ((activities as any)[categoryKey] || []).filter((activity: any) => 
       activity.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -921,9 +921,9 @@ export default function ChooseProceduresStep() {
                 <div className={`flex gap-1 p-2 border rounded-lg ${
                   activityErrors.color ? 'border-red-500' : 'border-purple-200'
                 }`}>
-                  {/* Показываем все предустановленные цвета */}
+                  {}
                   {colors.map((color) => {
-                    // Простое сравнение цветов
+
                     const isSelected = newActivity.color === color.value
                     
                     return (
@@ -940,7 +940,7 @@ export default function ChooseProceduresStep() {
                     )
                   })}
                   
-                  {/* Показываем выбранный цвет, если он не в предустановленных */}
+                  {}
                   {newActivity.color && !colors.some(c => c.value === newActivity.color) && (
                     <button
                       onClick={() => handleNewActivityChange('color', newActivity.color)}
@@ -1070,10 +1070,10 @@ export default function ChooseProceduresStep() {
                   onMouseLeave={handleColorPickerMouseUp}
                   onClick={handleColorPickerClick}
                 >
-                  {/* Белый центр */}
+                  {}
                   <div className="absolute inset-8 bg-white rounded-full"></div>
                   
-                  {/* Превью выбранного цвета в центре */}
+                  {}
                   {newActivity.color && (
                     <div 
                       className="absolute w-16 h-16 rounded-full border-4 border-white shadow-lg pointer-events-none"
@@ -1244,7 +1244,7 @@ export default function ChooseProceduresStep() {
         </div>
       )}
 
-      {/* Модальное окно создания новой категории */}
+      {}
       {isCreateCategoryModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
@@ -1267,9 +1267,9 @@ export default function ChooseProceduresStep() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
                 <div className="flex gap-1 p-2 border border-purple-200 rounded-lg">
-                  {/* Показываем все предустановленные цвета */}
+                  {}
                   {colors.map((color) => {
-                    // Простое сравнение цветов
+
                     const isSelected = newCategory.color === color.value
                     
                     return (
@@ -1286,7 +1286,7 @@ export default function ChooseProceduresStep() {
                     )
                   })}
                   
-                  {/* Показываем выбранный цвет, если он не в предустановленных */}
+                  {}
                   {newCategory.color && !colors.some(c => c.value === newCategory.color) && (
                     <button
                       onClick={() => handleNewCategoryChange('color', newCategory.color)}

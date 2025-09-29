@@ -1,202 +1,44 @@
-# Beauty Mirror Quiz - Веб-онбординг
+﻿# Beauty Quiz Application
 
-Персонализированный веб-онбординг для приложения Beauty Mirror, созданный с использованием Next.js, Firebase и Stripe.
+Beauty Quiz is a Next.js (App Router) project that powers the Beauty Mirror onboarding journey. It values smooth animations, snackable copy, and quick progress through more than 30 curated steps.
 
-## 🚀 Быстрый старт
+## Tech Stack
 
-### Предварительные требования
+- Next.js 15 with the App Router and TypeScript
+- Tailwind CSS for styling
+- Zustand for client-side quiz state persistence
+- Firebase Hosting + Functions for deployment
+- Lottie animations and custom illustrations
 
-- Node.js (версия 18 или выше)
-- Firebase CLI
-- Аккаунт Firebase
-- Аккаунт Stripe
+## Local Development
 
-### Установка
-
-1. **Клонируйте репозиторий и установите зависимости:**
-   ```bash
-   cd beauty-quiz
-   npm install
-   ```
-
-2. **Настройте переменные окружения:**
-   ```bash
-   cp env.example .env.local
-   ```
-   
-   Заполните `.env.local` вашими ключами Firebase и Stripe.
-
-3. **Инициализируйте Firebase:**
-   ```bash
-   firebase login
-   firebase init
-   ```
-
-4. **Запустите проект в режиме разработки:**
-   ```bash
-   npm run dev
-   ```
-
-   Откройте [http://localhost:3000](http://localhost:3000) в браузере.
-
-## 📁 Структура проекта
-
-```
-beauty-quiz/
-├── app/                    # Next.js App Router
-│   ├── quiz/[step]/       # Страницы квиза
-│   ├── success/           # Страница успеха
-│   ├── layout.tsx         # Главный layout
-│   └── page.tsx           # Главная страница
-├── components/            # React компоненты
-│   ├── quiz/              # Компоненты шагов квиза
-│   └── ImageUpload.tsx    # Компонент загрузки изображений
-├── functions/             # Firebase Cloud Functions
-│   └── src/
-│       └── index.ts       # Основные функции
-├── lib/                   # Утилиты и конфигурация
-│   └── firebase.ts        # Конфигурация Firebase
-├── store/                 # Zustand store
-│   └── quizStore.ts       # Хранилище состояния квиза
-└── public/                # Статические файлы
-```
-
-## 🎯 Функциональность
-
-### Квиз (8 шагов)
-1. **Личная информация** - имя, возраст, пол
-2. **Тип кожи** - сухая, жирная, комбинированная, чувствительная, нормальная
-3. **Проблемы кожи** - акне, старение, пигментация и др.
-4. **Текущий уход** - уровень существующего ухода
-5. **Бюджет** - экономный, средний, премиум
-6. **Фото лица** - загрузка для AI-анализа
-7. **Фото волос** - загрузка для комплексного анализа
-8. **Подписка** - выбор тарифного плана
-
-### Технические особенности
-- **Responsive дизайн** - адаптивность для всех устройств
-- **Загрузка изображений** - интеграция с Firebase Storage
-- **AI-анализ** - обработка фотографий (заглушка)
-- **Платежи** - интеграция со Stripe
-- **Состояние** - управление через Zustand
-- **Персистентность** - сохранение данных в localStorage
-
-## 🔧 Настройка
-
-### Firebase
-
-1. Создайте проект в [Firebase Console](https://console.firebase.google.com/)
-2. Включите следующие сервисы:
-   - Authentication (анонимный вход)
-   - Firestore Database
-   - Storage
-   - Functions
-   - Hosting
-
-3. Создайте отдельный сайт для квиза в разделе Hosting
-
-### Stripe
-
-1. Создайте аккаунт в [Stripe](https://stripe.com/)
-2. Получите API ключи в разделе Developers
-3. Настройте webhook для обработки событий
-
-### Переменные окружения
-
-```env
-# Firebase
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-
-# Stripe
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-
-# AI API (опционально)
-AI_API_KEY=your_ai_key
-AI_API_URL=https://your-ai-endpoint.com
-```
-
-## 🚀 Деплой
-
-### Локальное тестирование
-
-```bash
-# Запуск эмуляторов Firebase
-firebase emulators:start
-
-# В другом терминале - запуск Next.js
+`ash
+npm install
 npm run dev
-```
+`
 
-### Продакшн деплой
+The app boots on http://localhost:3000. By default it serves the loading screen, welcome carousel, assistant selection, and the dynamic quiz flow under /quiz/[step].
 
-```bash
-# Сборка проекта
-npm run build
+## Project Structure
 
-# Деплой на Firebase
-firebase deploy --only hosting:quiz,functions
-```
+- pp/ – entry layout, global styles, page routes, and onboarding screens
+- components/ – UI building blocks, quiz steps, and procedure flows
+- store/quizStore.ts – Zustand store that persists answers across sessions
+- unctions/ – Firebase Functions source (Node 20)
+- public/ – static assets used at runtime
 
-## 🔗 Интеграция с Flutter
+## Scripts
 
-После завершения онбординга данные сохраняются в Firestore:
+- 
+pm run dev – start the local dev server
+- 
+pm run build – create a production build
+- 
+pm run start – serve the production build locally
+- 
+pm run lint – run Next.js ESLint configuration
 
-```javascript
-// Структура документа пользователя
-{
-  name: "Имя пользователя",
-  age: 25,
-  gender: "female",
-  skinType: "combination",
-  skinConcerns: ["acne", "aging"],
-  currentRoutine: "basic",
-  budget: "medium",
-  faceImageUrl: "https://...",
-  hairImageUrl: "https://...",
-  aiAnalysis: { /* результаты анализа */ },
-  subscription: {
-    planId: "premium",
-    status: "active",
-    stripeCustomerId: "cus_...",
-    startDate: "2024-01-01"
-  },
-  onboardingComplete: true,
-  paymentCompleted: true
-}
-```
+## Deployment
 
-В Flutter приложении проверяйте поле `onboardingComplete` для определения необходимости прохождения онбординга.
-
-## 🛠️ Разработка
-
-### Добавление нового шага квиза
-
-1. Создайте компонент в `components/quiz/`
-2. Добавьте его в `app/quiz/[step]/page.tsx`
-3. Обновите `totalSteps` в `store/quizStore.ts`
-
-### Настройка AI-анализа
-
-Замените моковые данные в `functions/src/index.ts` на реальную интеграцию с AI API.
-
-### Кастомизация дизайна
-
-Используйте Tailwind CSS классы и обновляйте `tailwind.config.js` для изменения цветовой схемы.
-
-## 📝 Лицензия
-
-MIT License - см. файл LICENSE для деталей.
-
-## 🤝 Поддержка
-
-Для вопросов и поддержки обращайтесь к команде разработки Beauty Mirror.
-
-
-
+The repository expects 
+pm run build && npm run export (or another SSG pipeline) before irebase deploy --only hosting:quiz,functions. Update Firebase project aliases and environment secrets before promoting to production.

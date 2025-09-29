@@ -34,7 +34,7 @@ export default function DietStep() {
   const handleCustomDietsConfirm = (diets: CustomDiet[]) => {
     setCustomDiets(diets)
     
-    // Добавляем пользовательские диеты к существующим
+
     const existingDiets = answers.diet.filter(d => !d.startsWith('custom_diet_'))
     const customDietNames = diets.map(diet => `custom_diet_${diet.id}`)
     
@@ -100,5 +100,4 @@ export default function DietStep() {
     </>
   )
 }
-
 

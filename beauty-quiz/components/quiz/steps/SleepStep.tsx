@@ -19,21 +19,21 @@ export default function SleepStep() {
   const hasTransitioned = useRef(false)
 
   const handleOptionSelect = (optionId: string) => {
-    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    if (hasTransitioned.current) return
     
     setAnswer('sleepHours', optionId as any)
     hasTransitioned.current = true
     
-    // Автоматический переход через небольшую задержку
+
     setTimeout(() => {
       nextStep()
       router.push(`/quiz/${currentStep + 1}`)
     }, 800)
   }
 
-  // Сброс значения sleepHours и флага при монтировании компонента
+
   useEffect(() => {
-    // Сбрасываем значение sleepHours при заходе на экран
+
     setAnswer('sleepHours', '')
     hasTransitioned.current = false
     
@@ -46,7 +46,7 @@ export default function SleepStep() {
     <OnboardingStep
       title="How many hours of sleep do you get on average?"
       subtitle="Sleep is crucial for skin regeneration and overall well-being."
-      hideButton={true} // Убираем кнопку Next
+      hideButton={true}
     >
       <div className="space-y-3">
         {options.map((option) => (
@@ -77,5 +77,4 @@ export default function SleepStep() {
     </OnboardingStep>
   )
 }
-
 

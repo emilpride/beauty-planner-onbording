@@ -1,11 +1,11 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 
 interface LoadingAnimationProps {
   onComplete: () => void
-  duration?: number // в миллисекундах
+  duration?: number
 }
 
 export default function LoadingAnimation({ onComplete, duration = 3000 }: LoadingAnimationProps) {
@@ -14,7 +14,7 @@ export default function LoadingAnimation({ onComplete, duration = 3000 }: Loadin
 
   useEffect(() => {
     const startTime = Date.now()
-    
+
     const updateProgress = () => {
       const elapsed = Date.now() - startTime
       const newProgress = Math.min((elapsed / duration) * 100, 100)
@@ -23,10 +23,9 @@ export default function LoadingAnimation({ onComplete, duration = 3000 }: Loadin
       if (newProgress < 100) {
         requestAnimationFrame(updateProgress)
       } else {
-        // Небольшая задержка перед завершением
         setTimeout(() => {
           setIsVisible(false)
-          setTimeout(onComplete, 500) // Даем время на fade out
+          setTimeout(onComplete, 500)
         }, 200)
       }
     }
@@ -38,10 +37,8 @@ export default function LoadingAnimation({ onComplete, duration = 3000 }: Loadin
     <div className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-500 ${
       isVisible ? 'opacity-100' : 'opacity-0'
     }`}>
-      {/* Background - прозрачный, чтобы показать анимированный фон */}
-      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm" />
-      
-      {/* Animated Circles - Based on Design */}
+      <div className="absolute inset-0 bg-overlay/80 backdrop-blur-md transition-colors" />
+
       <div className="relative w-[490px] h-[490px] flex items-center justify-center">
         <style jsx>{`
           @keyframes pulse {
@@ -54,35 +51,35 @@ export default function LoadingAnimation({ onComplete, duration = 3000 }: Loadin
               opacity: 0.9;
             }
           }
-          
+
           .ellipse-container {
             position: absolute;
             width: 490px;
             height: 490px;
             animation: pulse 3s ease-in-out infinite;
           }
-          
+
           .ellipse-29 {
             position: absolute;
             width: 613px;
             height: 613px;
             left: -61px;
             top: -61px;
-            background: #8B5CF6;
+            background: #8A60FF;
             border-radius: 50%;
-            opacity: 0.42;
+            opacity: 0.38;
           }
-          
+
           .ellipse-25 {
             position: absolute;
             width: 490px;
             height: 490px;
             left: 0px;
             top: 0px;
-            background: #A78BFA;
+            background: #A385E9;
             border-radius: 50%;
           }
-          
+
           .ellipse-28 {
             position: absolute;
             width: 385px;
@@ -92,27 +89,27 @@ export default function LoadingAnimation({ onComplete, duration = 3000 }: Loadin
             background: #C4B5FD;
             border-radius: 50%;
           }
-          
+
           .ellipse-27 {
             position: absolute;
             width: 279px;
             height: 279px;
             left: 106px;
             top: 106px;
-            background: #DDD6FE;
+            background: rgba(255, 255, 255, 0.82);
             border-radius: 50%;
           }
-          
+
           .ellipse-26 {
             position: absolute;
             width: 210px;
             height: 210px;
             left: 140px;
             top: 140px;
-            background: #EDE9FE;
+            background: rgba(255, 255, 255, 0.66);
             border-radius: 50%;
           }
-          
+
           .ellipse-24 {
             position: absolute;
             width: 136px;
@@ -122,7 +119,7 @@ export default function LoadingAnimation({ onComplete, duration = 3000 }: Loadin
             background: #F5F3FF;
             border-radius: 50%;
           }
-          
+
           .ellipse-30 {
             position: absolute;
             width: 613px;
@@ -134,7 +131,7 @@ export default function LoadingAnimation({ onComplete, duration = 3000 }: Loadin
             mix-blend-mode: color;
             opacity: 0.4;
           }
-          
+
           .ellipse-31 {
             position: absolute;
             width: 85px;
@@ -147,7 +144,7 @@ export default function LoadingAnimation({ onComplete, duration = 3000 }: Loadin
             opacity: 0.8;
           }
         `}</style>
-        
+
         <div className="ellipse-container">
           <div className="ellipse-29"></div>
           <div className="ellipse-25"></div>
@@ -160,12 +157,14 @@ export default function LoadingAnimation({ onComplete, duration = 3000 }: Loadin
         </div>
       </div>
 
-      {/* Logo in center of animation */}
-      <div className="absolute z-10 flex flex-col items-center justify-center" style={{ 
-        left: '50%', 
-        top: '50%', 
-        transform: 'translate(-50%, -50%)' 
-      }}>
+      <div
+        className="absolute z-10 flex flex-col items-center justify-center"
+        style={{
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+        }}
+      >
         <div className="relative w-24 h-24 mb-4">
           <Image
             src="/logos/app_icon.png"
@@ -175,19 +174,18 @@ export default function LoadingAnimation({ onComplete, duration = 3000 }: Loadin
             priority
           />
         </div>
-        
-        {/* Progress text */}
+
         <div className="text-center">
-          <p className="text-purple-800 text-lg font-semibold mb-2">
+          <p className="text-primary text-lg font-semibold mb-2">
             Preparing your quiz...
           </p>
-          <div className="w-48 h-1 bg-purple-200 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-purple-400 to-purple-600 rounded-full transition-all duration-300 ease-out"
+          <div className="w-48 h-1 bg-primary/20 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-300 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-purple-600 text-sm mt-2">
+          <p className="text-text-secondary text-sm mt-2">
             {Math.round(progress)}%
           </p>
         </div>

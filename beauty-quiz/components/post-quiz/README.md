@@ -1,20 +1,15 @@
-# Post-Quiz Components
+﻿# Post-Quiz Components
 
-Эта папка содержит компоненты, которые показываются после завершения основного квиза.
+The post-quiz flow introduces Beauty Mirror Premium, explains the generated routine, and finalizes plan selection.
 
-## Структура
+## Available Screens
 
-- **CurrentConditionAnalysisStep** (шаг 27) - Анализ текущего состояния пользователя
-- **ChooseActivitiesStep** (шаг 28) - Выбор активностей
-- **ActivitySetupStep** (шаг 29) - Настройка активностей
-- **RemindersStep** (шаг 30) - Настройка напоминаний
-- **ChoosePlanStep** (шаг 31) - Выбор плана подписки
-- **PricingStep** (шаг 32) - Страница с ценами
+- **CurrentConditionAnalysisStep** – summarizes the AI analysis preview
+- **ChoosePlanStep** – allows users to compare plan tiers
+- **PricingStep** – displays price breakdowns and FAQs
+- **PremiumIntroStep** – highlights premium perks before procedures
+- **ScheduleIntroStep** – introduces the procedure builder
+- **SignUpStep** – collects account details
+- **ChooseProceduresStep / ProceduresFlow** – tailors the routine
 
-## Отличие от Quiz Steps
-
-Эти компоненты:
-- Не являются частью основного квиза
-- Показываются после AI анализа
-- Имеют полноэкранный дизайн
-- Связаны с настройкой приложения и подпиской
+Each component lives in components/post-quiz/ and expects data from the Zustand quiz store.

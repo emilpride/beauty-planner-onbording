@@ -18,21 +18,21 @@ export default function WorkEnvironmentStep() {
   const hasTransitioned = useRef(false)
 
   const handleOptionSelect = (optionId: string) => {
-    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    if (hasTransitioned.current) return
     
     setAnswer('workEnvironment', optionId as any)
     hasTransitioned.current = true
     
-    // Автоматический переход через небольшую задержку
+
     setTimeout(() => {
       nextStep()
       router.push(`/quiz/${currentStep + 1}`)
     }, 800)
   }
 
-  // Сброс значения workEnvironment и флага при монтировании компонента
+
   useEffect(() => {
-    // Сбрасываем значение workEnvironment при заходе на экран
+
     setAnswer('workEnvironment', '')
     hasTransitioned.current = false
     
@@ -45,7 +45,7 @@ export default function WorkEnvironmentStep() {
     <OnboardingStep
       title="What is your work environment?"
       subtitle="This helps us understand potential environmental factors."
-      hideButton={true} // Убираем кнопку Next
+      hideButton={true}
     >
       <div className="space-y-3">
         {options.map((option) => (
@@ -76,5 +76,4 @@ export default function WorkEnvironmentStep() {
     </OnboardingStep>
   )
 }
-
 

@@ -18,21 +18,21 @@ export default function StressStep() {
   const hasTransitioned = useRef(false)
 
   const handleOptionSelect = (optionId: string) => {
-    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    if (hasTransitioned.current) return
     
     setAnswer('stressLevel', optionId as any)
     hasTransitioned.current = true
     
-    // Автоматический переход через небольшую задержку
+
     setTimeout(() => {
       nextStep()
       router.push(`/quiz/${currentStep + 1}`)
     }, 800)
   }
 
-  // Сброс значения stressLevel и флага при монтировании компонента
+
   useEffect(() => {
-    // Сбрасываем значение stressLevel при заходе на экран
+
     setAnswer('stressLevel', '')
     hasTransitioned.current = false
     
@@ -45,7 +45,7 @@ export default function StressStep() {
     <OnboardingStep
       title="How often do you feel stressed?"
       subtitle="Stress can impact skin, hair, and overall well-being."
-      hideButton={true} // Убираем кнопку Next
+      hideButton={true}
     >
       <div className="space-y-3">
         {options.map((option) => (
@@ -76,5 +76,4 @@ export default function StressStep() {
     </OnboardingStep>
   )
 }
-
 

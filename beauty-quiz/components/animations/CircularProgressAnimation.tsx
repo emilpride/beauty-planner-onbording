@@ -1,4 +1,4 @@
-// Файл: beauty-quiz/components/animations/CircularProgressAnimation.tsx
+
 
 "use client";
 
@@ -8,16 +8,16 @@ interface CircularProgressProps {
   percentage: number;
   size?: number;
   strokeWidth?: number;
-  gradientFrom?: string; // Начальный цвет градиента
-  gradientTo?: string;   // Конечный цвет градиента
+  gradientFrom?: string;
+  gradientTo?: string;
 }
 
 const CircularProgressAnimation: React.FC<CircularProgressProps> = ({
   percentage,
-  size = 175, // 1. УМЕНЬШИЛИ РАЗМЕР по умолчанию (250 * 0.7 = 175)
+  size = 175,
   strokeWidth = 12,
-  gradientFrom = "#3b82f6", // Синий (blue-500)
-  gradientTo = "#ec4899",   // Розовый (pink-500)
+  gradientFrom = "#3b82f6",
+  gradientTo = "#ec4899",
 }) => {
   const [progress, setProgress] = useState(0);
 
@@ -35,7 +35,7 @@ const CircularProgressAnimation: React.FC<CircularProgressProps> = ({
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
       <svg className="transform -rotate-90" width={size} height={size} viewBox={viewBox}>
-        {/* 2. ДОБАВИЛИ ОПРЕДЕЛЕНИЕ ГРАДИЕНТА */}
+        {}
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor={gradientFrom} />
@@ -43,7 +43,7 @@ const CircularProgressAnimation: React.FC<CircularProgressProps> = ({
           </linearGradient>
         </defs>
 
-        {/* Фоновый круг */}
+        {}
         <circle
           className="text-gray-200"
           stroke="currentColor"
@@ -53,10 +53,10 @@ const CircularProgressAnimation: React.FC<CircularProgressProps> = ({
           cx={size / 2}
           cy={size / 2}
         />
-        {/* Круг прогресса */}
+        {}
         <circle
           className="transition-all duration-1000 ease-out"
-          stroke={`url(#${gradientId})`} // 3. ПРИМЕНИЛИ ГРАДИЕНТ
+          stroke={`url(#${gradientId})`}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           fill="transparent"

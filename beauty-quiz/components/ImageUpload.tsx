@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useRef } from 'react'
 import { useQuizStore } from '@/store/quizStore'
@@ -25,39 +25,39 @@ export default function ImageUpload({ type, currentImageUrl, onUploadComplete }:
   const handleUpload = async (file: File) => {
     if (!file) return
 
-    // Проверяем тип файла
+    // Ensure we only process images
     if (!file.type.startsWith('image/')) {
-      alert('Пожалуйста, выберите изображение')
+      alert('Please select an image file.')
       return
     }
 
-    // Проверяем размер файла (максимум 10MB)
+    // Reject files over 10 MB
     if (file.size > 10 * 1024 * 1024) {
-      alert('Размер файла не должен превышать 10MB')
+      alert('File size must not exceed 10MB.')
       return
     }
 
     setIsUploading(true)
 
     try {
-      // Создаем превью и сохраняем как base64
+      // Create a preview and persist the base64 string for now
       const reader = new FileReader()
       reader.onload = (e) => {
         const base64Url = e.target?.result as string
         setPreviewUrl(base64Url)
-        
-        // Сохраняем в store как base64
-        setAnswer(`${type}ImageUrl`, base64Url)
-        
-        // Вызываем callback
+
+        // Store the image in the quiz state
+        setAnswer(${type}ImageUrl, base64Url)
+
+        // Notify parent components
         onUploadComplete?.(base64Url)
-        
+
         console.log('File uploaded successfully (base64)')
       }
       reader.readAsDataURL(file)
     } catch (error) {
       console.error('Upload failed:', error)
-      alert('Ошибка при загрузке файла. Попробуйте еще раз.')
+      alert('Upload failed. Please try again.')
     } finally {
       setIsUploading(false)
     }
@@ -65,24 +65,27 @@ export default function ImageUpload({ type, currentImageUrl, onUploadComplete }:
 
   const handleRemoveImage = () => {
     setPreviewUrl(null)
-    setAnswer(`${type}ImageUrl`, '')
+    setAnswer(${type}ImageUrl, '')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
   }
 
-  const getTypeLabel = () => {
-    return type === 'face' ? 'лица' : 'волос'
-  }
+  const getTypeLabel = () => (type === 'face' ? 'face' : 'hair')
+
+  const getBenefitCopy = () =>
+    type === 'face'
+      ? 'This helps our AI review your skin more accurately.'
+      : 'This helps our AI understand your hair condition.'
 
   return (
     <div className="space-y-4">
       <div className="text-center">
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          Загрузите фото {getTypeLabel()}
+          Upload a photo of your {getTypeLabel()}
         </h3>
         <p className="text-sm text-gray-600">
-          Это поможет AI проанализировать состояние вашей кожи
+          {getBenefitCopy()}
         </p>
       </div>
 
@@ -91,7 +94,7 @@ export default function ImageUpload({ type, currentImageUrl, onUploadComplete }:
           <div className="space-y-4">
             <img
               src={previewUrl}
-              alt={`Preview ${type}`}
+              alt={Preview }
               className="mx-auto max-h-64 rounded-lg object-cover"
             />
             <div className="flex gap-2 justify-center">
@@ -100,31 +103,31 @@ export default function ImageUpload({ type, currentImageUrl, onUploadComplete }:
                 disabled={isUploading}
                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm px-4 py-2 rounded-lg disabled:opacity-50"
               >
-                {isUploading ? 'Загрузка...' : 'Изменить фото'}
+                {isUploading ? 'Uploading…' : 'Change photo'}
               </button>
               <button
                 onClick={handleRemoveImage}
                 disabled={isUploading}
                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm px-4 py-2 rounded-lg disabled:opacity-50"
               >
-                Удалить
+                Remove
               </button>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="text-4xl text-gray-400">📸</div>
+            <div className="text-4xl text-gray-400">📷</div>
             <div>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
               >
-                {isUploading ? 'Загрузка...' : 'Выбрать фото'}
+                {isUploading ? 'Uploading…' : 'Select photo'}
               </button>
             </div>
             <p className="text-sm text-gray-500">
-              JPG, PNG до 10MB
+              JPG or PNG up to 10MB
             </p>
           </div>
         )}

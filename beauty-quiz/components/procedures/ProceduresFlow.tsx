@@ -17,11 +17,11 @@ interface ProceduresFlowProps {
 }
 
 const procedureSteps: { [key: number]: React.ComponentType } = {
-  0: ChooseProceduresStep,           // Выбор процедур
-  1: ProcedureSetupStep,             // Настройка процедур
-  2: GeneratingScheduleStep,         // Имитация генерации расписания
-  3: NotificationsConsentStep,       // Согласие на уведомления
-  4: ContractAgreementStep,          // Подпись контракта
+  0: ChooseProceduresStep,
+  1: ProcedureSetupStep,
+  2: GeneratingScheduleStep,
+  3: NotificationsConsentStep,
+  4: ContractAgreementStep,
   5: RegularCareResultsStep,         // Regular Care = Better Results!
 }
 

@@ -66,7 +66,7 @@ export default function CustomActivitiesModal({
     onClose()
   }
 
-  // Обработка скролла колесиком мыши для частоты
+
   const handleWheel = (e: React.WheelEvent, activityIndex: number) => {
     e.preventDefault()
     const activity = activities[activityIndex]
@@ -77,7 +77,7 @@ export default function CustomActivitiesModal({
     updateActivity(activity.id, 'frequency', newFrequency)
   }
 
-  // Обработка touch событий для частоты
+
   const handleTouchStart = (e: React.TouchEvent, activityIndex: number) => {
     setIsDragging(true)
     setDraggingIndex(activityIndex)
@@ -104,7 +104,7 @@ export default function CustomActivitiesModal({
     setDraggingIndex(null)
   }
 
-  // Обработка скролла колесиком мыши для периода
+
   const handlePeriodWheel = (e: React.WheelEvent, activityIndex: number) => {
     e.preventDefault()
     const activity = activities[activityIndex]
@@ -116,7 +116,7 @@ export default function CustomActivitiesModal({
     updateActivity(activity.id, 'period', periods[newIndex].value)
   }
 
-  // Обработка touch событий для периода
+
   const handlePeriodTouchStart = (e: React.TouchEvent, activityIndex: number) => {
     setIsDragging(true)
     setDraggingIndex(activityIndex)

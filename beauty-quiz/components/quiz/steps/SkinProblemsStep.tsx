@@ -23,17 +23,17 @@ export default function SkinProblemsStep() {
   }
 
   const handleOptionSelect = (option: string) => {
-    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    if (hasTransitioned.current) return
     
     if (option === 'no_problems') {
-      setAnswer('skinProblems', ['no_problems']) // Устанавливаем флаг "no_problems"
+      setAnswer('skinProblems', ['no_problems'])
     } else if (option === 'ai_analyze') {
-      setAnswer('skinProblems', ['ai_analyze']) // Устанавливаем специальный флаг для AI
+      setAnswer('skinProblems', ['ai_analyze'])
     }
     
     hasTransitioned.current = true
     
-    // Автоматический переход через небольшую задержку
+
     setTimeout(() => {
       nextStep()
       router.push(`/quiz/${currentStep + 1}`)
@@ -41,19 +41,19 @@ export default function SkinProblemsStep() {
   }
 
   const handleSkip = () => {
-    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    if (hasTransitioned.current) return
     
-    setAnswer('skinProblems', []) // Очищаем выбранные проблемы при Skip
+    setAnswer('skinProblems', [])
     hasTransitioned.current = true
     
-    // Автоматический переход через небольшую задержку
+
     setTimeout(() => {
       nextStep()
       router.push(`/quiz/${currentStep + 1}`)
     }, 800)
   }
 
-  // Сброс флага при монтировании компонента
+
   useEffect(() => {
     hasTransitioned.current = false
     
@@ -86,7 +86,7 @@ export default function SkinProblemsStep() {
           </button>
         ))}
         
-        {/* No Problems вариант */}
+        {}
         <button
           onClick={() => handleOptionSelect('no_problems')}
           className={`px-4 py-2 border-2 rounded-full text-center transition-all duration-200 font-medium ${
@@ -98,7 +98,7 @@ export default function SkinProblemsStep() {
           No problems
         </button>
 
-        {/* Let AI Analyze вариант */}
+        {}
         <button
           onClick={() => handleOptionSelect('ai_analyze')}
           className={`px-4 py-2 border-2 rounded-full text-center transition-all duration-200 font-medium ${
@@ -113,5 +113,4 @@ export default function SkinProblemsStep() {
     </OnboardingStep>
   )
 }
-
 

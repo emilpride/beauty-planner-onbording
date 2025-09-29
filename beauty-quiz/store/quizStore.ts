@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+﻿import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 export interface ActivityMetaOverridePersisted {
@@ -118,7 +118,7 @@ interface QuizStore {
 }
 
 const initialAnswers: QuizAnswers = {
-  assistant: 0, // 0 означает "не выбрано"
+  assistant: 0, // 0 means "not selected"
   gender: 0,
   goals: [],
   name: '',
@@ -238,3 +238,4 @@ export const useQuizStore = create<QuizStore>()(
     }
   )
 )
+

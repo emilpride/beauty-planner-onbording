@@ -15,7 +15,7 @@ export default function EndDayStep() {
       const [h, m] = answers.endDayTime.split(':').map(Number)
       
       if (answers.timeFormat === '12h') {
-        // Конвертируем 24-часовой формат в 12-часовой
+
         if (h === 0) {
           setHours(12)
           setIsAM(true)
@@ -33,7 +33,7 @@ export default function EndDayStep() {
         setHours(h)
       }
       
-      // Находим ближайшее значение из списка 5-минутных интервалов
+
       const closestMinute = minutesList.reduce((prev, curr) => 
         Math.abs(curr - m) < Math.abs(prev - m) ? curr : prev
       )
@@ -50,7 +50,7 @@ export default function EndDayStep() {
     
     let timeString: string
     if (answers.timeFormat === '12h') {
-      // Конвертируем 12-часовой формат в 24-часовой для сохранения
+
       let hour24 = newHours
       if (!isAM && newHours !== 12) {
         hour24 = newHours + 12
@@ -67,7 +67,7 @@ export default function EndDayStep() {
   const hoursList = Array.from({ length: 24 }, (_, i) => i)
   const minutesList = Array.from({ length: 12 }, (_, i) => i * 5) // 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55
 
-  // Создаем список часов в зависимости от формата
+
   const displayHoursList = answers.timeFormat === '12h' 
     ? Array.from({ length: 12 }, (_, i) => i + 1) // 1-12
     : Array.from({ length: 24 }, (_, i) => i) // 0-23
@@ -83,7 +83,7 @@ export default function EndDayStep() {
         updateTime(newHours, minutes)
       }
     } else {
-      // Для минут используем шаг в 5 минут
+
       const currentMinuteIndex = minutesList.indexOf(minutes)
       const newIndex = Math.max(0, Math.min(11, currentMinuteIndex + (e.deltaY > 0 ? 1 : -1)))
       updateTime(hours, minutesList[newIndex])
@@ -100,7 +100,7 @@ export default function EndDayStep() {
       const touch = e.touches[0]
       const currentY = touch.clientY
       const deltaY = startY - currentY
-      const sensitivity = 3 // Чувствительность свайпа
+      const sensitivity = 3
       const change = Math.round(deltaY / sensitivity)
       
       if (type === 'hours') {
@@ -112,7 +112,7 @@ export default function EndDayStep() {
           updateTime(newHours, minutes)
         }
       } else {
-        // Для минут используем шаг в 5 минут
+
         const currentMinuteIndex = minutesList.indexOf(startValue)
         const newIndex = Math.max(0, Math.min(11, currentMinuteIndex + change))
         updateTime(hours, minutesList[newIndex])
@@ -137,7 +137,7 @@ export default function EndDayStep() {
       <div className="space-y-6">
         <div className="flex justify-center">
           <div className="flex items-center space-x-8">
-          {/* 12h/24h Format Toggle - вертикальный слева */}
+          {}
           <div className="flex flex-col items-center">
             <div className="relative flex flex-col w-16 h-20 items-center rounded-full bg-gray-100 p-1">
               <div
@@ -221,7 +221,7 @@ export default function EndDayStep() {
             <div className="w-20 h-1 bg-primary mt-2 rounded-full"></div>
           </div>
 
-          {/* AM/PM Column - всегда занимает место, но скрывается в 24h */}
+          {}
           <div className="flex flex-col items-center">
             {answers.timeFormat === '12h' ? (
               <div className="relative flex flex-col w-16 h-20 items-center rounded-full bg-gray-100 p-1">
@@ -244,7 +244,7 @@ export default function EndDayStep() {
                 ))}
               </div>
             ) : (
-              // Невидимый placeholder для сохранения места
+
               <div className="w-16 h-20"></div>
             )}
           </div>
@@ -254,4 +254,3 @@ export default function EndDayStep() {
     </OnboardingStep>
   )
 }
-

@@ -115,7 +115,7 @@ export default function ContractAgreementStep() {
   const handleFinish = () => {
     if (hasSignature) {
       setAnswer('contractSignature', 'signed')
-      router.push('/procedures/5') // Переходим к RegularCareResultsStep
+      router.push('/procedures/5')
     }
   }
 

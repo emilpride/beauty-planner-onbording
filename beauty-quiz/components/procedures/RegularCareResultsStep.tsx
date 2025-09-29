@@ -9,7 +9,7 @@ export default function RegularCareResultsStep() {
   const router = useRouter()
 
   const handlePricePlans = () => {
-    router.push('/payment') // Ведет на payment
+    router.push('/payment')
   }
 
   // Mock data for independent version

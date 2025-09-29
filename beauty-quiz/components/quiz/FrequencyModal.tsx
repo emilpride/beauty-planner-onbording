@@ -43,7 +43,7 @@ export default function FrequencyModal({
     onClose()
   }
 
-  // Обработка скролла колесиком мыши для частоты
+
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault()
     const delta = e.deltaY > 0 ? 1 : -1
@@ -51,7 +51,7 @@ export default function FrequencyModal({
     setFrequency(newFrequency)
   }
 
-  // Обработка touch событий для частоты
+
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsDragging(true)
     setStartY(e.touches[0].clientY)
@@ -64,7 +64,7 @@ export default function FrequencyModal({
     
     const currentY = e.touches[0].clientY
     const deltaY = startY - currentY
-    const deltaFrequency = Math.round(deltaY / 20) // 20px = 1 единица частоты
+    const deltaFrequency = Math.round(deltaY / 20)
     const newFrequency = Math.max(1, Math.min(30, startFrequency + deltaFrequency))
     setFrequency(newFrequency)
   }
@@ -73,7 +73,7 @@ export default function FrequencyModal({
     setIsDragging(false)
   }
 
-  // Обработка скролла колесиком мыши для периода
+
   const handlePeriodWheel = (e: React.WheelEvent) => {
     e.preventDefault()
     const currentIndex = periods.findIndex(p => p.value === period)
@@ -82,7 +82,7 @@ export default function FrequencyModal({
     setPeriod(periods[newIndex].value)
   }
 
-  // Обработка touch событий для периода
+
   const handlePeriodTouchStart = (e: React.TouchEvent) => {
     setIsDragging(true)
     setStartY(e.touches[0].clientY)
@@ -95,7 +95,7 @@ export default function FrequencyModal({
     
     const currentY = e.touches[0].clientY
     const deltaY = startY - currentY
-    const deltaIndex = Math.round(deltaY / 20) // 20px = 1 единица периода
+    const deltaIndex = Math.round(deltaY / 20)
     const currentIndex = periods.findIndex(p => p.value === period)
     const newIndex = Math.max(0, Math.min(periods.length - 1, currentIndex + deltaIndex))
     setPeriod(periods[newIndex].value)
@@ -192,4 +192,3 @@ export default function FrequencyModal({
     </div>
   )
 }
-

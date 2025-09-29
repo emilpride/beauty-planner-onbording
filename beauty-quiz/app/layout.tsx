@@ -1,14 +1,15 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import './carousel-styles.css' // Import carousel styles
+import './carousel-styles.css'
+import { ThemeProvider } from '@/components/theme/ThemeProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Beauty Mirror Quiz - Персонализированный уход за кожей',
-  description: 'Пройдите квиз и получите персональные рекомендации по уходу за кожей от Beauty Mirror',
-  keywords: 'уход за кожей, красота, персонализация, квиз, Beauty Mirror',
+  title: 'Beauty Mirror Quiz - Personalized Wellness Planning',
+  description: 'Build your custom Beauty Mirror onboarding experience with guided assessments and AI insights.',
+  keywords: 'beauty mirror, wellness quiz, skincare, haircare, personalized plan',
 }
 
 export default function RootLayout({
@@ -17,12 +18,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ru" suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning>
-        <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50">
-          {children}
-        </div>
+    <html lang="en" className="light" suppressHydrationWarning>
+      <body className={[inter.className, 'antialiased'].join(' ')} suppressHydrationWarning>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   )
 }
+

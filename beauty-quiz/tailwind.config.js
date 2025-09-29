@@ -1,5 +1,13 @@
+﻿const withOpacity = (variable) => ({ opacityValue } = {}) => {
+  if (opacityValue !== undefined) {
+    return `rgb(var(${variable}) / ${opacityValue})`
+  }
+  return `rgb(var(${variable}))`
+}
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -8,15 +16,19 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'primary': '#8A60FF',
-        'text-primary': '#4B3963',
-        'text-secondary': '#6c757d', // A generic gray, adjust if a specific one is in the doc
-        'light-container': '#F0F4FF',
+        primary: withOpacity('--color-primary'),
+        background: withOpacity('--color-background'),
+        surface: withOpacity('--color-surface'),
+        'surface-muted': withOpacity('--color-surface-muted'),
+        'text-primary': withOpacity('--color-text-primary'),
+        'text-secondary': withOpacity('--color-text-secondary'),
+        'border-subtle': withOpacity('--color-border'),
+        overlay: withOpacity('--color-overlay'),
+        'light-container': withOpacity('--color-background'),
       },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic':
-          'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+      boxShadow: {
+        elevated: '0 36px 80px rgba(22, 18, 45, 0.2)',
+        soft: '0 18px 48px rgba(22, 18, 45, 0.14)',
       },
     },
   },

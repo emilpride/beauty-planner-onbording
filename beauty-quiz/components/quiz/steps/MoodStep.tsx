@@ -19,21 +19,21 @@ export default function MoodStep() {
   const hasTransitioned = useRef(false)
 
   const handleOptionSelect = (moodId: string) => {
-    if (hasTransitioned.current) return // Предотвращаем множественные переходы
+    if (hasTransitioned.current) return
     
     setAnswer('mood', moodId as any)
     hasTransitioned.current = true
     
-    // Автоматический переход через небольшую задержку
+
     setTimeout(() => {
       nextStep()
       router.push(`/quiz/${currentStep + 1}`)
     }, 800)
   }
 
-  // Сброс значения mood и флага при монтировании компонента
+
   useEffect(() => {
-    // Сбрасываем значение mood при заходе на экран
+
     setAnswer('mood', '')
     hasTransitioned.current = false
     
@@ -47,7 +47,7 @@ export default function MoodStep() {
       title="How are you feeling today?"
       subtitle="Your mood can be an important indicator of your overall well-being."
       condition={answers.mood !== ''}
-      hideButton={true} // Убираем кнопку Next
+      hideButton={true}
     >
       <div className="flex justify-around items-center py-4">
         {options.map((option) => (
@@ -67,5 +67,4 @@ export default function MoodStep() {
     </OnboardingStep>
   )
 }
-
 
