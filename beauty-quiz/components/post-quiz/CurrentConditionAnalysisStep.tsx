@@ -82,7 +82,7 @@ const CONDITION_ORDER = [
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
 
-const getPersonImage = (gender: string, bmiCategory: typeof BMI_CATEGORIES[0]) => {
+const getPersonImage = (gender: string, bmiCategory: typeof BMI_CATEGORIES[number]) => {
   if (!bmiCategory) return '/images/on_boarding_images/bmi_male_2.png'
   
   const genderPrefix = gender === 'female' ? 'female' : 'male'
@@ -124,6 +124,68 @@ const ScoreBadge = ({ value, accent = 'rgb(var(--color-primary))' }: { value: nu
     <span className="text-xs uppercase tracking-[0.2em] text-text-secondary">/10</span>
   </div>
 )
+
+function CircularScore({
+  value,
+  size = 48,
+  thickness = 6,
+  gradientId = 'grad-default',
+  colors = ['#8A60FF', '#53E5FF', '#FF99CC'],
+}: {
+  value: number
+  size?: number
+  thickness?: number
+  gradientId?: string
+  colors?: [string, string, string] | string[]
+}) {
+  const radius = size / 2 - thickness / 2
+  const circumference = 2 * Math.PI * radius
+  const clamped = Math.max(0, Math.min(value, 10))
+  const progress = clamped / 10
+
+  return (
+    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+        className="block">
+        <defs>
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={colors[0] ?? '#8A60FF'} />
+            <stop offset="50%" stopColor={colors[1] ?? '#53E5FF'} />
+            <stop offset="100%" stopColor={colors[2] ?? '#FF99CC'} />
+          </linearGradient>
+        </defs>
+        {/* Track */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="rgba(0,0,0,0.08)"
+          className="dark:stroke-white/15"
+          strokeWidth={thickness}
+        />
+        {/* Progress */}
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={`url(#${gradientId})`}
+          strokeLinecap="round"
+          strokeWidth={thickness}
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: circumference * (1 - progress) }}
+          transition={{ duration: 1.0, ease: 'easeOut' }}
+          style={{ transform: `rotate(-90deg)`, transformOrigin: '50% 50%' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-sm font-semibold text-text-primary">{clamped.toFixed(1)}</span>
+      </div>
+    </div>
+  )
+}
 
 export default function CurrentConditionAnalysisStep() {
   const router = useRouter()
@@ -183,7 +245,31 @@ export default function CurrentConditionAnalysisStep() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/3 via-primary/1 to-transparent dark:from-primary/6 dark:via-primary/2 dark:to-transparent" />
+      {/* Cohesive animated background */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent dark:from-primary/10" />
+      <motion.div
+        className="pointer-events-none absolute -z-0 inset-0 overflow-hidden"
+        initial={false}
+      >
+        <motion.div
+          className="absolute -top-24 -left-24 h-64 w-64 rounded-full blur-3xl opacity-30 dark:opacity-25"
+          style={{ background: 'radial-gradient(circle, #8A60FF 0%, transparent 60%)' }}
+          animate={{ x: [0, 20, 0], y: [0, 10, 0] }}
+          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute top-32 -right-24 h-72 w-72 rounded-full blur-3xl opacity-25 dark:opacity-20"
+          style={{ background: 'radial-gradient(circle, #53E5FF 0%, transparent 60%)' }}
+          animate={{ x: [0, -15, 0], y: [0, -10, 0] }}
+          transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute bottom-[-120px] left-1/3 h-80 w-80 rounded-full blur-3xl opacity-20 dark:opacity-15"
+          style={{ background: 'radial-gradient(circle, #FF99CC 0%, transparent 60%)' }}
+          animate={{ x: [0, 10, 0], y: [0, -15, 0] }}
+          transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      </motion.div>
       <div className="relative z-10 mx-auto flex min-h-screen max-w-2xl flex-col gap-5 px-5 pb-12 pt-8">
         <motion.header 
           className="flex items-center gap-3"
@@ -356,13 +442,18 @@ export default function CurrentConditionAnalysisStep() {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 1.3, duration: 0.6 }}
               >
+                {(() => {
+                  const genderStr = typeof answers.gender === 'string' ? answers.gender : 'male'
+                  return (
                 <Image
-                  src={getPersonImage(answers.gender || 'male', bmiCategory)}
-                  alt={`${answers.gender || 'male'} BMI ${bmi ? bmi.toFixed(1) : 'unknown'}`}
+                  src={getPersonImage(genderStr, bmiCategory)}
+                  alt={`${genderStr} BMI ${bmi ? bmi.toFixed(1) : 'unknown'}`}
                   width={120}
                   height={200}
                   className="object-contain"
                 />
+                  )
+                })()}
               </motion.div>
             </motion.div>
           </motion.article>
@@ -383,7 +474,7 @@ export default function CurrentConditionAnalysisStep() {
               >
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
-                  <ScoreBadge value={score} />
+                  <CircularScore value={score} size={44} thickness={6} gradientId={`grad-${id}`} />
                 </div>
                 <p className="mt-3 text-sm leading-relaxed text-text-secondary">{CONDITION_COPY[id]}</p>
               </motion.article>
@@ -403,33 +494,19 @@ export default function CurrentConditionAnalysisStep() {
               </p>
             </div>
             
-            {/* BMS Score Display */}
+            {/* BMS Score Display with animated circular ring */}
             <motion.div 
-              className="text-center mb-6"
+              className="flex flex-col items-center justify-center mb-6"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.2, duration: 0.6 }}
             >
-              <motion.div 
-                className="text-6xl font-semibold leading-none mb-2"
-                style={{ color: '#84DE54' }}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 1.4, duration: 0.6, type: "spring", stiffness: 200 }}
-              >
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 1.6, duration: 0.5 }}
-                >
-                  {overallScore.toFixed(1)}
-                </motion.span>
-              </motion.div>
+              <CircularScore value={overallScore} size={112} thickness={10} gradientId="grad-overall" colors={["#33C75A", "#84DE54", "#FFA64D"]} />
               <motion.p 
-                className="text-sm font-semibold text-text-primary"
+                className="mt-2 text-sm font-semibold text-text-primary"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1.8, duration: 0.5 }}
+                transition={{ delay: 1.6, duration: 0.5 }}
               >
                 Your BMS is: <span className="text-primary">Balanced</span>
               </motion.p>
@@ -437,7 +514,7 @@ export default function CurrentConditionAnalysisStep() {
                 className="text-sm text-text-secondary mt-1"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 2.0, duration: 0.5 }}
+                transition={{ delay: 1.8, duration: 0.5 }}
               >
                 Keep up the consistent routine!
               </motion.p>
