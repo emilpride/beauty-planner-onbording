@@ -35,58 +35,36 @@ export default function GoalStep() {
             <motion.button
               key={goal.text}
               onClick={() => handleToggleGoal(goal.text)}
-              className={`p-3 py-4 rounded-lg flex flex-col items-center gap-2 border-2 text-center transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 ${
+              className={`relative p-3 py-4 rounded-lg flex flex-col items-center gap-2 border-2 text-center transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 ${
                 isSelected
-                  ? 'border-primary bg-surface shadow-soft'
+                  ? 'border-primary bg-primary/10 shadow-md text-primary'
                   : 'border-border-subtle/60 bg-surface-muted hover:border-primary/40 hover:bg-surface hover:text-text-primary'
               }`}
-              initial={{ opacity: 0, y: 20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ 
                 delay: index * 0.1, 
-                duration: 0.5,
-                type: "spring",
-                stiffness: 200
+                duration: 0.3
               }}
               whileHover={{ 
-                scale: 1.05,
+                scale: 1.02,
                 transition: { duration: 0.2 }
               }}
               whileTap={{ 
-                scale: 0.95,
+                scale: 0.98,
                 transition: { duration: 0.1 }
               }}
             >
-              <motion.div
-                animate={isSelected ? { 
-                  scale: [1, 1.2, 1],
-                  rotate: [0, 5, -5, 0]
-                } : {}}
-                transition={{ duration: 0.6, ease: "easeInOut" }}
-              >
+              <div className={`transition-all duration-200 ${isSelected ? 'scale-110' : ''}`}>
                 <Image src={goal.image} alt={goal.text} width={36} height={36} className="flex-shrink-0" />
-              </motion.div>
-              <motion.span 
-                className={`text-xs font-semibold leading-tight ${isSelected ? 'text-text-primary' : 'text-text-secondary'}`}
-                animate={isSelected ? { 
-                  color: ["rgb(107 114 128)", "rgb(163 133 233)", "rgb(163 133 233)"]
-                } : {}}
-                transition={{ duration: 0.3 }}
+              </div>
+              <span 
+                className={`text-xs font-semibold leading-tight transition-all duration-200 ${
+                  isSelected ? 'text-primary' : 'text-text-secondary'
+                }`}
               >
                 {goal.text}
-              </motion.span>
-              
-              {/* Selection indicator */}
-              {isSelected && (
-                <motion.div
-                  className="absolute -top-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center"
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ duration: 0.3, type: "spring" }}
-                >
-                  <span className="text-white text-xs">✓</span>
-                </motion.div>
-              )}
+              </span>
             </motion.button>
           )
         })}
