@@ -169,7 +169,7 @@ export const useQuizStore = create<QuizStore>()(
     (set, get) => ({
       answers: initialAnswers,
       currentStep: 0,
-          totalSteps: 37, // 34 quiz screens (0-33) including interludes + 3 post-quiz screens (34-36)
+          totalSteps: 38, // Increased after splitting photo upload into 3 screens
       
       hydrate: () => {
         set((state) => state)

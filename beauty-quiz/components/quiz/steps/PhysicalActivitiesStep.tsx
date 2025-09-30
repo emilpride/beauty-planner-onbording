@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
 import FrequencyModal from '@/components/quiz/FrequencyModal'
@@ -18,7 +19,8 @@ interface CustomActivity {
 }
 
 export default function PhysicalActivitiesStep() {
-  const { answers, setAnswer } = useQuizStore()
+  const router = useRouter()
+  const { answers, setAnswer, currentStep, nextStep } = useQuizStore()
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)
@@ -105,6 +107,16 @@ export default function PhysicalActivitiesStep() {
         title="How Often Do You Engage In These Activities?"
         subtitle="Select activities and set their frequency."
         condition={answers.activityFrequency.length > 0}
+        skip
+        skipText={"I don't exercise"}
+        onSkip={() => {
+          // Clear any selected activities/frequencies and move forward
+          setAnswer('activityFrequency', [])
+          setAnswer('physicalActivities', [])
+          const nextIndex = currentStep + 1
+          router.push(`/quiz/${nextIndex}`)
+          nextStep()
+        }}
       >
         <div className="space-y-2 py-1">
           {activities.map((activity) => (

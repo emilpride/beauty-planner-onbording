@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useQuizStore } from '@/store/quizStore'
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import OnboardingAppbar from '@/components/quiz/OnboardingAppbar' // To be created
 import CircularProgressAnimation from '@/components/animations/CircularProgressAnimation'
@@ -21,7 +21,7 @@ import SleepStep from '@/components/quiz/steps/SleepStep'
 import SleepRhythmInsightStep from '@/components/quiz/insights/SleepRhythmInsightStep'
 import PersonalityInsightStep from '@/components/quiz/insights/PersonalityInsightStep'
 import EnergyVisualizationStep from '@/components/quiz/insights/EnergyVisualizationStep'
-import BeautyAnalysisStep from '@/components/quiz/insights/BeautyAnalysisStep'
+import StressCopingInsightStep from '@/components/quiz/insights/StressCopingInsightStep'
 import MomentumCheckStep from '@/components/quiz/insights/MomentumCheckStep'
 import WakeUpStep from '@/components/quiz/steps/WakeUpStep'
 import EndDayStep from '@/components/quiz/steps/EndDayStep'
@@ -41,7 +41,9 @@ import ProcrastinationStep from '@/components/quiz/steps/ProcrastinationStep'
 import FocusStep from '@/components/quiz/steps/FocusStep'
 import OrganizationInfluenceStep from '@/components/quiz/steps/OrganizationInfluenceStep'
 import AnalysisIntroStep from '@/components/quiz/steps/AnalysisIntroStep'
-import PhotoUploadStep from '@/components/quiz/steps/PhotoUploadStep'
+import PhotoUploadFaceStep from '@/components/quiz/steps/PhotoUploadFaceStep'
+import PhotoUploadHairStep from '@/components/quiz/steps/PhotoUploadHairStep'
+import PhotoUploadBodyStep from '@/components/quiz/steps/PhotoUploadBodyStep'
 import AIResultsStep from '@/components/quiz/steps/AIResultsStep'
 
 // Post-quiz screens (remaining ones)
@@ -64,29 +66,30 @@ const stepComponents: { [key: number]: React.ComponentType } = {
   11: WakeUpStep,
   12: EndDayStep,
   13: StressStep,
-  14: EnergyVisualizationStep, // NEW: After sleep questions - energy analysis
+  14: StressCopingInsightStep, // NEW: After stress – coping insight (no character)
   15: WorkEnvironmentStep,
   16: SkinTypeStep,
   17: SkinProblemsStep,
   18: SkinGlowInsightStep,
   19: HairTypeStep,
   20: HairProblemsStep,
-  21: BeautyAnalysisStep, // NEW: After skin/hair questions - beauty analysis
-  22: PhysicalActivitiesStep,
-  23: DietStep,
-  24: MomentumInsightStep,
-  25: MomentumCheckStep, // NEW: After activities - momentum check
-  26: MoodStep,
-  27: EnergyLevelStep,
-  28: ProcrastinationStep,
-  29: FocusStep,
-  30: OrganizationInfluenceStep,
-  31: AnalysisIntroStep,
-  32: PhotoUploadStep,
-  33: AIResultsStep,
-  34: CurrentConditionAnalysisStep,
-  35: ChoosePlanStep,
-  36: PricingStep,
+  21: PhysicalActivitiesStep,
+  22: DietStep,
+  23: MomentumInsightStep,
+  24: MomentumCheckStep, // After activities - momentum check
+  25: MoodStep,
+  26: EnergyLevelStep,
+  27: ProcrastinationStep,
+  28: FocusStep,
+  29: OrganizationInfluenceStep,
+  30: AnalysisIntroStep,
+  31: PhotoUploadFaceStep,
+  32: PhotoUploadHairStep,
+  33: PhotoUploadBodyStep,
+  34: AIResultsStep,
+  35: CurrentConditionAnalysisStep,
+  36: ChoosePlanStep,
+  37: PricingStep,
 }
 // Card heights from Flutter design
 const cardHeights = [
@@ -108,6 +111,14 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   const [showCharacter, setShowCharacter] = useState(false)
   const [isExiting, setIsExiting] = useState(false)
   const [isGoingBack, setIsGoingBack] = useState(false)
+  
+  // Refs to measure layout and glue card under character
+  const mainRef = useRef<HTMLDivElement | null>(null)
+  // Measure the outer character box (fixed 42dvh) to avoid jumps from inner animations
+  const characterBoxRef = useRef<HTMLDivElement | null>(null)
+  const characterRef = useRef<HTMLDivElement | null>(null)
+  const [cardTopPx, setCardTopPx] = useState<number | null>(null)
+  const [hasMeasured, setHasMeasured] = useState(false)
   
   // Only use Zustand on client side
   const quizStore = useQuizStore()
@@ -163,13 +174,9 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
     }
   }, [stepNumber])
 
-  if (!isHydrated) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    )
-  }
+  
+
+  // Do not early-return on hydration to keep Hook order stable; render a loader conditionally instead
 
   const StepComponent = stepComponents[stepNumber]
   const currentCardHeight = cardHeights[stepNumber] || 0.5;
@@ -205,29 +212,30 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   11: 'onboarding_img_usually_wake_up',  // WakeUpStep - "usually wake up"
   12: 'onboarding_img_usually_end_your_day',  // EndDayStep - "usually end your day"
   13: 'onboarding_img_get_stressed',  // StressStep - "get stressed"
-  14: 'onboarding_img_energy',  // EnergyVisualizationStep - "energy"
+  14: null,  // StressCopingInsightStep (insight - no character)
   15: 'onboarding_img_work_environment',  // WorkEnvironmentStep - "work environment"
   16: 'onboarding_img_skin_type',  // SkinTypeStep - "skin type"
   17: 'onboarding_img_Skin_problems',  // SkinProblemsStep - "Skin problems"
   18: null,  // SkinGlowInsightStep (insight - no character)
   19: 'onboarding_img_hair_type',  // HairTypeStep - "hair type"
   20: 'onboarding_img_Hair_problems',  // HairProblemsStep - "Hair problems"
-  21: null,  // BeautyAnalysisStep (insight - no character)
-  22: 'onboarding_img_physical_activities',  // PhysicalActivitiesStep - "physical activities"
-  23: 'onboarding_img_diet',  // DietStep - "diet"
-  24: null,  // MomentumInsightStep (insight - no character)
-  25: null,  // MomentumCheckStep (insight - no character)
-  26: 'onboarding_img_mood',  // MoodStep - "mood"
-  27: 'onboarding_img_energy',  // EnergyLevelStep - "energy"
-  28: 'onboarding_img_procrastinate',  // ProcrastinationStep - "procrastinate"
-  29: 'onboarding_img_hard_to_focus',  // FocusStep - "hard to focus"
-  30: 'onboarding_img_become_organized',  // OrganizationInfluenceStep - "become organized"
-  31: 'onboarding_img_analyze_your_face',  // AnalysisIntroStep - "analyze your face"
-  32: 'onboarding_img_analyze_your_face',  // PhotoUploadStep - "analyze your face"
-  33: 'onboarding_img_creating_schedule',  // AIResultsStep - "creating schedule"
-  34: null,  // CurrentConditionAnalysisStep (no character)
-  35: null,  // ChoosePlanStep (no character)
-  36: null,  // PricingStep (no character)
+  21: 'onboarding_img_physical_activities',  // PhysicalActivitiesStep - "physical activities"
+  22: 'onboarding_img_diet',  // DietStep - "diet"
+  23: null,  // MomentumInsightStep (insight - no character)
+  24: null,  // MomentumCheckStep (insight - no character)
+  25: 'onboarding_img_mood',  // MoodStep - "mood"
+  26: 'onboarding_img_energy',  // EnergyLevelStep - "energy"
+  27: 'onboarding_img_procrastinate',  // ProcrastinationStep - "procrastinate"
+  28: 'onboarding_img_hard_to_focus',  // FocusStep - "hard to focus"
+  29: 'onboarding_img_become_organized',  // OrganizationInfluenceStep - "become organized"
+  30: 'onboarding_img_analyze_your_face',  // AnalysisIntroStep - "analyze your face"
+  31: null,  // PhotoUploadFaceStep - no character
+  32: null,  // PhotoUploadHairStep - no character
+  33: null,  // PhotoUploadBodyStep - no character
+  34: null,  // AIResultsStep - no character/image on top
+  35: null,  // CurrentConditionAnalysisStep (no character)
+  36: null,  // ChoosePlanStep (no character)
+  37: null,  // PricingStep (no character)
 };
 
     const imageName = stepToImageMap[step];
@@ -264,7 +272,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
 
   // Step 25 (PhotoUploadStep) doesn't need assistant character
 
-  const isFullScreen = stepNumber >= 34; // Post-quiz screens start from step 34
+  const isFullScreen = stepNumber >= 35; // Post-quiz screens start from CurrentConditionAnalysis (35)
   const isAutoTransitionScreen = false; // AI Analysis Intro was removed
 
   if (!StepComponent) {
@@ -284,96 +292,145 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
     return <StepComponent />
   }
 
+  // Ensure animation order: card (text) enters first, then character
+  const cardEntered = showQuestion && hasMeasured && !isExiting && !isGoingBack
+  const characterEntered = showCharacter && cardEntered && !isExiting && !isGoingBack
+
+  // Measure card top based on character box bottom or fallback to app bar/progress bar height
+  useLayoutEffect(() => {
+    if (isFullScreen) {
+      setCardTopPx(0)
+      setHasMeasured(true)
+      return
+    }
+
+    const compute = () => {
+      const main = mainRef.current
+      if (!main) return
+
+      const hasCharacter = Boolean(imageUrl)
+      if (hasCharacter && characterBoxRef.current) {
+        const mainRect = main.getBoundingClientRect()
+        const charRect = characterBoxRef.current.getBoundingClientRect()
+        const topPx = Math.max(0, Math.round(charRect.bottom - mainRect.top))
+        setCardTopPx(topPx)
+        setHasMeasured(true)
+        return
+      }
+
+      // Fallback when no character: place under appbar/progress zone (approx 10dvh)
+      const viewportH = Math.max(window.innerHeight, document.documentElement.clientHeight)
+      const approxTop = Math.round(viewportH * 0.10)
+      setCardTopPx(approxTop)
+      setHasMeasured(true)
+    }
+
+    // Initial compute before paint and on resize/orientation
+    compute()
+    const onResize = () => compute()
+    window.addEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+
+    return () => {
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+    }
+  }, [imageUrl, isFullScreen, stepNumber, assistantName, showCharacter])
+
   return (
-    <div className={`w-full relative ${isFullScreen ? 'min-h-screen' : 'min-h-screen overflow-hidden'}`}>
+    <div className={`w-full relative ${isFullScreen ? 'min-h-[100dvh]' : 'min-h-[100dvh] overflow-hidden'}`}>
       {/* Animated Background */}
       <AnimatedBackground />
-      
-      {stepNumber < 34 && stepNumber >= 0 && <OnboardingAppbar onBackAnimation={startBackAnimation} />}
 
-      <main className="w-full h-full max-w-lg mx-auto relative">
-        {!isFullScreen && imageUrl && (
-           <div 
-             className="absolute top-0 left-0 right-0 z-10 flex justify-center items-end" 
-             style={{ 
-               height: '42vh', 
-               pointerEvents: 'none',
+      {isHydrated ? (
+        <>
+          {stepNumber < 34 && stepNumber >= 0 && (
+            <OnboardingAppbar onBackAnimation={startBackAnimation} />
+          )}
 
-               ...(assistantName === 'max' && [15, 16, 17, 18, 19, 20].includes(stepNumber) 
-                 ? { 
-                     alignItems: 'flex-end', 
-                     paddingBottom: stepNumber === 19 ? '40px' : stepNumber === 20 ? '30px' : '20px',
-                     transform: 'translateY(20px)'
-                   }
-                 : {})
-             }}
-           >
-            <div 
-              className={`transition-all duration-700 ease-out h-[85%] ${
-                showCharacter && !isExiting && !isGoingBack
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-16'
+          <main ref={mainRef} className="w-full h-full max-w-lg mx-auto relative">
+            {!isFullScreen && imageUrl && (
+              <div
+                ref={characterBoxRef}
+                className="absolute top-0 left-0 right-0 z-10 flex justify-center items-end"
+                style={{
+                  // Use dynamic viewport height to avoid mobile browser UI jumps
+                  height: '42dvh',
+                  pointerEvents: 'none',
+                  ...(assistantName === 'max' && [15, 16, 17, 18, 19, 20].includes(stepNumber)
+                    ? {
+                        alignItems: 'flex-end',
+                        paddingBottom: stepNumber === 19 ? '40px' : stepNumber === 20 ? '30px' : '20px'
+                      }
+                    : {})
+                }}
+              >
+                <div
+                  ref={characterRef}
+                  className={`transition-[opacity,transform] duration-500 ease-out h-[85%] ${
+                    characterEntered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                  }`}
+                  style={{
+                    pointerEvents: 'auto',
+                    transitionDelay: characterEntered ? '120ms' : '0ms',
+
+                    ...(assistantName === 'max' && [15, 16, 17, 18, 19, 20].includes(stepNumber)
+                      ? {
+                          marginBottom: stepNumber === 19 ? '20px' : '10px'
+                        }
+                      : {})
+                  }}
+                >
+                  <Image
+                    src={imageUrl}
+                    alt={`Assistant for step ${stepNumber}`}
+                    width={300}
+                    height={300}
+                    className="object-contain h-full w-auto"
+                    priority
+                  />
+                </div>
+              </div>
+            )}
+
+            <div
+              className={`${!isFullScreen ? 'absolute left-0 right-0' : ''} z-20 transition-[opacity,transform] duration-500 ease-out ${
+                cardEntered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
               }`}
-              style={{ 
-                pointerEvents: 'auto',
-
-                ...(assistantName === 'max' && [15, 16, 17, 18, 19, 20].includes(stepNumber) 
-                  ? { 
-                      transform: 'translateY(30px)',
-                      marginBottom: stepNumber === 19 ? '20px' : '10px'
-                    }
-                  : {})
-              }}
+              style={
+                !isFullScreen
+                  ? cardTopPx != null
+                    ? { top: `${cardTopPx}px`, ['--card-top' as any]: `${cardTopPx}px` }
+                    : { top: '42dvh' }
+                  : undefined
+              }
             >
-                <Image
-                  src={imageUrl}
-                  alt={`Assistant for step ${stepNumber}`}
-                  width={300}
-                  height={300}
-                  className="object-contain h-full w-auto"
-                  priority
-                />
+              <div
+                className={`bg-white shadow-2xl ${isFullScreen ? 'min-h-[100dvh]' : 'rounded-3xl overflow-hidden'}`}
+                style={
+                  isFullScreen
+                    ? {}
+                    : {
+                        // Let card auto-size up to the remaining viewport space
+                        maxHeight: 'calc(100dvh - var(--card-top, 42dvh))',
+                        // Slightly overlap to visually "glue" card to character bottom
+                        marginTop: imageUrl ? '-8px' : '0px'
+                      }
+                }
+              >
+                {/* Inner flex column; height is auto, OnboardingStep will handle scroll caps */}
+                <div className="flex flex-col">
+                  <StepComponent />
+                </div>
+              </div>
             </div>
-          </div>
-        )}
-
-        <div 
-          className={`absolute left-0 right-0 z-20 transition-all duration-700 ease-out ${
-            showQuestion && !isExiting && !isGoingBack
-              ? 'opacity-100 translate-y-0' 
-              : 'opacity-0 translate-y-full'
-          }`}
-          style={!isFullScreen ? { 
-            top: !imageUrl ? '10vh' : // No character - start higher
-                 stepNumber === 1 ? '35vh' : 
-                 stepNumber === 6 ? '15vh' : 
-                 stepNumber === 25 ? '30vh' : 
-                 stepNumber === 30 ? '40vh' : 
-                 stepNumber === 31 ? '15vh' : 
-
-                 (assistantName === 'max' && [15, 16, 17, 18, 19, 20].includes(stepNumber)) 
-                   ? (stepNumber === 19 ? '35vh' : stepNumber === 20 ? '37vh' : '38vh')
-                   : '42vh'
-          } : { top: '0' }}
-        >
-          <div 
-            className={`bg-white shadow-2xl ${isFullScreen ? 'min-h-screen' : 'rounded-3xl overflow-hidden'}`}
-            style={isFullScreen ? {} : { 
-              height: !imageUrl ? '90vh' : // No character - use more height
-                     stepNumber === 6 ? '85vh' : 
-                     stepNumber === 30 ? '60vh' : 
-                     stepNumber === 31 ? '85vh' : 
-                     stepNumber === 25 ? '70vh' : 
-
-                     (assistantName === 'max' && [15, 16, 17, 18, 19, 20].includes(stepNumber)) 
-                       ? (stepNumber === 19 ? '65vh' : '62vh')
-                       : '58vh' 
-            }}
-          >
-              <StepComponent />
-          </div>
+          </main>
+        </>
+      ) : (
+        <div className="min-h-[100dvh] bg-background flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
         </div>
-      </main>
+      )}
     </div>
   )
 }

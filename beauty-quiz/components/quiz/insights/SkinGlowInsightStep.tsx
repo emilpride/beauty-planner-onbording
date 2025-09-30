@@ -1,7 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useMemo, useState } from 'react'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
 
@@ -17,33 +16,38 @@ const getSkinTone = (type: string) => {
   switch (type) {
     case 'dry':
       return {
-        heading: 'Hydration Focus',
-        copy: 'We will layer humectants and ceramides, and dial down exfoliation to protect your barrier.',
-        accent: 'from-[#FDE1FF]/60 to-[#C49CFF]/40',
+        heading: 'Hydration',
+        from: '#FFD8E8',
+        to: '#D8C7FF',
+        ring: 'rgba(216, 199, 255, 0.35)',
       }
     case 'oily':
       return {
-        heading: 'Balancing Act',
-        copy: 'Expect mattifying serums paired with lightweight hydration. We will stagger actives to keep things calm.',
-        accent: 'from-[#D9F7FF]/60 to-[#7AD0FF]/40',
+        heading: 'Balance',
+        from: '#D9F7FF',
+        to: '#7AD0FF',
+        ring: 'rgba(122, 208, 255, 0.35)',
       }
     case 'combination':
       return {
-        heading: 'Zone Strategy',
-        copy: 'Multi-masking, targeted serums, and alternating textures will keep both cheeks and T-zone balanced.',
-        accent: 'from-[#FFF0D7]/60 to-[#FFB27F]/40',
+        heading: 'Zones',
+        from: '#FFE7C2',
+        to: '#FFB27F',
+        ring: 'rgba(255, 178, 127, 0.35)',
       }
     case 'normal':
       return {
-        heading: 'Maintain the Glow',
-        copy: 'We will keep your routine polished with antioxidant boosts and gentle weekly resets.',
-        accent: 'from-[#E4FFEA]/60 to-[#8EFFB7]/40',
+        heading: 'Glow',
+        from: '#D8FFE6',
+        to: '#8EFFB7',
+        ring: 'rgba(142, 255, 183, 0.35)',
       }
     default:
       return {
-        heading: 'AI Scan Pending',
-        copy: 'Once you upload photos we will auto-adjust products and cadence for each zone.',
-        accent: 'from-primary/30 to-secondary-50',
+        heading: 'AI Scan',
+        from: '#C5D9FF',
+        to: '#E6F0FF',
+        ring: 'rgba(122, 160, 255, 0.35)',
       }
   }
 }
@@ -70,42 +74,125 @@ export default function SkinGlowInsightStep() {
     [answers.skinProblems],
   )
 
+  // Mount flag to trigger CSS transitions (ring/bar fills)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  // Compute a simple Glow score and 3 compact metrics for a balanced, informative UI
+  const { score, metrics } = useMemo(() => {
+    const probs = answers.skinProblems || []
+    let base = 72
+    switch (answers.skinType) {
+      case 'normal': base = 82; break
+      case 'combination': base = 76; break
+      case 'oily': base = 70; break
+      case 'dry': base = 66; break
+      default: base = 74; break
+    }
+    const penalties = (
+      (probs.includes('acne') ? 8 : 0) +
+      (probs.includes('pigmentation') ? 6 : 0) +
+      (probs.includes('sensitised') ? 10 : 0) +
+      (probs.includes('dullness') ? 5 : 0)
+    )
+    const finalScore = Math.max(30, Math.min(92, base - penalties))
+
+    // Metrics: Hydration, Balance (oil), Calmness (sensitivity)
+    let hydration = 70, balance = 70, calm = 70
+    if (answers.skinType === 'dry') hydration -= 12
+    if (answers.skinType === 'oily') balance -= 10
+    if (probs.includes('sensitised')) calm -= 18
+    if (probs.includes('dullness')) hydration -= 6
+    if (probs.includes('acne')) balance -= 12
+    hydration = Math.max(20, Math.min(95, hydration))
+    balance = Math.max(20, Math.min(95, balance))
+    calm = Math.max(20, Math.min(95, calm))
+
+    return { score: finalScore, metrics: { hydration, balance, calm } }
+  }, [answers.skinType, answers.skinProblems])
+
   return (
-    <OnboardingStep
-      title="Skin Snapshot"
-      subtitle={tone.heading}
-      buttonText="Sounds good"
-      condition
-    >
-      <div className="space-y-6 text-left">
-        <div className="relative overflow-hidden rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft">
-          <motion.div
-            className={`absolute -left-20 -top-28 h-72 w-72 rounded-full blur-3xl bg-gradient-to-br ${tone.accent}`}
-            animate={{ opacity: [0.35, 0.55, 0.35], scale: [0.9, 1.05, 0.9] }}
-            transition={{ repeat: Infinity, duration: 10, ease: 'easeInOut' }}
-          />
-          <div className="relative space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary">Skin profile</p>
-            <div className="flex flex-wrap items-baseline gap-3 text-text-primary">
-              <span className="text-3xl font-bold">{skinTypeLabels[answers.skinType] || 'Pending'}</span>
-              <span className="rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary">Priority focus</span>
-            </div>
-            <p className="text-sm leading-relaxed text-text-secondary">{tone.copy}</p>
+    <OnboardingStep title="Skin care matters" subtitle="Personalized guidance from AI — right after the quiz" buttonText="Continue" centerContent>
+      {/* Brand Aurora animation (no assessments) */}
+      <div className="w-full flex items-center justify-center py-2">
+        <div className="relative w-full max-w-[320px] aspect-square select-none" aria-hidden="true">
+          {/* Soft backdrop */}
+          <div className="absolute inset-0 rounded-3xl" style={{ background: '#F0F4FF' }} />
+
+          {/* Aurora blobs using brand colors */}
+          <div className="absolute inset-0 overflow-hidden rounded-3xl" style={{ filter: 'blur(40px)' }}>
+            <div
+              className="absolute rounded-full"
+              style={{
+                width: '70%', height: '70%', left: '-10%', top: '0%',
+                background: 'radial-gradient(60% 60% at 50% 50%, #8A60FF 0%, rgba(138,96,255,0) 70%)',
+                animation: 'floatA 16s ease-in-out infinite',
+              }}
+            />
+            <div
+              className="absolute rounded-full"
+              style={{
+                width: '65%', height: '65%', right: '-8%', top: '20%',
+                background: 'radial-gradient(60% 60% at 50% 50%, #53E5FF 0%, rgba(83,229,255,0) 70%)',
+                animation: 'floatB 18s ease-in-out infinite',
+              }}
+            />
+            <div
+              className="absolute rounded-full"
+              style={{
+                width: '60%', height: '60%', left: '15%', bottom: '-10%',
+                background: 'radial-gradient(60% 60% at 50% 50%, #FF99CC 0%, rgba(255,153,204,0) 70%)',
+                animation: 'floatC 20s ease-in-out infinite',
+              }}
+            />
+          </div>
+
+          {/* Subtle conic shimmer */}
+          <div className="absolute inset-0 rounded-3xl pointer-events-none" style={{ maskImage: 'radial-gradient(70% 70% at 50% 50%, black 60%, transparent 100%)' }}>
+            <div
+              className="absolute inset-0 rounded-3xl opacity-30"
+              style={{
+                background: 'conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,0.3), rgba(255,255,255,0) 60%)',
+                animation: 'spinBrand 24s linear infinite',
+              }}
+            />
           </div>
         </div>
-
-        <div className="space-y-3 rounded-3xl border border-border-subtle/60 bg-surface/95 p-5 shadow-soft">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary">Top moves</p>
-          <ul className="space-y-3">
-            {priorities.map((item) => (
-              <li key={item} className="flex items-start gap-3 text-sm text-text-secondary">
-                <span className="mt-1 inline-flex h-2 w-2 flex-none rounded-full bg-primary" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
       </div>
+
+      {/* Concise, compliant copy (no superiority claims) */}
+      <p className="mt-2 text-center text-sm text-text-secondary">
+        Consistent, gentle care makes a real difference. Right after the quiz, our trained AI will prepare
+        personalized suggestions informed by a large body of peer‑reviewed research — fast and approachable.
+      </p>
+      <p className="mt-1 text-center text-xs text-text-tertiary">
+        Not medical advice. For medical concerns, consult a qualified professional.
+      </p>
+
+      <style jsx>{`
+        @keyframes floatA {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(12%, -6%) scale(1.03); }
+          66% { transform: translate(-6%, 8%) scale(0.98); }
+        }
+        @keyframes floatB {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(-10%, 6%) scale(1.04); }
+          66% { transform: translate(8%, -6%) scale(0.99); }
+        }
+        @keyframes floatC {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(6%, 10%) scale(0.97); }
+          66% { transform: translate(-8%, -4%) scale(1.02); }
+        }
+        @keyframes spinBrand {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          * { animation: none !important; transition: none !important; }
+        }
+      `}</style>
     </OnboardingStep>
   )
 }

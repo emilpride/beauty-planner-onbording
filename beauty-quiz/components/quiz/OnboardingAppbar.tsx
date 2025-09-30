@@ -5,13 +5,12 @@ import { useRouter } from 'next/navigation'
 // import { ChevronLeft } from 'lucide-react' // Using lucide-react for icons
 
 const progressSections = [
-  { name: 'General', steps: 9 },     // Steps 0-8 (added PersonalityInsightStep at step 2)
-  { name: 'Lifestyle', steps: 7 },   // Steps 9-15 (added EnergyVisualizationStep at step 14)
-  { name: 'Skin', steps: 2 },        // Steps 16-17
-  { name: 'Hair', steps: 2 },        // Steps 18-19
-  { name: 'Beauty', steps: 1 },      // Step 20 (BeautyAnalysisStep)
-  { name: 'Physic', steps: 8 },      // Steps 21-28 (added MomentumCheckStep at step 25)
-  { name: 'AI', steps: 8 },          // Steps 29-36 (extended for new steps)
+  { name: 'General', steps: 9 },     // 0-8
+  { name: 'Lifestyle', steps: 7 },   // 9-15
+  { name: 'Skin', steps: 2 },        // 16-17
+  { name: 'Hair', steps: 2 },        // 18-19
+  { name: 'Wellness', steps: 10 },   // 20-29 (activities, diet, momentum, mood, energy, focus, organization)
+  { name: 'AI', steps: 8 },          // 30-37 (AnalysisIntro + 3 uploads + AI + 3 post-quiz)
 ]
 
 interface OnboardingAppbarProps {

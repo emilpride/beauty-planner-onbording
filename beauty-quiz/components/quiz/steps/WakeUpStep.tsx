@@ -11,6 +11,11 @@ export default function WakeUpStep() {
   const [isAM, setIsAM] = useState(true)
 
   useEffect(() => {
+    // Default to 12h for US-friendly experience if not set
+    if (answers.timeFormat !== '12h' && answers.timeFormat !== '24h') {
+      setAnswer('timeFormat', '12h')
+    }
+
     if (answers.wakeUpTime) {
       const [h, m] = answers.wakeUpTime.split(':').map(Number)
       
@@ -50,11 +55,11 @@ export default function WakeUpStep() {
     
     let timeString: string
     if (answers.timeFormat === '12h') {
-
+      const effectiveIsAM = newIsAM !== undefined ? newIsAM : isAM
       let hour24 = newHours
-      if (!isAM && newHours !== 12) {
+      if (!effectiveIsAM && newHours !== 12) {
         hour24 = newHours + 12
-      } else if (isAM && newHours === 12) {
+      } else if (effectiveIsAM && newHours === 12) {
         hour24 = 0
       }
       timeString = `${hour24.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`
@@ -135,52 +140,44 @@ export default function WakeUpStep() {
       condition={answers.wakeUpTime !== ''}
     >
       <div className="space-y-4 py-1">
+        {/* Format toggle (compact, horizontal) */}
         <div className="flex justify-center">
-          <div className="flex items-center space-x-8">
-          {}
-          <div className="flex flex-col items-center">
-            <div className="relative flex flex-col w-16 h-20 items-center rounded-full bg-gray-100 p-1">
-              <div
-                className="absolute left-1 right-1 h-1/2 rounded-full bg-primary shadow-md transition-transform duration-300 ease-in-out"
-                style={{ transform: `translateY(${answers.timeFormat === '12h' ? '0' : '100%'})` }}
-              />
-              {[
-                { value: '12h', label: '12h' },
-                { value: '24h', label: '24h' }
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setAnswer('timeFormat', option.value as '12h' | '24h')}
-                  className={`relative z-10 w-full h-1/2 rounded-full py-2 text-center text-sm font-semibold transition-colors duration-300 ${
-                    answers.timeFormat === option.value
-                      ? 'text-white' 
-                      : 'text-text-secondary'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+          <div className="inline-flex items-center rounded-full bg-gray-100 p-1 text-xs font-semibold">
+            {[
+              { value: '12h', label: '12h' },
+              { value: '24h', label: '24h' }
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setAnswer('timeFormat', opt.value as '12h' | '24h')}
+                className={`px-3 py-1.5 rounded-full transition-colors ${
+                  answers.timeFormat === opt.value ? 'bg-primary text-white' : 'text-text-secondary'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Hours Column */}
+        {/* Time wheels (compact) */}
+        <div className="flex items-center justify-center gap-3 sm:gap-6">
+          {/* Hours */}
           <div className="flex flex-col items-center">
-            <div 
-              className="h-32 overflow-hidden relative w-20"
+            <div
+              className="h-32 overflow-hidden relative w-16 sm:w-20"
               onWheel={(e) => handleWheel(e, 'hours')}
               onTouchStart={(e) => handleTouchStart(e, 'hours')}
             >
-              <div 
+              <div
                 className="flex flex-col transition-transform duration-300 ease-out"
                 style={{ transform: `translateY(${64 - displayHoursList.indexOf(hours) * 40}px)` }}
               >
                 {displayHoursList.map((hour) => (
                   <div
                     key={hour}
-                    className={`h-10 flex items-center justify-center text-4xl font-bold cursor-pointer transition-all duration-200 ${
-                      hour === hours 
-                        ? 'text-text-primary scale-110' 
-                        : 'text-gray-400 scale-75'
+                    className={`h-10 flex items-center justify-center text-2xl sm:text-4xl font-bold cursor-pointer transition-all duration-200 ${
+                      hour === hours ? 'text-text-primary scale-110' : 'text-gray-400 scale-75'
                     }`}
                     onClick={() => updateTime(hour, minutes)}
                   >
@@ -189,27 +186,28 @@ export default function WakeUpStep() {
                 ))}
               </div>
             </div>
-            <div className="w-20 h-1 bg-primary mt-2 rounded-full"></div>
+            <div className="w-16 sm:w-20 h-1 bg-primary mt-2 rounded-full"></div>
           </div>
 
-          {/* Minutes Column */}
+          {/* Colon */}
+          <div className="text-2xl sm:text-4xl font-bold text-text-primary select-none">:</div>
+
+          {/* Minutes */}
           <div className="flex flex-col items-center">
-            <div 
-              className="h-32 overflow-hidden relative w-20"
+            <div
+              className="h-32 overflow-hidden relative w-16 sm:w-20"
               onWheel={(e) => handleWheel(e, 'minutes')}
               onTouchStart={(e) => handleTouchStart(e, 'minutes')}
             >
-              <div 
+              <div
                 className="flex flex-col transition-transform duration-300 ease-out"
                 style={{ transform: `translateY(${64 - minutesList.indexOf(minutes) * 40}px)` }}
               >
                 {minutesList.map((minute) => (
                   <div
                     key={minute}
-                    className={`h-10 flex items-center justify-center text-4xl font-bold cursor-pointer transition-all duration-200 ${
-                      minute === minutes 
-                        ? 'text-text-primary scale-110' 
-                        : 'text-gray-400 scale-75'
+                    className={`h-10 flex items-center justify-center text-2xl sm:text-4xl font-bold cursor-pointer transition-all duration-200 ${
+                      minute === minutes ? 'text-text-primary scale-110' : 'text-gray-400 scale-75'
                     }`}
                     onClick={() => updateTime(hours, minute)}
                   >
@@ -218,38 +216,30 @@ export default function WakeUpStep() {
                 ))}
               </div>
             </div>
-            <div className="w-20 h-1 bg-primary mt-2 rounded-full"></div>
-          </div>
-
-          {}
-          <div className="flex flex-col items-center">
-            {answers.timeFormat === '12h' ? (
-              <div className="relative flex flex-col w-16 h-20 items-center rounded-full bg-gray-100 p-1">
-                <div
-                  className="absolute left-1 right-1 h-1/2 rounded-full bg-primary shadow-md transition-transform duration-300 ease-in-out"
-                  style={{ transform: `translateY(${isAM ? '0' : '100%'})` }}
-                />
-                {['AM', 'PM'].map((period, index) => (
-                  <button
-                    key={period}
-                    onClick={() => updateTime(hours, minutes, period === 'AM')}
-                    className={`relative z-10 w-full h-1/2 rounded-full py-2 text-center text-sm font-semibold transition-colors duration-300 ${
-                      (period === 'AM' && isAM) || (period === 'PM' && !isAM)
-                        ? 'text-white' 
-                        : 'text-text-secondary'
-                    }`}
-                  >
-                    {period}
-                  </button>
-                ))}
-              </div>
-            ) : (
-
-              <div className="w-16 h-20"></div>
-            )}
-          </div>
+            <div className="w-16 sm:w-20 h-1 bg-primary mt-2 rounded-full"></div>
           </div>
         </div>
+
+        {/* AM/PM toggle (compact) */}
+        {answers.timeFormat === '12h' && (
+          <div className="flex justify-center">
+            <div className="inline-flex items-center rounded-full bg-gray-100 p-1 text-xs font-semibold">
+              {['AM', 'PM'].map((period) => (
+                <button
+                  key={period}
+                  onClick={() => updateTime(hours, minutes, period === 'AM')}
+                  className={`px-3 py-1.5 rounded-full transition-colors ${
+                    (period === 'AM' && isAM) || (period === 'PM' && !isAM)
+                      ? 'bg-primary text-white'
+                      : 'text-text-secondary'
+                  }`}
+                >
+                  {period}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </OnboardingStep>
   )

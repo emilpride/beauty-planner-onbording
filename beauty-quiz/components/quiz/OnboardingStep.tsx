@@ -38,6 +38,12 @@ export default function OnboardingStep({
 }: OnboardingStepProps) {
   const router = useRouter()
   const { nextStep, currentStep } = useQuizStore()
+  
+  // Estimate footer height so content area can auto-size and only scroll when needed
+  // Main button ~64-72px + paddings (pt-4) => ~100-110px; skip adds ~64-76px
+  const footerHeightPx = hideButton
+    ? (skip ? 72 : 0)
+    : (skip ? 176 : 112)
 
   const handleNext = () => {
     if (condition) {
@@ -70,23 +76,30 @@ export default function OnboardingStep({
   }
 
   return (
-    <div className={`h-full flex flex-col p-4 ${centerContent ? 'justify-center' : ''}`}>
-      <div className="flex-1 overflow-y-auto scrollbar-hide">
-        <div className="space-y-1 mb-3">
+    <div className={`flex flex-col p-4 ${centerContent ? 'justify-center' : ''}`}>
+      <div
+        className="overflow-y-auto scrollbar-hide"
+        style={{
+          // Cap text area so it neatly fits under the character and above the footer
+          maxHeight: `calc(100dvh - var(--card-top, 42dvh) - var(--footer-h, ${footerHeightPx}px) - 32px)`,
+          ['--footer-h' as any]: `${footerHeightPx}px`
+        }}
+      >
+        <div className="space-y-1 mb-3 mt-0">
           <h1 className="text-xl font-bold text-text-primary leading-tight">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-sm font-medium text-text-secondary leading-relaxed whitespace-pre-line">
+            <p className="text-sm font-medium text-text-secondary leading-relaxed whitespace-pre-line m-0">
               {subtitle}
             </p>
           )}
         </div>
-        <div>{children}</div>
+        <div className="m-0 p-0">{children}</div>
       </div>
 
       {!hideButton && (
-        <div className="pt-4 flex-shrink-0">
+        <div className="pt-4 flex-shrink-0 bg-white">
           <button
             onClick={handleNext}
             disabled={!condition}
