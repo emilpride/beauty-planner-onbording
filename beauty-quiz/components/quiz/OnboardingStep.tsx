@@ -70,14 +70,14 @@ export default function OnboardingStep({
   }
 
   return (
-    <div className={`h-full flex flex-col p-6 ${centerContent ? 'justify-center' : ''}`}>
+    <div className={`h-full flex flex-col p-4 ${centerContent ? 'justify-center' : ''}`}>
       <div className="flex-1 overflow-y-auto scrollbar-hide">
-        <div className="space-y-1 mb-4">
-          <h1 className="text-2xl font-bold text-text-primary leading-tight">
+        <div className="space-y-1 mb-3">
+          <h1 className="text-xl font-bold text-text-primary leading-tight">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-base font-semibold text-text-secondary leading-relaxed whitespace-pre-line">
+            <p className="text-sm font-medium text-text-secondary leading-relaxed whitespace-pre-line">
               {subtitle}
             </p>
           )}

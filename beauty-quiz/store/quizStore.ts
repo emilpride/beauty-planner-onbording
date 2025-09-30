@@ -1,4 +1,4 @@
-﻿import { create } from 'zustand'
+import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 export interface ActivityMetaOverridePersisted {
@@ -30,7 +30,7 @@ export interface QuizAnswers {
   // Step 8: Lifestyle
   lifestyle: '' | 'sedentary' | 'active' | 'sports'
   
-  // Step 9: Sleep
+  // Step 8: Sleep
   sleepHours: '' | '<6' | '6-7' | '7-8' | '8-9' | '>9'
 
   // Steps 10 & 11: Wake Up & End Day
@@ -50,37 +50,37 @@ export interface QuizAnswers {
   // Step 15: Skin Problems
   skinProblems: string[]
 
-  // Step 16: Hair Type
+  // Step 17: Hair Type
   hairType: string
 
-  // Step 17: Hair Problems
+  // Step 18: Hair Problems
   hairProblems: string[]
 
-  // Step 18: Physical Activities
+  // Step 19: Physical Activities
   physicalActivities: string[]
 
-  // Step 19: Activity Frequency
+  // Step 20: Activity Frequency
   activityFrequency: Array<{ id: string, frequency: number, period: 'day' | 'week' | 'month' | 'year' }>
 
   // Step 20: Diet
   diet: string[]
 
-  // Step 21: Mood
+  // Step 22: Mood
   mood: '' | 'great' | 'good' | 'okay' | 'bad' | 'terrible'
 
-  // Step 22: Energy Level
+  // Step 23: Energy Level
   energyLevel: 1 | 2 | 3 | 4 | 5
 
-  // Step 23: Procrastination
+  // Step 24: Procrastination
   procrastination: '' | 'always' | 'sometimes' | 'rarely' | 'never'
 
-  // Step 24: Focus
+  // Step 25: Focus
   focus: '' | 'always' | 'sometimes' | 'rarely' | 'never'
 
-  // Step 25: Organization Influence
+  // Step 26: Organization Influence
   organizationInfluence: string[]
 
-  // Step 27: Photo Upload
+  // Step 28: Photo Upload
   faceImageUrl: string
   hairImageUrl: string
   bodyImageUrl: string // Added as per documentation
@@ -169,7 +169,7 @@ export const useQuizStore = create<QuizStore>()(
     (set, get) => ({
       answers: initialAnswers,
       currentStep: 0,
-          totalSteps: 30, // 27 quiz steps (0-26) + 3 post-quiz screens (27-29)
+          totalSteps: 37, // 34 quiz screens (0-33) including interludes + 3 post-quiz screens (34-36)
       
       hydrate: () => {
         set((state) => state)

@@ -17,7 +17,7 @@ export default function AIResultsStep() {
 
           setTimeout(() => {
             nextStep()
-            router.push('/quiz/27')
+            router.push('/quiz/34')
           }, 1000)
           return 100
         }

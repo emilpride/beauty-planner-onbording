@@ -1,5 +1,6 @@
 ﻿'use client'
 
+import { motion } from 'framer-motion'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
 import { useEffect, useRef } from 'react'
@@ -48,10 +49,10 @@ export default function MoodStep() {
       hideButton={true}
     >
       <div className="flex justify-around items-center py-2">
-        {options.map((option) => {
+        {options.map((option, index) => {
           const isSelected = answers.mood === option.id
           return (
-            <button
+            <motion.button
               key={option.id}
               onClick={() => handleOptionSelect(option.id)}
               className={`flex flex-col items-center space-y-2 rounded-xl px-4 py-3 transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 ${
@@ -59,19 +60,58 @@ export default function MoodStep() {
                   ? 'scale-110 bg-primary/15 shadow-soft'
                   : 'opacity-70 bg-surface/70 hover:opacity-100 hover:bg-surface-muted'
               }`}
+              initial={{ opacity: 0, y: 30, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ 
+                delay: index * 0.1, 
+                duration: 0.5,
+                type: "spring",
+                stiffness: 200
+              }}
+              whileHover={{ 
+                scale: 1.1,
+                transition: { duration: 0.2 }
+              }}
+              whileTap={{ 
+                scale: 0.95,
+                transition: { duration: 0.1 }
+              }}
             >
-              <div className="w-12 h-12 relative">
+              <motion.div 
+                className="w-12 h-12 relative"
+                animate={isSelected ? { 
+                  scale: [1, 1.3, 1],
+                  rotate: [0, -10, 10, 0]
+                } : {}}
+                transition={{ duration: 0.6, ease: "easeInOut" }}
+              >
                 <Image
                   src={option.emoji}
                   alt={option.label}
                   fill
                   className="object-contain"
                 />
-              </div>
-              <span className={`text-sm font-medium ${isSelected ? 'text-primary' : 'text-text-secondary'}`}>
+              </motion.div>
+              <motion.span 
+                className={`text-sm font-medium ${isSelected ? 'text-primary' : 'text-text-secondary'}`}
+                animate={isSelected ? { 
+                  color: ["rgb(107 114 128)", "rgb(163 133 233)", "rgb(163 133 233)"]
+                } : {}}
+                transition={{ duration: 0.3 }}
+              >
                 {option.label}
-              </span>
-            </button>
+              </motion.span>
+              
+              {/* Selection pulse effect */}
+              {isSelected && (
+                <motion.div
+                  className="absolute inset-0 rounded-xl border-2 border-primary"
+                  initial={{ scale: 1, opacity: 0.8 }}
+                  animate={{ scale: 1.2, opacity: 0 }}
+                  transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 1 }}
+                />
+              )}
+            </motion.button>
           )
         })}
       </div>
