@@ -28,6 +28,7 @@ export default function ContractAgreementStep() {
   const { currentStep, nextStep, answers, setAnswer } = useQuizStore()
   const router = useRouter()
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasSignature, setHasSignature] = useState(false)
   const pointsRef = useRef<Array<{ x: number; y: number }>>([])
@@ -42,26 +43,55 @@ export default function ContractAgreementStep() {
     if (!ctx) return
 
     const setCanvasSize = () => {
-      const rect = canvas.getBoundingClientRect()
-      const dpr = Math.max(1, window.devicePixelRatio || 1)
-      canvas.width = Math.round(rect.width * dpr)
-      canvas.height = Math.round(rect.height * dpr)
+      const dpr = window.devicePixelRatio || 1
+      // Measure the explicit signature container for reliable CSS size
+      const rect = (containerRef.current ?? canvas).getBoundingClientRect()
+      if (rect.width <= 0 || rect.height <= 0) return
+      const cssW = Math.round(rect.width)
+      const cssH = Math.round(rect.height)
+      canvas.width = Math.round(cssW * dpr)
+      canvas.height = Math.round(cssH * dpr)
+      canvas.style.width = cssW + 'px'
+      canvas.style.height = cssH + 'px'
+      // Reset any previous transforms before scaling
       ctx.setTransform(1, 0, 0, 1, 0, 0)
       ctx.scale(dpr, dpr)
+
       ctx.imageSmoothingEnabled = true
       ctx.imageSmoothingQuality = 'high'
       ctx.strokeStyle = theme === 'dark' ? '#FAFAFA' : '#212121'
-      ctx.lineWidth = 3.5
+      ctx.lineWidth = 2.5
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
     }
 
-    setCanvasSize()
+    // Set size on mount and when theme changes
+    let rafId: number | null = null
+    const ensureSized = () => {
+      setCanvasSize()
+      const rect = (containerRef.current ?? canvas).getBoundingClientRect()
+      if (rect.width <= 0 || rect.height <= 0) {
+        rafId = requestAnimationFrame(ensureSized)
+      }
+    }
+    ensureSized()
 
-    const handleResize = () => setCanvasSize()
+    const handleResize = () => {
+      setCanvasSize()
+    }
+
+    // Observe container size changes
+    const obsTarget = containerRef.current ?? canvas
+    const ro = new ResizeObserver(() => setCanvasSize())
+    try { ro.observe(obsTarget) } catch {}
 
     window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId)
+      try { ro.disconnect() } catch {}
+      window.removeEventListener('resize', handleResize)
+    }
   }, [theme])
 
   const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -144,7 +174,7 @@ export default function ContractAgreementStep() {
     }
     // restore scrolling on canvas
     if (canvasRef.current) {
-      canvasRef.current.style.touchAction = 'pan-y'
+      canvasRef.current.style.touchAction = 'auto'
     }
     pointsRef.current = []
     setIsDrawing(false)
@@ -221,18 +251,16 @@ export default function ContractAgreementStep() {
               Sign using your finger:
             </p>
             <div className="rounded-lg border border-border-subtle bg-surface-muted p-3 flex-1 flex flex-col">
-              <div className="relative w-full h-32 sm:h-40 rounded-md">
+              <div className="relative w-full flex-1" ref={containerRef}>
                 <canvas
                   ref={canvasRef}
-                  className={`absolute inset-0 w-full h-full rounded-md cursor-crosshair ${isDrawing ? 'touch-none' : 'touch-pan-y'}`}
-                  onPointerDown={(e) => { 
-                    // disable scrolling immediately while drawing
+                  className="absolute inset-0 w-full h-full rounded-md cursor-crosshair"
+                  onPointerDown={(e) => {
                     if (canvasRef.current) canvasRef.current.style.touchAction = 'none'
                     startDrawing(e)
                   }}
                   onPointerMove={draw}
                   onPointerUp={stopDrawing}
-                  onPointerLeave={stopDrawing}
                   onPointerCancel={stopDrawing}
                 />
               </div>
