@@ -105,12 +105,12 @@ export default function WelcomeCarousel() {
             <div key={slide.id} className="w-full flex-shrink-0 flex flex-col items-center justify-center px-6">
               {/* Image */}
               <div className="flex-1 flex items-center justify-center w-full max-w-sm">
-                <div className="relative w-full h-[55vh] max-h-[450px] rounded-[32px] overflow-hidden">
+                <div className="relative w-full h-[55vh] max-h-[450px] rounded-[40px] sm:rounded-[44px] md:rounded-[48px] overflow-hidden">
                   <Image
                     src={slide.image}
                     alt={`Welcome slide ${slide.id}`}
                     fill
-                    className="object-contain transition-opacity duration-300 rounded-[32px]"
+                    className="object-cover transition-opacity duration-300"
                     priority={index === 0}
                   />
                 </div>

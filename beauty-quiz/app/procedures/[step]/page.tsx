@@ -11,13 +11,14 @@ export function generateStaticParams() {
 }
 
 interface ProceduresPageProps {
-  params: {
+  params: Promise<{
     step: string
-  }
+  }>
 }
 
-export default function ProceduresPage({ params }: ProceduresPageProps) {
-  const step = Number(params.step)
+export default async function ProceduresPage({ params }: ProceduresPageProps) {
+  const { step: stepParam } = await params
+  const step = Number(stepParam)
 
   return (
     <div className="relative min-h-screen overflow-hidden">

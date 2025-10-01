@@ -182,7 +182,6 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   const currentCardHeight = cardHeights[stepNumber] || 0.5;
 
   const assistantName = answers.assistant === 2 ? 'ellie' : 'max'
-  
 
   const startExitAnimation = () => {
     setIsExiting(true)
@@ -250,7 +249,9 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
       if (imageName === 'onboarding_img_What_do_you_want_to_achieve ') {
         return `/images/on_boarding_images/${imageName}_max.png`;
       } else if (imageName === 'onboarding_img_Were excited to create something_just_for_you') {
-      return `/images/on_boarding_images/${imageName}_max.png`;
+        return `/images/on_boarding_images/onboarding_img_Were excited to create something_just_for_you_max.png`;
+      } else if (imageName === 'onboarding_img_Congratulations_on_taking_the_first_step') {
+        return encodeURI(`/images/on_boarding_images/onboarding_img_Congratulations_on_taking_the_first_step_max.png`);
       } else {
         return `/images/on_boarding_images/${imageName}_max.png`;
       }
@@ -261,7 +262,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
       } else if (imageName === 'onboarding_img_Were excited to create something_just_for_you') {
         return `/images/on_boarding_images/onboarding_img_Were_excited_to_create_something_just_for_you_ellie.png`;
       } else if (imageName === 'onboarding_img_Congratulations_on_taking_the_first_step') {
-        return `/images/on_boarding_images/onboarding_img_Congratulations_on_taking_the_first_step_and_Let's_Create_Your_Schedule_ellie.png`;
+        return encodeURI(`/images/on_boarding_images/onboarding_img_Congratulations_on_taking_the_first_step_and_Let’s_Create_Your_Schedule_ellie.png`);
       } else {
         return `/images/on_boarding_images/${imageName}_ellie.png`;
       }
@@ -318,9 +319,10 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
         return
       }
 
-      // Fallback when no character: place under appbar/progress zone (approx 10dvh)
+      // Fallback when no character: place under appbar/progress zone
+      // Use max(12dvh, 88px) to avoid underlapping the app bar on small screens
       const viewportH = Math.max(window.innerHeight, document.documentElement.clientHeight)
-      const approxTop = Math.round(viewportH * 0.10)
+      const approxTop = Math.max(Math.round(viewportH * 0.12), 88)
       setCardTopPx(approxTop)
       setHasMeasured(true)
     }
@@ -355,7 +357,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
                 className="absolute top-0 left-0 right-0 z-10 flex justify-center items-end"
                 style={{
                   // Use dynamic viewport height to avoid mobile browser UI jumps
-                  height: '42dvh',
+                  height: '40dvh',
                   pointerEvents: 'none',
                   ...(assistantName === 'max' && [15, 16, 17, 18, 19, 20].includes(stepNumber)
                     ? {
@@ -401,7 +403,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
                 !isFullScreen
                   ? cardTopPx != null
                     ? { top: `${cardTopPx}px`, ['--card-top' as any]: `${cardTopPx}px` }
-                    : { top: '42dvh' }
+                    : { top: '12dvh' }
                   : undefined
               }
             >
@@ -412,9 +414,9 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
                     ? {}
                     : {
                         // Let card auto-size up to the remaining viewport space
-                        maxHeight: 'calc(100dvh - var(--card-top, 42dvh))',
+                        maxHeight: 'calc(100svh - var(--card-top, 12dvh))',
                         // Slightly overlap to visually "glue" card to character bottom
-                        marginTop: imageUrl ? '-8px' : '0px'
+                        marginTop: imageUrl ? '-16px' : '0px'
                       }
                 }
               >

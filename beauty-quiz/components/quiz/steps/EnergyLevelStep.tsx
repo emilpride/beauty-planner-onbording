@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 
 export default function EnergyLevelStep() {
   const { answers, setAnswer } = useQuizStore()
-  const [currentLevel, setCurrentLevel] = useState(answers.energyLevel || 1)
+  const [currentLevel, setCurrentLevel] = useState<1 | 2 | 3 | 4 | 5>((answers.energyLevel as 1 | 2 | 3 | 4 | 5) || 1)
 
   useEffect(() => {
     if (!answers.energyLevel) {
@@ -15,9 +15,9 @@ export default function EnergyLevelStep() {
     }
   }, [answers.energyLevel, setAnswer])
 
-  const handleLevelClick = (level: number) => {
+  const handleLevelClick = (level: 1 | 2 | 3 | 4 | 5) => {
     setCurrentLevel(level)
-    setAnswer('energyLevel', level as any)
+    setAnswer('energyLevel', level)
   }
 
   const getBatteryColor = (level: number) => {
@@ -49,7 +49,7 @@ export default function EnergyLevelStep() {
                 {[5, 4, 3, 2, 1].map((bar) => (
                   <button
                     key={bar}
-                    onClick={() => handleLevelClick(bar)}
+                    onClick={() => handleLevelClick(bar as 1 | 2 | 3 | 4 | 5)}
                     className={`w-[91px] h-[32px] rounded-[5px] transition-all duration-200 hover:scale-105 ${
                       bar <= currentLevel ? batteryColor : 'bg-gray-200 hover:bg-gray-300'
                     } ${bar === currentLevel ? 'ring-2 ring-primary ring-opacity-50' : ''}`}

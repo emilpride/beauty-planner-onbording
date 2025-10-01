@@ -81,8 +81,11 @@ export default function OnboardingStep({
         className="overflow-y-auto scrollbar-hide"
         style={{
           // Cap text area so it neatly fits under the character and above the footer
-          maxHeight: `calc(100dvh - var(--card-top, 42dvh) - var(--footer-h, ${footerHeightPx}px) - 32px)`,
-          ['--footer-h' as any]: `${footerHeightPx}px`
+          // Use 100svh to avoid iOS dynamic toolbar hiding the footer
+          maxHeight: `calc(100svh - var(--card-top, 42dvh) - var(--footer-h, ${footerHeightPx}px) - var(--safe-bottom, 0px) - 32px)`,
+          ['--footer-h' as any]: `${footerHeightPx}px`,
+          // Safe area for devices with a home indicator (iOS)
+          ['--safe-bottom' as any]: 'env(safe-area-inset-bottom)'
         }}
       >
         <div className="space-y-1 mb-3 mt-0">
@@ -99,7 +102,10 @@ export default function OnboardingStep({
       </div>
 
       {!hideButton && (
-        <div className="pt-4 flex-shrink-0 bg-white">
+        <div
+          className="pt-4 flex-shrink-0 bg-surface border-t border-border-subtle"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
+        >
           <button
             onClick={handleNext}
             disabled={!condition}
@@ -124,7 +130,10 @@ export default function OnboardingStep({
       )}
 
       {hideButton && skip && (
-        <div className={`${centerContent ? 'pt-6' : 'mt-auto pt-4'}`}>
+        <div
+          className={`${centerContent ? 'pt-6' : 'mt-auto pt-4'} bg-surface`}
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
+        >
           <button
             onClick={handleSkip}
             className="w-full py-3 px-6 text-text-secondary font-medium hover:text-text-primary transition-colors duration-200"

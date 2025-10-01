@@ -1,8 +1,9 @@
 'use client'
 
+
 import { useQuizStore } from '@/store/quizStore'
 import { useRouter } from 'next/navigation'
-// import { ChevronLeft } from 'lucide-react' // Using lucide-react for icons
+import ProgressBar from './ui/ProgressBar'
 
 const progressSections = [
   { name: 'General', steps: 9 },     // 0-8
@@ -73,20 +74,8 @@ export default function OnboardingAppbar({ onBackAnimation }: OnboardingAppbarPr
           </svg>
         </button>
 
-        <div className="flex-1 flex items-center space-x-2">
-          {progressSections.map((section, index) => (
-            <div key={section.name} className="flex-1 flex flex-col items-center">
-              <div className="w-full h-1.5 bg-gray-300 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary transition-all duration-300"
-                  style={{ width: index < completedSections ? '100%' : index === completedSections ? `${(stepsInCurrentSection / totalStepsInCurrentSection) * 100}%` : '0%' }}
-                />
-              </div>
-              <span className={`mt-1 text-xs font-medium ${index <= completedSections ? 'text-primary' : 'text-gray-400'}`}>
-                {section.name}
-              </span>
-            </div>
-          ))}
+        <div className="flex-1">
+          <ProgressBar sections={progressSections} currentStep={currentStep} />
         </div>
       </div>
     </header>

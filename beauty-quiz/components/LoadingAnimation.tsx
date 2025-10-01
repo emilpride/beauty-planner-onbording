@@ -143,9 +143,66 @@ export default function LoadingAnimation({ onComplete, duration = 3000 }: Loadin
             filter: blur(50px);
             opacity: 0.8;
           }
+
+          /* Extra outer rings to better fill large screens */
+          .ellipse-32 {
+            position: absolute;
+            width: 760px; /* 490 + 270 */
+            height: 760px;
+            left: -135px; /* -(760-490)/2 */
+            top: -135px;
+            background: #6D28D9; /* deeper brand purple */
+            border-radius: 50%;
+            opacity: 0.18;
+            filter: blur(2px);
+          }
+
+          .ellipse-33 {
+            position: absolute;
+            width: 920px; /* 490 + 430 */
+            height: 920px;
+            left: -215px; /* -(920-490)/2 */
+            top: -215px;
+            background: #8A60FF; /* brand violet */
+            border-radius: 50%;
+            opacity: 0.12;
+            mix-blend-mode: screen;
+            filter: blur(1px);
+          }
+
+          .ellipse-34 {
+            position: absolute;
+            width: 1100px; /* bigger outer ring */
+            height: 1100px;
+            left: -305px; /* -(1100-490)/2 */
+            top: -305px;
+            background: #53E5FF; /* brand aqua */
+            border-radius: 50%;
+            opacity: 0.08;
+            mix-blend-mode: screen;
+            filter: blur(1px);
+          }
+
+          .ellipse-35 {
+            position: absolute;
+            width: 1280px; /* biggest ring */
+            height: 1280px;
+            left: -395px; /* -(1280-490)/2 */
+            top: -395px;
+            background: #FF99CC; /* brand pink */
+            border-radius: 50%;
+            opacity: 0.06;
+            mix-blend-mode: screen;
+            filter: blur(1px);
+          }
         `}</style>
 
         <div className="ellipse-container">
+          {/* Larger background rings first so they sit behind */}
+          <div className="ellipse-35"></div>
+          <div className="ellipse-34"></div>
+          <div className="ellipse-33"></div>
+          <div className="ellipse-32"></div>
           <div className="ellipse-29"></div>
           <div className="ellipse-25"></div>
           <div className="ellipse-28"></div>

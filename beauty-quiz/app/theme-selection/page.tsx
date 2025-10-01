@@ -85,7 +85,7 @@ export default function ThemeSelectionPage() {
 
                 <motion.button
                   type="button"
-                  onClick={(event) => {
+                  onClick={(event: React.MouseEvent) => {
                     event.stopPropagation()
                     handleSelect('light')
                   }}
@@ -126,7 +126,7 @@ export default function ThemeSelectionPage() {
                 
                 <motion.button
                   type="button"
-                  onClick={(event) => {
+                  onClick={(event: React.MouseEvent) => {
                     event.stopPropagation()
                     handleSelect('dark')
                   }}

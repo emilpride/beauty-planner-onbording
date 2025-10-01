@@ -47,7 +47,7 @@ export default function ImageUpload({ type, currentImageUrl, onUploadComplete }:
         setPreviewUrl(base64Url)
 
         // Store the image in the quiz state
-        setAnswer(${type}ImageUrl, base64Url)
+        setAnswer(`${type}ImageUrl`, base64Url)
 
         // Notify parent components
         onUploadComplete?.(base64Url)
@@ -65,7 +65,7 @@ export default function ImageUpload({ type, currentImageUrl, onUploadComplete }:
 
   const handleRemoveImage = () => {
     setPreviewUrl(null)
-    setAnswer(${type}ImageUrl, '')
+    setAnswer(`${type}ImageUrl`, '')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -94,7 +94,7 @@ export default function ImageUpload({ type, currentImageUrl, onUploadComplete }:
           <div className="space-y-4">
             <img
               src={previewUrl}
-              alt={Preview }
+              alt="Preview"
               className="mx-auto max-h-64 rounded-lg object-cover"
             />
             <div className="flex gap-2 justify-center">
