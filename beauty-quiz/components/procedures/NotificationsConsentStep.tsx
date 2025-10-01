@@ -20,9 +20,10 @@ export default function NotificationsConsentStep() {
   }
 
   const getAssistantImage = () => {
-    return answers.assistant === 2 
-      ? '/images/content/assistant_ellie.png'
-      : '/images/content/assistant_max.png'
+    // Show the specific reminders illustration per assistant
+    return answers.assistant === 2
+      ? '/images/on_boarding_images/reminders.png'
+      : '/images/on_boarding_images/reminders_max.png'
   }
 
   return (

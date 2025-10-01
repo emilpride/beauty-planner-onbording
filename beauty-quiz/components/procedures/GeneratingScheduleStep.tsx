@@ -6,6 +6,30 @@ import { useQuizStore } from '@/store/quizStore'
 import { useRouter } from 'next/navigation'
 import { motion, animate } from 'framer-motion'
 
+const STEP_INTERVAL_MS = 2500
+
+function AnimatedDots() {
+  return (
+    <span aria-hidden className="inline-flex ml-1 align-middle text-text-secondary">
+      <motion.span
+        className="mx-0.5 h-1.5 w-1.5 rounded-full bg-current"
+        animate={{ opacity: [0.25, 1, 0.25], y: [0, -2, 0] }}
+        transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut', delay: 0 }}
+      />
+      <motion.span
+        className="mx-0.5 h-1.5 w-1.5 rounded-full bg-current"
+        animate={{ opacity: [0.25, 1, 0.25], y: [0, -2, 0] }}
+        transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
+      />
+      <motion.span
+        className="mx-0.5 h-1.5 w-1.5 rounded-full bg-current"
+        animate={{ opacity: [0.25, 1, 0.25], y: [0, -2, 0] }}
+        transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+      />
+    </span>
+  )
+}
+
 export default function GeneratingScheduleStep() {
   const { currentStep, nextStep, answers } = useQuizStore()
   const router = useRouter()
@@ -32,7 +56,7 @@ export default function GeneratingScheduleStep() {
         }
         return nextIndex
       })
-    }, 2500)
+  }, STEP_INTERVAL_MS)
 
     return () => clearInterval(interval)
   }, [currentStep, nextStep, router])
@@ -53,8 +77,11 @@ export default function GeneratingScheduleStep() {
 
     if (isCurrent) {
       return (
-        <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary/90">
+          <div className="relative w-4 h-4">
+            <div className="absolute inset-0 rounded-full border-2 border-white/60 border-t-transparent animate-spin" />
+            <div className="absolute inset-1 rounded-full bg-white/20" />
+          </div>
         </div>
       )
     }
@@ -65,9 +92,10 @@ export default function GeneratingScheduleStep() {
   }
 
   const getAssistantImage = () => {
-    return answers.assistant === 2 
-      ? '/images/content/assistant_ellie.png'
-      : '/images/content/assistant_max.png'
+    // Show the specific "creating schedule" illustration per assistant
+    return answers.assistant === 2
+      ? '/images/on_boarding_images/creating_schedule_ellie.png'
+      : '/images/on_boarding_images/creating_schedule_max.png'
   }
 
   return (
@@ -119,20 +147,38 @@ export default function GeneratingScheduleStep() {
 
         {/* Progress List */}
         <div className="w-full max-w-md space-y-6">
-          {steps.map((step, index) => (
-            <motion.div
-              key={step.id}
-              className="flex items-center space-x-4 p-4 bg-surface bg-opacity-80 rounded-xl backdrop-blur-sm"
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.2 }}
-            >
-              {getStatusIcon(index)}
-              <div className="flex-1">
-                <h3 className="font-semibold text-text-primary">{step.title}</h3>
-              </div>
-            </motion.div>
-          ))}
+          {steps.map((step, index) => {
+            const isCurrent = index === currentStepIndex
+            const isCompleted = index < currentStepIndex
+            return (
+              <motion.div
+                key={step.id}
+                className="p-4 rounded-xl bg-surface/80 backdrop-blur-sm shadow-sm"
+                initial={{ opacity: 0, x: -40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.45, delay: index * 0.15 }}
+              >
+                <div className="flex items-center gap-4">
+                  {getStatusIcon(index)}
+                  <div className="flex-1">
+                    <div className="flex items-baseline gap-2">
+                      <h3 className="font-semibold text-text-primary">{step.title}</h3>
+                      {isCurrent && <AnimatedDots />}
+                    </div>
+                  </div>
+                </div>
+                {/* Timed progress bar (only animate for current step) */}
+                <div className="mt-3 h-1.5 w-full rounded-full bg-border-subtle/40 overflow-hidden">
+                  <motion.div
+                    className={`h-full rounded-full ${isCompleted ? 'bg-green-500' : 'bg-primary'}`}
+                    initial={{ width: isCompleted ? '100%' : '0%' }}
+                    animate={{ width: isCurrent ? '100%' : isCompleted ? '100%' : '0%' }}
+                    transition={{ duration: isCurrent ? STEP_INTERVAL_MS / 1000 : 0.2, ease: 'easeInOut' }}
+                  />
+                </div>
+              </motion.div>
+            )
+          })}
         </div>
 
         {/* Loading Text */}

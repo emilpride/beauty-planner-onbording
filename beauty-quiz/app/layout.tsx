@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import './carousel-styles.css'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import ClientShell from '@/components/ClientShell'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,7 +21,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="light" suppressHydrationWarning>
       <body className={[inter.className, 'antialiased'].join(' ')} suppressHydrationWarning>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <ClientShell>{children}</ClientShell>
+        </ThemeProvider>
       </body>
     </html>
   )
