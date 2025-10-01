@@ -5,26 +5,27 @@ import { LayoutGroup, motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useQuizStore } from '@/store/quizStore'
-import { getActivityMeta } from './activityMeta'
+import { getActivityMeta, FULL_WEEK } from './activityMeta'
 import { getProceduresIconById } from './proceduresIconCatalog'
 
 interface ActivitySetting {
   id: string
   name: string
   note: string
-  repeat: 'Daily' | 'Weekly' | 'Monthly'
+  repeat: 'Daily' | 'Weekly' | 'Monthly' | null
   allDay: boolean
   weekdays: number[]
   monthlyDays: number[]
   time: string
-  timePeriod: 'Morning' | 'Afternoon' | 'Evening'
+  timePeriod: 'Morning' | 'Afternoon' | 'Evening' | null
   endDate: boolean
   endType: 'date' | 'days'
   endDateValue: string
   endDaysValue: number
   remind: boolean
-  remindBefore: number
-  remindBefore2: number
+  // Reminders: quantity (1-60) + unit (seconds/minutes/hours/days/weeks/months/years)
+  remindAmount: number
+  remindUnit: 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | 'years'
 }
 
 const createActivitySetting = (activityId: string, fallbackName?: string): ActivitySetting => {
@@ -34,28 +35,29 @@ const createActivitySetting = (activityId: string, fallbackName?: string): Activ
     id: activityId,
     name: meta.name,
     note: '',
-    repeat: 'Daily',
+    repeat: null,
     allDay: true,
-    weekdays: [0, 1, 2, 3, 4, 5, 6],
+    weekdays: [],
     monthlyDays: [],
     time: '',
-    timePeriod: 'Morning',
+    timePeriod: null,
     endDate: false,
     endType: 'date',
     endDateValue: '',
     endDaysValue: 30,
     remind: false,
-    remindBefore: 15,
-    remindBefore2: 5,
+    remindAmount: 15,
+    remindUnit: 'minutes',
   }
 }
 
 const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const repeatOptions: ActivitySetting['repeat'][] = ['Daily', 'Weekly', 'Monthly']
-const periodOptions: ActivitySetting['timePeriod'][] = ['Morning', 'Afternoon', 'Evening']
-const remindPrimaryOptions = [5, 10, 15, 30, 60]
-const remindSecondaryOptions = [5, 10, 15, 30]
+const repeatOptions: Exclude<ActivitySetting['repeat'], null>[] = ['Daily', 'Weekly', 'Monthly']
+const periodOptions: Exclude<ActivitySetting['timePeriod'], null>[] = ['Morning', 'Afternoon', 'Evening']
+// Reminder controls
+const remindAmountOptions = Array.from({ length: 60 }, (_, i) => i + 1)
+const remindUnits = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'] as const
 const weeklyNumberLabels = [1, 2, 3, 4, 5, 6, 7]
 const monthDays = Array.from({ length: 31 }, (_, index) => index + 1)
 
@@ -106,12 +108,15 @@ const formatWeekdaySummary = (weekdays: number[]) => {
 }
 
 const formatRepeatSummary = (activity: ActivitySetting) => {
+  if (!activity.repeat) return ''
   if (activity.repeat === 'Daily') {
     return 'Daily  -  Every day'
   }
 
   if (activity.repeat === 'Weekly') {
-    return `Weekly  -  ${formatWeekdaySummary(activity.weekdays)}`
+    // In Weekly mode, we interpret weekdays[0] as the index of the selected number (0..6 => 1..7)
+    const count = activity.weekdays.length === 1 ? weeklyNumberLabels[activity.weekdays[0]] : 0
+    return `Weekly  -  ${count} day${count === 1 ? '' : 's'} per week`
   }
 
   return `Monthly  -  ${activity.monthlyDays.length ? formatMonthlySummary(activity.monthlyDays) : 'Select dates'}`
@@ -121,10 +126,19 @@ const formatReminderSummary = (activity: ActivitySetting) => {
   if (!activity.remind) {
     return 'Reminders are turned off for now'
   }
-
-  const primaryLabel = activity.remindBefore === 60 ? '1 hour' : `${activity.remindBefore} min`
-  const secondaryLabel = `${activity.remindBefore2} min`
-  return `Reminds you ${primaryLabel} & ${secondaryLabel} before the activity`
+  const amount = activity.remindAmount
+  const unit = activity.remindUnit
+  const singularMap: Record<ActivitySetting['remindUnit'], string> = {
+    seconds: 'second',
+    minutes: 'minute',
+    hours: 'hour',
+    days: 'day',
+    weeks: 'week',
+    months: 'month',
+    years: 'year',
+  }
+  const unitLabel = amount === 1 ? singularMap[unit] : unit
+  return `Reminds you ${amount} ${unitLabel} before the activity`
 }
 const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: (value: boolean) => void }) => {
   return (
@@ -133,12 +147,12 @@ const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: (valu
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-7 w-12 items-center rounded-full border border-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9B8F5] focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
-        checked ? 'bg-[#8F74E5]' : 'bg-[#D8DAEE]'
+      className={`relative inline-flex h-7 w-12 items-center rounded-full border border-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9B8F5] focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+        checked ? 'bg-[#8F74E5]' : 'bg-[#D8DAEE] dark:bg-white/20'
       }`}
     >
       <span
-        className={`inline-block h-6 w-6 rounded-full bg-surface shadow transition-transform ${
+        className={`inline-block h-6 w-6 rounded-full bg-surface dark:bg-white shadow transition-transform ${
           checked ? 'translate-x-5' : 'translate-x-1'
         }`}
       />
@@ -363,24 +377,27 @@ export default function ProcedureSetupStep() {
   const handleRepeatChange = (index: number, repeat: ActivitySetting['repeat']) => {
     setActivitySettings((prev) =>
       prev.map((activity, activityIndex) => {
-        if (activityIndex !== index) {
-          return activity
-        }
+        if (activityIndex !== index) return activity
 
         if (repeat === 'Daily') {
-          const weekdays = activity.weekdays.length ? activity.weekdays : [0, 1, 2, 3, 4, 5, 6]
-          return { ...activity, repeat, allDay: true, weekdays }
+          // Default to custom selection; "Everyday" toggle can select all.
+          const weekdays = activity.weekdays
+          return { ...activity, repeat, weekdays }
         }
 
         if (repeat === 'Weekly') {
-          const weekdays = activity.weekdays.length ? activity.weekdays : [1]
+          const weekdays = activity.weekdays
           return { ...activity, repeat, allDay: false, weekdays }
         }
 
-        const monthlyDaysSelection = activity.monthlyDays.length ? activity.monthlyDays : []
+        // Monthly
+        const monthlyDaysSelection = activity.monthlyDays
         return { ...activity, repeat, allDay: false, monthlyDays: monthlyDaysSelection }
       }),
     )
+    if (repeat === 'Monthly') {
+      setOpenMonthlyModal({ index, days: activitySettings[index]?.monthlyDays || [] })
+    }
   }
 
   const toggleWeekday = (activityIndex: number, dayIndex: number) => {
@@ -390,16 +407,23 @@ export default function ProcedureSetupStep() {
           return activity
         }
 
-        const isSelected = activity.weekdays.includes(dayIndex)
+        // Weekly: allow selecting only one day from 1..7
+        if (activity.repeat === 'Weekly') {
+          // Toggle the single selected day; allow clearing selection back to empty
+          if (activity.weekdays.includes(dayIndex)) {
+            return { ...activity, weekdays: [] }
+          }
+          return { ...activity, weekdays: [dayIndex] }
+        }
 
+        // Daily: toggle multiple days freely (but don't allow empty-only deselect if it would remove the last selected)
+        const isSelected = activity.weekdays.includes(dayIndex)
         if (isSelected && activity.weekdays.length === 1) {
           return activity
         }
-
         const nextDays = isSelected
           ? activity.weekdays.filter((day) => day !== dayIndex)
           : [...activity.weekdays, dayIndex].sort((a, b) => a - b)
-
         return { ...activity, weekdays: nextDays }
       }),
     )
@@ -458,467 +482,375 @@ export default function ProcedureSetupStep() {
       },
     ]
   }, [activitySettings, remindCount])
+  const setPeriodAndTime = (idx: number, period: Exclude<ActivitySetting['timePeriod'], null>) => {
+    const timeMap: Record<typeof period, string> = {
+      Morning: '07:00',
+      Afternoon: '13:00',
+      Evening: '19:00',
+    }
+    updateActivity(idx, { timePeriod: period, time: timeMap[period], allDay: false })
+  }
+
   return (
     <div className="min-h-screen bg-background text-text-primary">
-      <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-8 sm:px-6 lg:px-12">
-        <motion.header
-          initial={{ opacity: 0, translateY: 24 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="relative mb-10 overflow-hidden rounded-[36px] bg-surface px-6 py-8 shadow-[0_24px_48px_rgba(92,70,136,0.12)] sm:px-8"
-        >
-          <motion.div
-            className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full blur-3xl"
-            style={{ background: 'linear-gradient(135deg, rgba(163,133,233,0.35) 0%, rgba(188,202,247,0.28) 100%)' }}
-            animate={{ scale: [1, 1.1, 1], rotate: [0, 12, 0] }}
-            transition={floatTransition}
-          />
-          <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-4">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-border-subtle/60 bg-surface text-text-primary transition hover:border-[#C0C4ED] hover:bg-[#F5F3FF]"
-                aria-label="Go back"
+      {/* Scrollable content (hide scrollbar) */}
+      <div className="mx-auto h-[100svh] w-full max-w-md overflow-y-auto scrollbar-hide">
+        {/* Top bar */}
+        <div className="px-4 pt-4">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            aria-label="Go back"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-text-primary"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M15 6L9 12L15 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="px-4 pb-[140px]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 140px)' }}>
+          {activitySettings.map((activity, index) => {
+          const override = activityMetaOverrides[activity.id]
+          const meta = getActivityMeta(activity.id, override?.name ?? activity.name)
+          const iconEntry = override?.iconId ? getProceduresIconById(override.iconId) : null
+          const iconPath = iconEntry?.path ?? meta.iconPath
+          const primaryColor = override?.primary ?? meta.primary
+          const surfaceColor = override?.surface ?? meta.surface
+          const displayName = override?.name ?? meta.name
+            const isWeekly = activity.repeat === 'Weekly'
+            const isMonthly = activity.repeat === 'Monthly'
+
+            return (
+              <div key={activity.id} className="mb-8">
+              {/* Header pill */}
+              <div
+                className="flex items-center gap-3 rounded-[100px] px-3 py-2 shadow-sm"
+                style={{ background: surfaceColor }}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="M15 6L9 12L15 18"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Procedure Setup</p>
-                <h1 className="mt-2 text-3xl font-semibold text-text-primary sm:text-4xl">
-                  Design your beauty routines
-                </h1>
-                <p className="mt-3 text-sm text-text-secondary sm:max-w-xl">
-                  Craft a schedule that feels effortless. Tune cadence, reminders, and notes for each procedure so your
-                  self-care flows naturally.
-                </p>
+                <div className="relative h-12 w-12 flex-shrink-0 rounded-full" style={{ backgroundColor: primaryColor }}>
+                  <div className="absolute inset-0 grid place-items-center">
+                    <Image src={iconPath} alt={`${displayName} icon`} width={24} height={24} />
+                  </div>
+                </div>
+                <div className="flex min-w-0 flex-1 items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate text-[16px] font-medium leading-5 text-text-primary">{displayName}</p>
+                    <p className="text-[12px] leading-5 text-text-secondary">
+                      {activity.time ? formatTimeLabel(activity.time).replace(' ', '') : activity.allDay ? 'All day' : '—'}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="grid w-full gap-4 sm:grid-cols-3 lg:w-auto">
-              {quickStats.map((stat, index) => (
-                <QuickStat key={stat.label} label={stat.label} value={stat.value} detail={stat.detail} delay={index * 0.08} />
-              ))}
-            </div>
-          </div>
-        </motion.header>
 
-        <div className="flex w-full flex-col items-center gap-8">
-          <div className="flex w-full max-w-4xl flex-col gap-8">
-            {activitySettings.map((activity, index) => {
-              const override = activityMetaOverrides[activity.id]
-              const meta = getActivityMeta(activity.id, override?.name ?? activity.name)
-              const iconEntry = override?.iconId ? getProceduresIconById(override.iconId) : null
-              const iconPath = iconEntry?.path ?? meta.iconPath
-              const primaryColor = override?.primary ?? meta.primary
-              const surfaceColor = override?.surface ?? meta.surface
-              const displayName = override?.name ?? meta.name
-              const accentGradient = accentGradients[index % accentGradients.length]
-              const accentGlow = accentGlows[index % accentGlows.length]
-              const repeatSummary = formatRepeatSummary(activity)
-              const reminderSummary = formatReminderSummary(activity)
-              const displayTime = activity.allDay
-                ? 'All day flow'
-                : activity.time
-                ? formatTimeLabel(activity.time)
-                : 'Set time'
-              const isWeekly = activity.repeat === 'Weekly'
-              const isMonthly = activity.repeat === 'Monthly'
-              const isDaily = activity.repeat === 'Daily'
-
-              return (
-                <motion.section
-                  key={activity.id}
-                  layout
-                  initial={{ opacity: 0, translateY: 16 }}
-                  animate={{ opacity: 1, translateY: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  whileHover={{ translateY: -4 }}
-                  className="relative overflow-hidden rounded-[32px] border border-border-subtle/60 bg-surface shadow-[0_24px_48px_rgba(92,70,136,0.1)]"
-                >
-                  <motion.div
-                    className="pointer-events-none absolute -right-32 -top-32 h-72 w-72 rounded-full"
-                    style={{ background: accentGradient }}
-                    animate={{ rotate: [0, 18, 0], scale: [1, 1.08, 1] }}
-                    transition={floatTransition}
+              {/* Note */}
+              <div className="mt-4">
+                <div className="px-1 text-[14px] font-bold text-text-primary">Note</div>
+                <div className="mt-2 rounded-[8px] border border-border-subtle bg-surface">
+                  <textarea
+                    value={activity.note}
+                    onChange={(e) => updateActivity(index, { note: e.target.value })}
+                    placeholder="Type the note here.."
+                    className="h-[120px] w-full resize-none rounded-[8px] bg-transparent px-4 py-3 text-[15px] text-text-primary placeholder:text-text-secondary focus:outline-none"
                   />
-                  <motion.div
-                    className="pointer-events-none absolute -bottom-28 -left-20 h-64 w-64 rounded-full blur-3xl"
-                    style={{ backgroundColor: accentGlow }}
-                    animate={{ scale: [1, 1.12, 1], opacity: [0.45, 0.7, 0.45] }}
-                    transition={floatTransition}
-                  />
-                  <div className="relative flex flex-col gap-8 p-6 sm:p-8">
-                    <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                      <div className="flex flex-col gap-4">
-                        <div
-                          className="rounded-[24px] border border-white/40 px-5 py-4 shadow-[0_18px_32px_rgba(92,70,136,0.08)]"
-                          style={{ background: surfaceColor }}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div
-                              className="relative flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_20px_32px_rgba(0,0,0,0.12)]"
-                              style={{ backgroundColor: primaryColor }}
-                            >
-                              <motion.span
-                                className="absolute inset-0 rounded-full"
-                                animate={{ scale: [1, 1.09, 1] }}
-                                transition={floatTransition}
-                                style={{ backgroundColor: primaryColor, opacity: 0.25 }}
-                              />
-                              <Image src={iconPath} alt={`${displayName} icon`} width={30} height={30} />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="truncate text-lg font-semibold text-[#4B3A78] md:text-xl">{displayName}</p>
-                              <p className="text-sm text-[#5F6180]">{repeatSummary}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-wide text-[#8C8FA9]">
-                          <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle/50 bg-surface/80 px-4 py-2">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                              <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.5" />
-                              <path
-                                d="M12 8V12L14.5 13.5"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                            {displayTime}
-                          </span>
-                          <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle/50 bg-surface/80 px-4 py-2">
-                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: primaryColor }} />
-                            {activity.timePeriod}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="rounded-3xl border border-border-subtle/50 bg-surface/60 px-5 py-4 text-sm text-text-primary shadow-[0_16px_32px_rgba(92,70,136,0.08)] backdrop-blur">
-                        <p className="font-semibold">At a glance</p>
-                        <p className="mt-1 text-xs text-[#8C8FA9]">{reminderSummary}</p>
-                      </div>
-                    </div>
+                </div>
+              </div>
 
-                    <div className="grid gap-8 lg:grid-cols-2">
-                      <div className="space-y-6">
-                        <div className="flex flex-col gap-2">
-                          <span className="text-sm font-semibold text-[#4B3A78]">Personal note</span>
-                          <textarea
-                            value={activity.note}
-                            onChange={(event) => updateActivity(index, { note: event.target.value })}
-                            placeholder="Add a note about this activity"
-                            className="min-h-[120px] rounded-2xl border border-border-subtle/60 bg-[#FBFBFE] px-4 py-3 text-sm text-text-primary placeholder:text-[#B4B7D4] focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
-                          />
-                        </div>
-
-                        <div className="flex flex-col gap-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-semibold text-[#4B3A78]">Repeat cadence</span>
-                            <span className="text-xs font-medium text-[#8C8FA9]">{repeatSummary}</span>
-                          </div>
-                          <LayoutGroup id={`repeat-group-${activity.id}`}>
-                            <div className="flex flex-wrap gap-2">
-                              {repeatOptions.map((option) => (
-                                <OptionPill
-                                  key={option}
-                                  label={option}
-                                  active={activity.repeat === option}
-                                  onClick={() => handleRepeatChange(index, option)}
-                                  highlightId={`highlight-repeat-${activity.id}`}
-                                  activeColor={primaryColor}
-                                />
-                              ))}
-                            </div>
-                          </LayoutGroup>
-
-                          {(isDaily || isWeekly) && (
-                            <div className="flex flex-wrap gap-2">
-                              {dayLabels.map((label, dayIndex) => {
-                                const isActive = activity.weekdays.includes(dayIndex)
-                                return (
-                                  <button
-                                    type="button"
-                                    key={label}
-                                    onClick={() => toggleWeekday(index, dayIndex)}
-                                    className={`h-10 w-10 rounded-full text-sm font-medium transition ${
-                                      isActive
-                                        ? 'bg-[#5C4688] text-white shadow-[0_10px_20px_rgba(92,70,136,0.18)]'
-                                        : 'border border-border-subtle/60 bg-surface text-text-primary hover:border-[#8F74E5]'
-                                    }`}
-                                  >
-                                    {label}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          )}
-
-                          {isWeekly && (
-                            <div className="flex flex-wrap gap-2">
-                              {weeklyNumberLabels.map((label) => (
-                                <span
-                                  key={label}
-                                  className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-border-subtle/60 text-xs font-semibold text-[#8C8FA9]"
-                                >
-                                  #{label}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          {isMonthly && (
-                            <button
-                              type="button"
-                              onClick={() => setOpenMonthlyModal({ index, days: activity.monthlyDays })}
-                              className="flex items-center justify-between rounded-2xl border border-border-subtle/60 bg-[#FBFBFE] px-4 py-3 text-left text-sm font-medium text-[#4B3A78] transition hover:border-[#8F74E5]"
-                            >
-                              <span className="flex flex-col">
-                                <span>{formatMonthlySummary(activity.monthlyDays)}</span>
-                                <span className="text-xs font-normal text-[#8C8FA9]">Tap to edit dates</span>
-                              </span>
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path
-                                  d="M9 5L16 12L9 19"
-                                  stroke="currentColor"
-                                  strokeWidth="1.5"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-6">
-                        <div className="flex flex-col gap-3 rounded-2xl border border-border-subtle/60 bg-[#FCFBFF] p-4 shadow-[0_16px_32px_rgba(92,70,136,0.08)]">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-semibold text-[#4B3A78]">All day activity</span>
-                            <ToggleSwitch
-                              checked={activity.allDay}
-                              onChange={(value) =>
-                                updateActivity(index, {
-                                  allDay: value,
-                                  time: value ? '' : activity.time || '08:00',
-                                })
-                              }
-                            />
-                          </div>
-                          <p className="text-xs text-[#8C8FA9]">
-                            Turn off to pick a specific time slot and time period.
-                          </p>
-                          {!activity.allDay && (
-                            <div className="space-y-3">
-                              <div className="relative">
-                                <input
-                                  type="time"
-                                  value={activity.time}
-                                  onChange={(event) => updateActivity(index, { time: event.target.value })}
-                                  className="w-full rounded-2xl border border-border-subtle/60 bg-surface px-4 py-3 pr-12 text-sm text-text-primary focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
-                                />
-                                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#8C8FA9]">
-                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.5" />
-                                    <path
-                                      d="M12 8V12L14.5 13.5"
-                                      stroke="currentColor"
-                                      strokeWidth="1.5"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  </svg>
-                                </span>
-                              </div>
-                              <LayoutGroup id={`period-group-${activity.id}`}>
-                                <div className="flex flex-wrap gap-2">
-                                  {periodOptions.map((period) => (
-                                    <OptionPill
-                                      key={period}
-                                      label={period}
-                                      active={activity.timePeriod === period}
-                                      onClick={() => updateActivity(index, { timePeriod: period })}
-                                      highlightId={`highlight-period-${activity.id}`}
-                                      activeColor="#8F74E5"
-                                    />
-                                  ))}
-                                </div>
-                              </LayoutGroup>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex flex-col gap-3 rounded-2xl border border-border-subtle/60 bg-surface p-4 shadow-[0_16px_32px_rgba(92,70,136,0.08)]">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-semibold text-[#4B3A78]">End activity</span>
-                            <ToggleSwitch
-                              checked={activity.endDate}
-                              onChange={(value) => updateActivity(index, { endDate: value })}
-                            />
-                          </div>
-
-                          {activity.endDate && (
-                            <div className="flex flex-col gap-3">
-                              <LayoutGroup id={`end-type-${activity.id}`}>
-                                <div className="flex flex-wrap gap-2">
-                                  {(['date', 'days'] as ActivitySetting['endType'][]).map((option) => (
-                                    <OptionPill
-                                      key={option}
-                                      label={option === 'date' ? 'Date' : 'Days'}
-                                      active={activity.endType === option}
-                                      onClick={() => updateActivity(index, { endType: option })}
-                                      highlightId={`highlight-end-${activity.id}`}
-                                      activeColor="#A385E9"
-                                    />
-                                  ))}
-                                </div>
-                              </LayoutGroup>
-                              {activity.endType === 'date' ? (
-                                <input
-                                  type="date"
-                                  value={activity.endDateValue}
-                                  onChange={(event) => updateActivity(index, { endDateValue: event.target.value })}
-                                  className="w-full rounded-2xl border border-border-subtle/60 bg-surface px-4 py-3 text-sm text-text-primary focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
-                                />
-                              ) : (
-                                <div className="flex items-center gap-3">
-                                  <input
-                                    type="number"
-                                    min={1}
-                                    value={activity.endDaysValue}
-                                    onChange={(event) =>
-                                      updateActivity(index, {
-                                        endDaysValue: Number(event.target.value) || activity.endDaysValue,
-                                      })
-                                    }
-                                    className="w-24 rounded-2xl border border-border-subtle/60 bg-surface px-4 py-3 text-sm text-text-primary focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
-                                  />
-                                  <span className="text-sm text-text-primary">days</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex flex-col gap-3 rounded-2xl border border-border-subtle/60 bg-surface p-4 shadow-[0_16px_32px_rgba(92,70,136,0.08)]">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-semibold text-[#4B3A78]">Smart reminders</span>
-                            <ToggleSwitch
-                              checked={activity.remind}
-                              onChange={(value) => updateActivity(index, { remind: value })}
-                            />
-                          </div>
-
-                          {activity.remind && (
-                            <div className="grid gap-4 sm:grid-cols-2">
-                              <div className="flex flex-col gap-2">
-                                <span className="text-xs font-semibold uppercase tracking-wide text-[#8C8FA9]">
-                                  Before {activity.timePeriod}
-                                </span>
-                                <select
-                                  value={activity.remindBefore}
-                                  onChange={(event) => updateActivity(index, { remindBefore: Number(event.target.value) })}
-                                  className="w-full rounded-2xl border border-border-subtle/60 bg-surface px-4 py-3 text-sm text-text-primary focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
-                                >
-                                  {remindPrimaryOptions.map((option) => (
-                                    <option key={option} value={option}>
-                                      {option === 60 ? '1 hour' : `${option} minutes`}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className="flex flex-col gap-2">
-                                <span className="text-xs font-semibold uppercase tracking-wide text-[#8C8FA9]">
-                                  Before activity
-                                </span>
-                                <select
-                                  value={activity.remindBefore2}
-                                  onChange={(event) => updateActivity(index, { remindBefore2: Number(event.target.value) })}
-                                  className="w-full rounded-2xl border border-border-subtle/60 bg-surface px-4 py-3 text-sm text-text-primary focus:border-[#8F74E5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]/60"
-                                >
-                                  {remindSecondaryOptions.map((option) => (
-                                    <option key={option} value={option}>
-                                      {option} minutes
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <motion.div
-                      initial={{ opacity: 0, translateY: 8 }}
-                      animate={{ opacity: 1, translateY: 0 }}
-                      transition={{ duration: 0.3, delay: 0.1 }}
-                      className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-white/85 via-[#F7F3FF] to-white px-5 py-4 text-sm text-text-primary shadow-[0_16px_32px_rgba(92,70,136,0.08)]"
+              {/* Repeat */}
+              <div className="mt-4">
+                <div className="px-1 text-[14px] font-bold text-text-primary">Repeat</div>
+                <div className="mt-2 flex gap-2">
+                  {repeatOptions.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => handleRepeatChange(index, option)}
+                      className={`flex-1 rounded-[9px] px-3 py-[6px] text-[14px] leading-[13px] transition-colors ${
+                        activity.repeat === option
+                          ? 'bg-[#5C4688] text-white shadow'
+                          : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'
+                      }`}
                     >
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#A385E9]/15 text-[#A385E9]">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <path
-                            d="M12 6V13"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M8 10H16"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M5 8.5C5 5.46243 7.46243 3 10.5 3H13.5C16.5376 3 19 5.46243 19 8.5V14.5C19 17.5376 16.5376 20 13.5 20H10.5C7.46243 20 5 17.5376 5 14.5V8.5Z"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                          />
+                      {option}
+                    </button>
+                  ))}
+                </div>
+                {/* Monthly summary & picker (moved up under Repeat) */}
+                {activity.repeat === 'Monthly' && (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setOpenMonthlyModal({ index, days: activity.monthlyDays })}
+                      className="flex w-full items-center justify-between rounded-[12px] border border-border-subtle bg-surface px-4 py-3 text-left text-[14px] text-text-primary"
+                    >
+                      <span className="truncate">
+                        {activity.monthlyDays.length
+                          ? `Every month on ${[...activity.monthlyDays].sort((a, b) => a - b).join(', ')}`
+                          : 'Every month on ...'}
+                      </span>
+                      <span className="grid h-8 w-8 place-items-center rounded-full text-text-secondary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path d="M8 7V5M16 7V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          <rect x="4" y="7" width="16" height="13" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                          <path d="M4 11H20" stroke="currentColor" strokeWidth="1.5" />
                         </svg>
                       </span>
-                      <span>{reminderSummary}</span>
-                    </motion.div>
+                    </button>
                   </div>
-                </motion.section>
-              )
-            })}
+                )}
 
-            <motion.div
-              initial={{ opacity: 0, translateY: 16 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ duration: 0.4, delay: 0.15 }}
-              className="sticky bottom-8 rounded-[32px] border border-border-subtle/60 bg-surface/80 px-6 py-6 shadow-[0_-12px_32px_rgba(92,70,136,0.08)] backdrop-blur"
-            >
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-base font-semibold text-[#4B3A78]">All set?</p>
-                  <p className="text-sm text-[#8C8FA9]">We’ll move you to results once you’re happy with this flow.</p>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="button"
-                  onClick={handleContinue}
-                  className="inline-flex items-center justify-center rounded-full bg-[#A385E9] px-8 py-4 text-base font-semibold text-white shadow-[0_16px_32px_rgba(163,133,233,0.32)] transition hover:bg-[#8F74E5] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C1B0F2] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-                >
-                  Continue
-                </motion.button>
+                {/* Weekly extra: On these days */}
+                {activity.repeat === 'Weekly' && (
+                  <div className="mt-3">
+                    <div className="mb-2 px-1 text-[14px] font-bold text-text-primary">
+                      {(() => {
+                        const count = activity.weekdays.length === 1 ? weeklyNumberLabels[activity.weekdays[0]] : 0
+                        return `${count} day${count === 1 ? '' : 's'} per week`
+                      })()}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {weeklyNumberLabels.map((num, dayIndex) => {
+                        const isActive = activity.weekdays.includes(dayIndex)
+                        return (
+                          <button
+                            type="button"
+                            key={num}
+                            onClick={() => toggleWeekday(index, dayIndex)}
+                            className={`h-10 w-10 rounded-full text-sm font-medium transition ${
+                              isActive
+                                ? 'bg-[#5C4688] text-white shadow'
+                                : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'
+                            }`}
+                          >
+                            {num}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Daily extra: On these days + Everyday */}
+                {activity.repeat === 'Daily' && (
+                  <div className="mt-3">
+                    <div className="mb-2 flex items-center justify-between px-1 text-[14px] font-bold text-text-primary">
+                      <span>On these days</span>
+                      <label className="flex items-center gap-2 text-[12px] font-medium text-text-secondary">
+                        <span>Everyday</span>
+                        <ToggleSwitch
+                          checked={activity.weekdays.length === 7}
+                          onChange={(value) =>
+                            updateActivity(index, {
+                              weekdays: value ? [...FULL_WEEK] : [],
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {dayLabels.map((label, dayIndex) => {
+                        const isActive = activity.weekdays.includes(dayIndex)
+                        return (
+                          <button
+                            type="button"
+                            key={label}
+                            onClick={() => toggleWeekday(index, dayIndex)}
+                            className={`h-10 w-10 rounded-full text-sm font-medium transition ${
+                              isActive
+                                ? 'bg-[#5C4688] text-white shadow'
+                                : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
-            </motion.div>
-          </div>
 
+              {/* Do It At (also for Monthly) */}
+              <div className="mt-4">
+                <div className="px-1 text-[14px] font-bold text-text-primary">Do it at</div>
+                <div className="mt-2">
+                  <div className="mb-2 flex items-center justify-end">
+                    <label className="flex items-center gap-2 text-[12px] font-medium text-text-secondary">
+                      <span>All day</span>
+                      <ToggleSwitch
+                        checked={activity.allDay}
+                        onChange={(value) =>
+                          updateActivity(index, {
+                            allDay: value,
+                            time: value ? '' : activity.time || '07:00',
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="time"
+                      value={activity.time}
+                      onChange={(e) => updateActivity(index, { time: e.target.value, allDay: !e.target.value ? activity.allDay : false })}
+                      disabled={activity.allDay}
+                      className={`w-full rounded-[8px] border border-border-subtle bg-surface px-4 py-3 pr-10 text-[15px] text-text-primary focus:outline-none ${
+                        activity.allDay ? 'opacity-60 cursor-not-allowed' : ''
+                      }`}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.5" />
+                        <path d="M12 8V12L14.5 13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                  </div>
+
+                  <div className="mt-3 flex gap-2">
+                    {periodOptions.map((period) => (
+                      <button
+                        key={period}
+                        type="button"
+                        onClick={() => setPeriodAndTime(index, period)}
+                        className={`flex-1 rounded-[9px] px-3 py-[6px] text-[14px] leading-[13px] transition-colors ${
+                          activity.timePeriod === period
+                            ? 'bg-[#5C4688] text-white shadow'
+                            : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'
+                        }`}
+                      >
+                        {period}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* End Activity On */}
+              <div className="mt-4">
+                <div className="flex items-center justify-between px-1">
+                  <div className="text-[14px] font-bold text-text-primary">End Activity On</div>
+                  <ToggleSwitch
+                    checked={activity.endDate}
+                    onChange={(value) => updateActivity(index, { endDate: value })}
+                  />
+                </div>
+
+                {activity.endDate && (
+                  <div className="mt-3">
+                    <div className="flex gap-2">
+                      {(['date', 'days'] as ActivitySetting['endType'][]).map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => updateActivity(index, { endType: option })}
+                          className={`flex-1 rounded-[9px] px-3 py-[6px] text-[14px] leading-[13px] transition-colors ${
+                            activity.endType === option
+                              ? 'bg-[#5C4688] text-white shadow'
+                              : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'
+                          }`}
+                        >
+                          {option === 'date' ? 'Date' : 'Days'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {activity.endType === 'date' ? (
+                      <div className="mt-3">
+                        <input
+                          type="date"
+                          value={activity.endDateValue}
+                          onChange={(event) => updateActivity(index, { endDateValue: event.target.value })}
+                          className="w-full rounded-[8px] border border-border-subtle bg-surface px-4 py-3 text-[15px] text-text-primary focus:outline-none"
+                        />
+                      </div>
+                    ) : (
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="text-[14px] text-text-secondary">After</span>
+                        <input
+                          type="number"
+                          min={1}
+                          value={activity.endDaysValue}
+                          onChange={(event) =>
+                            updateActivity(index, {
+                              endDaysValue: Number(event.target.value) || activity.endDaysValue,
+                            })
+                          }
+                          className="w-24 rounded-[8px] border border-border-subtle bg-surface px-3 py-2 text-[15px] text-text-primary focus:outline-none"
+                        />
+                        <span className="text-[14px] text-text-secondary">days</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Remind me */}
+              <div className="mt-4">
+                <div className="flex items-center justify-between px-1">
+                  <div className="text-[14px] font-bold text-text-primary">Remind me</div>
+                  <ToggleSwitch
+                    checked={activity.remind}
+                    onChange={(value) => updateActivity(index, { remind: value })}
+                  />
+                </div>
+
+                {activity.remind && (
+                  <div className="mt-3">
+                    <div className="px-1 text-[12px] font-medium text-text-secondary">Before activity</div>
+                    <div className="mt-2 grid grid-cols-2 gap-3">
+                      <select
+                        value={activity.remindAmount}
+                        onChange={(event) => updateActivity(index, { remindAmount: Number(event.target.value) })}
+                        className="w-full rounded-[8px] border border-border-subtle bg-surface px-3 py-2 text-[14px] text-text-primary focus:outline-none"
+                      >
+                        {remindAmountOptions.map((n) => (
+                          <option key={n} value={n}>
+                            {n}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={activity.remindUnit}
+                        onChange={(event) =>
+                          updateActivity(index, { remindUnit: event.target.value as ActivitySetting['remindUnit'] })
+                        }
+                        className="w-full rounded-[8px] border border-border-subtle bg-surface px-3 py-2 text-[14px] text-text-primary focus:outline-none"
+                      >
+                        {remindUnits.map((u) => (
+                          <option key={u} value={u}>
+                            {u}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
+            )
+          })}
         </div>
       </div>
 
+      {/* Sticky Next */}
+      <div
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-center pb-[16px]"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
+      >
+        <div className="pointer-events-auto w-full max-w-md px-4">
+          <button
+            type="button"
+            onClick={handleContinue}
+            className="w-full rounded-[11px] bg-[#A385E9] py-[14px] text-center text-[13px] font-semibold text-white shadow-md"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
+      {/* Monthly modal preserved (advanced) */}
       <MonthlyDaysModal
         open={openMonthlyModal !== null}
         initialSelection={openMonthlyModal?.days || []}
