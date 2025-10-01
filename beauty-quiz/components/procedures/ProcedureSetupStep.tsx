@@ -615,7 +615,7 @@ export default function ProcedureSetupStep() {
                         return (
                           <button
                             type="button"
-                            key={num}
+                            key={`weekly-${index}-${dayIndex}-${num}`}
                             onClick={() => toggleWeekday(index, dayIndex)}
                             className={`h-10 w-10 rounded-full text-sm font-medium transition ${
                               isActive
@@ -654,7 +654,7 @@ export default function ProcedureSetupStep() {
                         return (
                           <button
                             type="button"
-                            key={label}
+                            key={`daily-${index}-${dayIndex}-${label}`}
                             onClick={() => toggleWeekday(index, dayIndex)}
                             className={`h-10 w-10 rounded-full text-sm font-medium transition ${
                               isActive

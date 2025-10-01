@@ -263,6 +263,9 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
         return `/images/on_boarding_images/onboarding_img_Were_excited_to_create_something_just_for_you_ellie.png`;
       } else if (imageName === 'onboarding_img_Congratulations_on_taking_the_first_step') {
         return encodeURI(`/images/on_boarding_images/onboarding_img_Congratulations_on_taking_the_first_step_and_Let’s_Create_Your_Schedule_ellie.png`);
+      } else if (imageName === 'onboarding_img_Whats_the_rhythm_of_your_life') {
+        // Ellie uses a combined artwork for lifestyle + procrastination
+        return `/images/on_boarding_images/onboarding_img_Whats_the_rhythm_of_your_life_and_Do_you_often_procrastinate_ellie.png`;
       } else {
         return `/images/on_boarding_images/${imageName}_ellie.png`;
       }

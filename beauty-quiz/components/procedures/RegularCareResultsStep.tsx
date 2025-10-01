@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion';
-import { useRef, useEffect, useState } from 'react';
+import { motion, useInView, useMotionValue, useTransform, animate, useScroll } from 'framer-motion';
+import { useRef, useEffect } from 'react';
 
 export default function RegularCareResultsStep() {
   const router = useRouter()
@@ -34,7 +34,7 @@ export default function RegularCareResultsStep() {
   const benefits = [
     {
       icon: (
-        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       ),
@@ -43,7 +43,7 @@ export default function RegularCareResultsStep() {
     },
     {
       icon: (
-        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
         </svg>
       ),
@@ -52,7 +52,7 @@ export default function RegularCareResultsStep() {
     },
     {
       icon: (
-        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       ),
@@ -61,7 +61,7 @@ export default function RegularCareResultsStep() {
     },
     {
       icon: (
-        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 text-current" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
         </svg>
       ),
@@ -85,8 +85,14 @@ export default function RegularCareResultsStep() {
 
   const benefitsRef = useRef(null);
   const strugglesRef = useRef(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const benefitsInView = useInView(benefitsRef, { once: true, amount: 0.3 });
   const strugglesInView = useInView(strugglesRef, { once: true, amount: 0.3 });
+
+  // Vertical timeline progress (scroll-driven)
+  const timelineRef = useRef<HTMLDivElement | null>(null);
+  const { scrollYProgress: timelineProgress } = useScroll({ container: scrollContainerRef, target: timelineRef, offset: ["start 0.85", "end 0.15"] });
+  const progressHeight = useTransform(timelineProgress, [0, 1], ["0%", "100%"]);
 
   const pathLength = useMotionValue(0);
   const withoutAppX = useTransform(pathLength, [0, 1], [65, 315]);
@@ -127,22 +133,64 @@ export default function RegularCareResultsStep() {
 
   const testimonials = [
     { name: 'Emily', image: '/images/reviews/review_1.png', text: 'This service is a real find! Thanks for the accuracy and professionalism!' },
-    { name: 'Aisha', image: '/images/reviews/review_2.png', text: 'I\'m stoked! The results have been a source of inspiration.' },
-    { name: 'Mira', image: '/images/reviews/review_3.png', text: 'I\'m more beautiful than the average in my country!' },
+    { name: 'Aisha', image: '/images/reviews/review_2.png', text: "I'm stoked! The results have been a source of inspiration." },
+    { name: 'Mira', image: '/images/reviews/review_3.png', text: 'The plan keeps me consistent—real results.' },
     { name: 'Lisa', image: '/images/reviews/review_1.png', text: 'The planning feature is amazing! My routine is perfectly organized now.' },
-    { name: 'Sofia', image: '/images/reviews/review_1.png', text: 'Finally found the perfect beauty routine planner! It\'s so easy to follow.' },
+    { name: 'Sofia', image: '/images/reviews/review_1.png', text: "Finally found the perfect beauty routine planner! It's so easy to follow." },
     { name: 'Anna', image: '/images/reviews/review_1.png', text: 'My beauty routine has never been this organized! Love the planning tools.' },
+    // New short American English reviews
+    { name: 'Chloe', image: '/images/reviews/review_4.png', text: 'Planning made it click—quick wins and real results.' },
+    { name: 'Jasmine', image: '/images/reviews/review_5.png', text: 'So easy to stick with—my routine finally feels effortless.' },
+    { name: 'Noah', image: '/images/reviews/review_6_man.png', text: 'Clean UI, smart reminders—results showed up fast.' },
+    { name: 'Evelyn', image: '/images/reviews/review_6_old_woman.png', text: 'Simple plan, big payoff. Loving the glow-up.' },
   ];
+
+  // Timeline item component
+  const TimelineItem = ({ title, description, icon, index, rootRef }: { title: string; description: string; icon: React.ReactNode; index: number; rootRef: React.RefObject<HTMLDivElement | null> }) => {
+    const itemRef = useRef<HTMLLIElement | null>(null);
+    const itemInView = useInView(itemRef, { root: rootRef.current ?? undefined, amount: 0.25, margin: '-10% 0% -10% 0%', once: true });
+
+    return (
+      <li ref={itemRef} className="relative grid grid-cols-[36px_1fr] gap-3">
+        <div className="relative">
+          {/* Burst effect */}
+          <motion.span
+            className="absolute inset-0 rounded-full"
+            style={{ filter: 'blur(2px)' }}
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={itemInView ? { opacity: [0.25, 0], scale: [0.6, 1.8] } : { opacity: 0, scale: 0.6 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          />
+          {/* Icon wrapper */}
+          <motion.div
+            className="mt-0 flex items-center justify-center w-9 h-9 rounded-full ring-2 ring-white/40 shadow-soft"
+            initial={false}
+            animate={itemInView
+              ? { backgroundColor: 'rgb(var(--color-primary))', color: '#fff', scale: [1, 1.22, 0.96, 1] }
+              : { backgroundColor: 'rgba(var(--color-primary),0.08)', color: 'rgb(var(--color-primary))', opacity: 0.6 }}
+            transition={{ duration: 0.55, times: [0, 0.35, 0.7, 1], ease: 'easeOut' }}
+          >
+            {icon}
+          </motion.div>
+        </div>
+        {/* Text: always present, no delayed gating */}
+        <motion.div className="pt-0.5" initial={false} animate={{ opacity: 1 }}>
+          <h4 className="font-semibold text-text-primary text-sm">{title}</h4>
+          <p className="text-xs text-text-secondary">{description}</p>
+        </motion.div>
+      </li>
+    );
+  };
 
   return (
     <motion.div
-      className="w-full h-screen bg-surface flex flex-col"
+      className="w-full h-[100dvh] bg-surface flex flex-col overflow-hidden"
       initial="hidden"
       animate="visible"
       variants={containerVariants}
     >
-      <div className="flex-1 overflow-y-auto scrollbar-hide">
-        <div className="max-w-md mx-auto p-6 space-y-6">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scrollbar-hide min-h-0">
+        <div className="max-w-md mx-auto p-6 pb-28 space-y-6">
           {/* Header */}
           <motion.div className="text-center" variants={itemVariants}>
             <h1 className="text-3xl font-bold text-text-primary mb-3">Regular Care = Better Results!</h1>
@@ -151,17 +199,16 @@ export default function RegularCareResultsStep() {
             </p>
           </motion.div>
 
-          {/* Progress Graph */}
-        <motion.div
-            className="flex flex-col justify-center items-start p-4"
+          {/* Progress Graph - unified width */}
+          <motion.div
+            className="w-full rounded-xl p-4 border border-border-subtle/60 shadow-soft"
             style={{
-              width: '350px',
-              background: '#F7F6FF',
-              borderRadius: '10.77px',
+              background: 'linear-gradient(135deg, rgba(var(--color-card-muted), 1) 0%, rgba(var(--color-primary), 0.08) 100%)',
             }}
             variants={itemVariants}
           >
-            <svg viewBox="0 0 350 270" className="w-full h-full">
+            <div className="relative w-full aspect-[350/270]">
+              <svg viewBox="0 0 350 270" className="absolute inset-0 w-full h-full">
                 <defs>
                 <linearGradient id="withAppGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#84DE54" />
@@ -282,14 +329,15 @@ export default function RegularCareResultsStep() {
                 }}
               >▲</motion.text>
               </svg>
+            </div>
           </motion.div>
 
-          {/* Before/After Images */}
+          {/* Before/After Images - unified width */}
           <motion.div 
-            className="rounded-xl p-4 -mt-8" style={{ backgroundColor: '#F7F6FF' }}
+            className="w-full rounded-xl p-4 border border-border-subtle/60 shadow-soft" style={{ backgroundColor: 'rgb(var(--color-card-muted))' }}
             variants={itemVariants}
           >
-            <div className="flex items-center justify-center gap-0">
+            <div className="flex items-center justify-center gap-4">
               {/* User's Current Result */}
               <motion.div
                 className="text-center"
@@ -297,7 +345,7 @@ export default function RegularCareResultsStep() {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
               >
-                <div className="relative w-40 h-56 mx-auto">
+                <div className="relative w-36 h-52 sm:w-40 sm:h-56 mx-auto">
                   <Image
                     src={bmiImages.current}
                     alt="User's current BMI result"
@@ -315,13 +363,7 @@ export default function RegularCareResultsStep() {
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.5 }}
               >
-                <div
-                  style={{
-                    width: '124.33px',
-                    height: '124.33px',
-                    position: 'relative',
-                  }}
-                >
+                <div className="relative w-20 h-20 sm:w-28 sm:h-28">
                   <Image
                     src="/images/content/improvement_arrow.png"
                     alt="Improvement arrow"
@@ -338,7 +380,7 @@ export default function RegularCareResultsStep() {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
               >
-                <div className="relative w-40 h-56 mx-auto">
+                <div className="relative w-36 h-52 sm:w-40 sm:h-56 mx-auto">
                   <Image
                     src={bmiImages.target}
                     alt="Target goal BMI"
@@ -353,161 +395,99 @@ export default function RegularCareResultsStep() {
 
           {/* Motivational Text */}
           <motion.div className="text-center" variants={itemVariants}>
-            <p className="text-gray-800 text-lg">
+            <p className="text-text-primary text-lg">
               The more consistently you follow your routine, the better your beauty level becomes. See the difference for yourself!
             </p>
           </motion.div>
 
-          {/* Benefits Section */}
-          <motion.div 
+          {/* Benefits as a vertical timeline (stabilized) */}
+          <div 
             className="space-y-4" 
-            ref={benefitsRef}
-            initial="hidden"
-            animate={benefitsInView ? "visible" : "hidden"}
-            variants={{
-              visible: { transition: { staggerChildren: 0.2 } },
-              hidden: {}
-            }}
+            ref={benefitsRef as any}
           >
-            <h3 className="text-xl font-bold text-center text-text-primary">Noticeable Improvements In One Month:</h3>
-            {benefits.map((benefit, index) => (
-              <motion.div key={index} className="flex items-center space-x-4 bg-surface p-4 rounded-lg shadow-sm" variants={itemVariants}>
-                <div className="flex-shrink-0 w-10 h-10 bg-[#A385E9] rounded-full flex items-center justify-center text-white">
-                  {benefit.icon}
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-800">{benefit.title}</h4>
-                  <p className="text-sm text-text-secondary">{benefit.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-          </motion.div>
+            <div className="text-center space-y-3">
+              <h3 className="text-xl font-bold text-text-primary">Noticeable Improvements In One Month:</h3>
+            </div>
+            <div ref={timelineRef} className="relative py-1">
+              {/* Background track */}
+              <div className="absolute left-[18px] top-0 bottom-0 w-[3px] rounded-full bg-primary/10" />
+              {/* Foreground progress line with moving cap */}
+              <motion.div
+                className="absolute left-[18px] top-0 w-[3px] rounded-full"
+                style={{ height: progressHeight, background: 'linear-gradient(180deg, #A385E9 0%, rgba(163,133,233,0.4) 100%)' }}
+              >
+                <motion.span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full"
+                  style={{ background: 'radial-gradient(circle, #A385E9 0%, rgba(163,133,233,0.5) 60%, rgba(163,133,233,0) 70%)' }}
+                  animate={{ scale: [0.9, 1.1, 1] }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              </motion.div>
+              <ul className="space-y-7">
+                {benefits.map((benefit, index) => (
+                  <TimelineItem key={index} title={benefit.title} description={benefit.description} icon={benefit.icon} index={index} rootRef={scrollContainerRef} />
+                ))}
+              </ul>
+            </div>
+          </div>
 
-          {/* Struggles vs Solutions */}
+          {/* Struggles vs Solutions - fixed icon sizes */}
           <motion.div 
             className="bg-surface-muted/80 rounded-xl p-6" 
-            ref={strugglesRef}
+            ref={strugglesRef as any}
             initial={{ opacity: 0, y: 50 }}
             animate={strugglesInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8 }}
           >
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
               {/* Struggles Column */}
-              <motion.div 
-                className="space-y-4"
-                initial={{ x: -50, opacity: 0 }}
-                animate={strugglesInView ? { x: 0, opacity: 1 } : {}}
-                transition={{ duration: 0.8, delay: 0.2 }}
-              >
-                <h4 className="font-bold text-center text-gray-800">Your Struggles</h4>
+              <motion.div className="space-y-4" initial={{ x: -50, opacity: 0 }} animate={strugglesInView ? { x: 0, opacity: 1 } : {}} transition={{ duration: 0.8, delay: 0.2 }}>
+                <h4 className="font-bold text-center text-text-primary">Your Struggles</h4>
                 {struggles.map((struggle, index) => (
-                  <div key={index} className="flex items-center space-x-2 text-sm">
-                    <div className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center text-text-secondary">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
+                  <div key={index} className="flex items-center gap-3 text-sm">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center bg-surface-muted/80 ring-1 ring-border-subtle/50 text-text-primary flex-shrink-0">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
+                      </svg>
                     </div>
-                    <span className="text-text-primary">{struggle}</span>
+                    <span className="text-text-primary leading-tight">{struggle}</span>
                   </div>
                 ))}
               </motion.div>
               {/* Solutions Column */}
-              <motion.div 
-                className="space-y-4"
-                initial={{ x: 50, opacity: 0 }}
-                animate={strugglesInView ? { x: 0, opacity: 1 } : {}}
-                transition={{ duration: 0.8, delay: 0.2 }}
-              >
-                <h4 className="font-bold text-center text-gray-800">Our Solutions</h4>
+              <motion.div className="space-y-4" initial={{ x: 50, opacity: 0 }} animate={strugglesInView ? { x: 0, opacity: 1 } : {}} transition={{ duration: 0.8, delay: 0.2 }}>
+                <h4 className="font-bold text-center text-text-primary">Our Solutions</h4>
                 {solutions.map((solution, index) => (
-                  <div key={index} className="flex items-center space-x-2 text-sm">
-                    <div className="w-5 h-5 bg-[#A385E9] rounded-full flex items-center justify-center text-white">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  <div key={index} className="flex items-center gap-3 text-sm">
+                    <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white ring-1 ring-primary/25 flex-shrink-0">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
                     </div>
-                    <span className="text-text-primary">{solution}</span>
-            </div>
+                    <span className="text-text-primary leading-tight">{solution}</span>
+                  </div>
                 ))}
               </motion.div>
             </div>
           </motion.div>
 
-          {/* Testimonials */}
-          <motion.div className="w-full overflow-hidden relative" variants={itemVariants}>
-            <div 
+          {/* Testimonials with auto-scroll + drag */}
+          <motion.div className="w-full overflow-hidden relative cursor-grab active:cursor-grabbing" variants={itemVariants}>
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-8 z-10" style={{background: 'linear-gradient(90deg, rgb(var(--color-surface)) 0%, rgba(255,255,255,0) 100%)'}} />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-8 z-10" style={{background: 'linear-gradient(270deg, rgb(var(--color-surface)) 0%, rgba(255,255,255,0) 100%)'}} />
+            <motion.div 
               className="flex flex-row items-start gap-2.5"
-              style={{
-                width: 'max-content',
-                animation: 'scroll-left 40s linear infinite'
-              }}
+              style={{ width: 'max-content' }}
+              drag="x"
+              dragConstraints={{ left: -testimonials.length * 145, right: 0 }}
+              dragElastic={0.1}
+              animate={{ x: [0, -testimonials.length * 145] }}
+              transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
             >
               {testimonials.map((review, index) => (
-                 <div 
-                  key={index}
-                  className="flex flex-col items-start p-2 gap-2 bg-surface flex-none"
-                  style={{
-                    width: '141px',
-                    height: '298px',
-                    boxShadow: '0.764602px 1.5292px 11.469px rgba(88, 66, 124, 0.1)',
-                    borderRadius: '13.5929px'
-                  }}
-                >
-                  <Image
-                    src={review.image}
-                    alt={`User review ${review.name}`}
-                    width={125}
-                    height={125}
-                    className="w-full h-auto object-cover flex-none"
-                    style={{ borderRadius: '7px' }}
-                  />
+                <div key={index} className="flex flex-col items-start p-2 gap-2 bg-surface flex-none border border-border-subtle/60 shadow-soft rounded-lg select-none" style={{ width: '141px', height: '298px' }}>
+                  <Image src={review.image} alt={`User review ${review.name}`} width={125} height={125} className="w-full h-auto object-cover flex-none rounded-md pointer-events-none" draggable={false} />
                   <div className="flex flex-row items-center gap-1 flex-none">
-                    <span className="font-bold text-sm" style={{ color: '#5C4688' }}>
-                      {review.name}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <div className="flex-none flex items-center justify-center w-4 h-4" style={{ background: '#A385E9', borderRadius: '50%' }}>
-                        <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><path d="M1 3L2.5 4.5L5 1.5" stroke="white" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-                      <span className="font-bold text-xs" style={{ color: '#A385E9' }}>Verified</span>
-                    </div>
-                  </div>
-                  <div className="flex-none self-stretch" style={{ height: '0px', border: '1px solid rgba(234, 234, 234, 0.92)' }}/>
-                  <div className="flex flex-row items-center gap-2 flex-none">
-                    <div className="flex flex-row items-start flex-none">
-                      {[...Array(5)].map((_, i) => (
-                        <svg key={i} className="flex-none" width="10" height="10" viewBox="0 0 10 10" fill="#FABB05">
-                          <path d="M5 0L6.18 3.82L10 3.82L7.27 6.18L8.45 10L5 7.64L1.55 10L2.73 6.18L0 3.82L3.82 3.82L5 0Z"/>
-                          </svg>
-                      ))}
-                    </div>
-                    <span className="text-xs" style={{ color: '#969AB7' }}>5.0 rating</span>
-                  </div>
-                  <p className="flex-none self-stretch text-sm" style={{ fontWeight: '500', color: '#333333' }}>
-                    {review.text}
-                  </p>
-                </div>
-              ))}
-              {/* Duplicate cards for infinite scroll effect */}
-              {testimonials.map((review, index) => (
-                 <div 
-                  key={`duplicate-${index}`}
-                  className="flex flex-col items-start p-2 gap-2 bg-surface flex-none"
-                  style={{
-                    width: '141px',
-                    height: '298px',
-                    boxShadow: '0.764602px 1.5292px 11.469px rgba(88, 66, 124, 0.1)',
-                    borderRadius: '13.5929px'
-                  }}
-                >
-                  <Image
-                    src={review.image}
-                    alt={`User review ${review.name}`}
-                    width={125}
-                    height={125}
-                    className="w-full h-auto object-cover flex-none"
-                    style={{ borderRadius: '7px' }}
-                  />
-                  <div className="flex flex-row items-center gap-1 flex-none">
-                    <span className="font-bold text-sm" style={{ color: '#5C4688' }}>
-                      {review.name}
-                        </span>
+                    <span className="font-bold text-sm text-text-primary">{review.name}</span>
                     <div className="flex items-center gap-1">
                       <div className="flex-none flex items-center justify-center w-4 h-4" style={{ background: '#A385E9', borderRadius: '50%' }}>
                         <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><path d="M1 3L2.5 4.5L5 1.5" stroke="white" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -515,53 +495,76 @@ export default function RegularCareResultsStep() {
                       <span className="font-bold text-xs" style={{ color: '#A385E9' }}>Verified</span>
                     </div>
                   </div>
-                  <div className="flex-none self-stretch" style={{ height: '0px', border: '1px solid rgba(234, 234, 234, 0.92)' }}/>
+                  <div className="flex-none self-stretch border border-border-subtle/60" />
                   <div className="flex flex-row items-center gap-2 flex-none">
                     <div className="flex flex-row items-start flex-none">
                       {[...Array(5)].map((_, i) => (
-                        <svg key={i} className="flex-none" width="10" height="10" viewBox="0 0 10 10" fill="#FABB05">
-                          <path d="M5 0L6.18 3.82L10 3.82L7.27 6.18L8.45 10L5 7.64L1.55 10L2.73 6.18L0 3.82L3.82 3.82L5 0Z"/>
-                          </svg>
-                        ))}
+                        <svg key={i} className="flex-none" width="10" height="10" viewBox="0 0 10 10" fill="#FABB05"><path d="M5 0L6.18 3.82L10 3.82L7.27 6.18L8.45 10L5 7.64L1.55 10L2.73 6.18L0 3.82L3.82 3.82L5 0Z"/></svg>
+                      ))}
                     </div>
-                    <span className="text-xs" style={{ color: '#969AB7' }}>5.0 rating</span>
+                    <span className="text-xs text-text-secondary">5.0 rating</span>
                   </div>
-                  <p className="flex-none self-stretch text-sm" style={{ fontWeight: '500', color: '#333333' }}>
-                    {review.text}
-                  </p>
+                  <p className="flex-none self-stretch text-sm text-text-primary" style={{ fontWeight: 500 }}>{review.text}</p>
                 </div>
               ))}
-            </div>
+              {testimonials.map((review, index) => (
+                <div key={`dup-${index}`} className="flex flex-col items-start p-2 gap-2 bg-surface flex-none border border-border-subtle/60 shadow-soft rounded-lg select-none" style={{ width: '141px', height: '298px' }}>
+                  <Image src={review.image} alt={`User review ${review.name}`} width={125} height={125} className="w-full h-auto object-cover flex-none rounded-md pointer-events-none" draggable={false} />
+                  <div className="flex flex-row items-center gap-1 flex-none">
+                    <span className="font-bold text-sm text-text-primary">{review.name}</span>
+                    <div className="flex items-center gap-1">
+                      <div className="flex-none flex items-center justify-center w-4 h-4" style={{ background: '#A385E9', borderRadius: '50%' }}>
+                        <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><path d="M1 3L2.5 4.5L5 1.5" stroke="white" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </div>
+                      <span className="font-bold text-xs" style={{ color: '#A385E9' }}>Verified</span>
+                    </div>
+                  </div>
+                  <div className="flex-none self-stretch border border-border-subtle/60" />
+                  <div className="flex flex-row items-center gap-2 flex-none">
+                    <div className="flex flex-row items-start flex-none">
+                      {[...Array(5)].map((_, i) => (
+                        <svg key={i} className="flex-none" width="10" height="10" viewBox="0 0 10 10" fill="#FABB05"><path d="M5 0L6.18 3.82L10 3.82L7.27 6.18L8.45 10L5 7.64L1.55 10L2.73 6.18L0 3.82L3.82 3.82L5 0Z"/></svg>
+                      ))}
+                    </div>
+                    <span className="text-xs text-text-secondary">5.0 rating</span>
+                  </div>
+                  <p className="flex-none self-stretch text-sm text-text-primary" style={{ fontWeight: 500 }}>{review.text}</p>
+                </div>
+              ))}
+            </motion.div>
           </motion.div>
 
+          {/* CTA or footer can remain */}
         </div>
-        </div>
-
+      </div>
       {/* Fixed Bottom Button */}
       <motion.div 
-        className="bg-surface p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] flex justify-center"
+        className="fixed inset-x-0 bottom-0 bg-surface p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] z-20 pointer-events-none"
         initial={{ y: 100 }}
         animate={{ y: 0 }}
-        transition={{ type: 'spring', stiffness: 100, delay: 0.5 }}
+        transition={{ type: 'spring', stiffness: 100, delay: 0.3 }}
+        style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}
       >
-          <motion.button
+        <div className="max-w-md mx-auto">
+          <motion.button 
             onClick={handlePricePlans}
-          className="w-full max-w-md bg-[#A385E9] text-white py-3.5 rounded-xl text-lg font-semibold"
-          whileHover={{ scale: 1.05, backgroundColor: '#906fe2' }}
-          whileTap={{ scale: 0.95 }}
-          animate={{
-            scale: [1, 1.02, 1],
-            boxShadow: ['0px 0px 0px rgba(163, 133, 233, 0)', '0px 0px 20px rgba(163, 133, 233, 0.7)', '0px 0px 0px rgba(163, 133, 233, 0)'],
-          }}
-          transition={{
-            duration: 2.5,
-            repeat: Infinity,
-            repeatType: "loop",
-          }}
+            className="w-full bg-primary text-white py-3.5 rounded-xl text-lg font-semibold pointer-events-auto"
+            whileHover={{ scale: 1.05, backgroundColor: 'rgb(var(--color-primary))' }}
+            whileTap={{ scale: 0.95 }}
+            animate={{
+              scale: [1, 1.02, 1],
+              boxShadow: ['0px 0px 0px rgba(163, 133, 233, 0)', '0px 0px 20px rgba(163, 133, 233, 0.7)', '0px 0px 0px rgba(163, 133, 233, 0)'],
+            }}
+            transition={{
+              duration: 2.5,
+              repeat: Infinity,
+              repeatType: 'loop',
+            }}
           >
             Price Plans
           </motion.button>
-        </motion.div>
+        </div>
+      </motion.div>
     </motion.div>
   )
 }
