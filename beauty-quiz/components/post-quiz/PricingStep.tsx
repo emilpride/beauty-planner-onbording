@@ -5,6 +5,8 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuizStore } from '@/store/quizStore'
+import dynamic from 'next/dynamic'
+const StripeExpressPay = dynamic(() => import('../payments/StripeExpressPay'), { ssr: false })
 
 interface PlanOption {
   id: string
@@ -137,6 +139,7 @@ export default function PricingStep() {
   const [promoCode, setPromoCode] = useState('')
   const [showPayment, setShowPayment] = useState(false)
   const [discountOffered, setDiscountOffered] = useState(false)
+  const [discountActive, setDiscountActive] = useState(true)
 
   const selectedPlanLabel = useMemo(() => plans.find((plan) => plan.id === selectedPlan)?.label ?? '4-Week Plan', [selectedPlan])
 
@@ -163,7 +166,7 @@ export default function PricingStep() {
     <div className="relative min-h-screen bg-transparent px-4 py-10 sm:px-6 lg:px-12">
       <BackgroundDecor />
       <div className="relative mx-auto flex w-full max-w-[1040px] flex-col gap-10">
-  <TopTimerRow totalSeconds={COUNTDOWN_SECONDS} />
+  <TopTimerRow totalSeconds={COUNTDOWN_SECONDS} onExpire={() => setDiscountActive(false)} />
 
         <div className="space-y-10">
           <TrustSignals />
@@ -171,7 +174,7 @@ export default function PricingStep() {
           <GuaranteeBanner />
 
           <Divider label="Pick your access" />
-          <PlansPanel selectedPlan={selectedPlan} onSelect={setSelectedPlan} />
+          <PlansPanel selectedPlan={selectedPlan} onSelect={setSelectedPlan} discountActive={discountActive} />
 
           <div className="flex flex-col items-center gap-3 text-center">
             <button
@@ -201,6 +204,7 @@ export default function PricingStep() {
           <PaymentModal
             key="payment-modal"
             selectedPlanId={selectedPlan}
+            discountActive={discountActive}
             discountOffered={discountOffered}
             promoCode={promoCode}
             onPromoChange={setPromoCode}
@@ -209,80 +213,114 @@ export default function PricingStep() {
           />
         )}
       </AnimatePresence>
-
-      {!showPayment && (
-        <StickyMobileCTA selectedPlanId={selectedPlan} onClick={handleOpenPayment} />
-      )}
     </div>
   )
 }
 
-function PlansPanel({ selectedPlan, onSelect }: { selectedPlan: string; onSelect: (id: string) => void }) {
+function PlansPanel({ selectedPlan, onSelect, discountActive }: { selectedPlan: string; onSelect: (id: string) => void; discountActive: boolean }) {
   return (
-    <div id="plans" className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+    <div id="plans" className="grid gap-2 sm:gap-4 md:grid-cols-2 xl:grid-cols-3 scroll-mt-24">
       {plans.map((plan) => (
-        <PlanCard key={plan.id} plan={plan} active={plan.id === selectedPlan} onSelect={() => onSelect(plan.id)} />
+        <PlanCard key={plan.id} plan={plan} active={plan.id === selectedPlan} discountActive={discountActive} onSelect={() => onSelect(plan.id)} />
       ))}
     </div>
   )
 }
 
-function PlanCard({ plan, active, onSelect }: { plan: PlanOption; active: boolean; onSelect: () => void }) {
+function PlanCard({ plan, active, onSelect, discountActive }: { plan: PlanOption; active: boolean; onSelect: () => void; discountActive: boolean }) {
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`group relative flex h-full flex-col rounded-3xl border px-5 py-6 text-left transition focus:outline-none focus:ring-2 focus:ring-[#F07CA3] focus:ring-offset-2 focus:ring-offset-white ${
+      className={`group relative flex h-full flex-col rounded-2xl sm:rounded-3xl border pl-12 pr-4 py-4 sm:px-5 sm:py-6 text-left transition focus:outline-none focus:ring-2 focus:ring-[#F07CA3] focus:ring-offset-2 focus:ring-offset-white ${
         active
           ? 'border-[#F07CA3] bg-surface shadow-[0_18px_38px_rgba(240,124,163,0.25)]'
           : 'border-border-subtle bg-surface shadow-sm hover:-translate-y-1 hover:shadow-[0_16px_30px_rgba(91,69,136,0.14)]'
       }`}
     >
+      {/* Mobile radio on the left center */}
+      <span
+        className={`sm:hidden absolute left-3 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+          active ? 'border-[#F07CA3] bg-[#F07CA3]' : 'border-[#D6D9EE] bg-transparent'
+        }`}
+        aria-hidden
+      >
+        {active && <CheckIcon className="h-3.5 w-3.5 text-white" />}
+      </span>
       {plan.tag && (
-        <div className="pointer-events-none absolute -top-5 left-1/2 z-10 -translate-x-1/2">
-          <div className="rounded-full bg-[#F07CA3] px-4 py-1 text-[11px] font-extrabold uppercase tracking-widest text-white shadow-[0_10px_20px_rgba(240,124,163,0.35)]">
+        <div className="pointer-events-none absolute -top-4 sm:-top-5 left-1/2 z-10 -translate-x-1/2">
+          <div className="rounded-full bg-[#F07CA3] px-3 sm:px-4 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-white shadow-[0_8px_16px_rgba(240,124,163,0.28)]">
             {plan.tag}
           </div>
         </div>
       )}
-      <div className="space-y-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <p className="text-xl font-semibold leading-tight text-text-primary">{plan.label}</p>
-            <span className="inline-flex items-center rounded-md bg-surface-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-widest text-text-secondary">
-              {plan.periodLabel}
-            </span>
+      {/* Mobile layout */}
+      <div className="sm:hidden space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-lg font-semibold leading-tight text-text-primary">{plan.label}</p>
+          <div className="text-right leading-none">
+            {discountActive && plan.originalPerDay && (
+              <div className="text-[11px] text-text-secondary line-through opacity-70">{`$${plan.originalPerDay.toFixed(2)}`}</div>
+            )}
+            <div className="text-[22px] font-extrabold tracking-tight text-text-primary">{`$${plan.perDay.toFixed(2)}`}</div>
+            <div className="text-[10px] text-text-secondary">per day</div>
           </div>
-          <span
-            className={`mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full border-2 ${active ? 'border-[#F07CA3] bg-[#F07CA3]' : 'border-[#D6D9EE] bg-transparent'}`}
-            aria-hidden
-          >
-            {active && <CheckIcon className="h-4 w-4 text-white" />}
-          </span>
         </div>
-        <div className="space-y-0.5 text-right text-text-secondary">
-          {plan.originalTotal && (
-            <p className="text-xs line-through opacity-70">${'{'}plan.originalTotal.toFixed(2){'}'}</p>
-          )}
-          <p className="text-sm font-semibold text-text-primary">${'{'}plan.total.toFixed(2){'}'}</p>
+        <div className="flex items-start justify-between gap-2">
+          <span className="inline-flex items-center rounded-md bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-text-secondary">
+            {plan.periodLabel}
+          </span>
+          <div className="text-right text-text-secondary">
+            {discountActive && plan.originalTotal && (
+              <div className="text-[11px] line-through opacity-70">{`$${plan.originalTotal.toFixed(2)}`}</div>
+            )}
+            <div className="text-xs font-semibold text-text-primary">{`$${plan.total.toFixed(2)}`}</div>
+          </div>
         </div>
         <div className="border-t border-border-subtle" />
-        <div className="flex items-end justify-between">
-          <div className="flex items-baseline gap-2">
-            {plan.originalPerDay && (
-              <span className="text-base text-text-secondary line-through opacity-70">${'{'}plan.originalPerDay.toFixed(2){'}'}</span>
-            )}
-            <div className="text-[34px] font-extrabold leading-none tracking-tight text-text-primary">${'{'}plan.perDay.toFixed(2){'}'}</div>
-          </div>
-          <div className="pb-1 text-sm text-text-secondary">per day</div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {plan.sellingPoints.map((point) => (
-            <span key={point} className="inline-flex items-center gap-1 rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold text-text-primary">
-              <MiniCheckIcon className="h-3.5 w-3.5 text-[#2BAE70]" />
-              {point}
+      </div>
+
+      {/* Desktop / tablet layout */}
+      <div className="hidden sm:block">
+          <div className="space-y-3 sm:space-y-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-0.5 sm:space-y-1">
+              <p className="text-2xl font-semibold leading-tight text-text-primary">{plan.label}</p>
+              <span className="inline-flex items-center rounded-md bg-surface-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-widest text-text-secondary">
+                {plan.periodLabel}
+              </span>
+            </div>
+            <span
+              className={`hidden sm:inline-flex mt-1 h-6 w-6 items-center justify-center rounded-full border-2 ${active ? 'border-[#F07CA3] bg-[#F07CA3]' : 'border-[#D6D9EE] bg-transparent'}`}
+              aria-hidden
+            >
+              {active && <CheckIcon className="h-4 w-4 text-white" />}
             </span>
-          ))}
+          </div>
+          <div className="space-y-0.5 text-right text-text-secondary">
+            {discountActive && plan.originalTotal && (
+              <p className="text-xs line-through opacity-70">{`$${plan.originalTotal.toFixed(2)}`}</p>
+            )}
+            <p className="text-sm font-semibold text-text-primary">{`$${plan.total.toFixed(2)}`}</p>
+          </div>
+          <div className="border-t border-border-subtle" />
+          <div className="flex items-end justify-between">
+            <div className="flex items-baseline gap-2">
+              {discountActive && plan.originalPerDay && (
+                <span className="text-base text-text-secondary line-through opacity-70">{`$${plan.originalPerDay.toFixed(2)}`}</span>
+              )}
+              <div className="text-[34px] font-extrabold leading-none tracking-tight text-text-primary">{`$${plan.perDay.toFixed(2)}`}</div>
+            </div>
+            <div className="pb-1 text-sm text-text-secondary">per day</div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {plan.sellingPoints.map((point) => (
+              <span key={point} className="inline-flex items-center gap-1 rounded-full bg-surface-muted px-3 py-1 text-[11px] font-semibold text-text-primary">
+                <MiniCheckIcon className="h-3.5 w-3.5 text-[#2BAE70]" />
+                {point}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </button>
@@ -291,7 +329,7 @@ function PlanCard({ plan, active, onSelect }: { plan: PlanOption; active: boolea
 
 function GuaranteeBanner() {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-border-subtle bg-surface px-4 py-4 text-center sm:flex-row sm:justify-between">
+  <div className="flex flex-col items-center gap-2 sm:gap-3 rounded-2xl border border-border-subtle bg-surface px-3 py-3 sm:px-4 sm:py-4 text-center sm:flex-row sm:justify-between">
       <div className="flex items-center gap-3 text-text-primary">
         <svg className="h-6 w-6 text-[#2BAE70]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 2l8 4v6c0 5-3.6 9.6-8 10-4.4-.4-8-5-8-10V6l8-4z" opacity=".4" />
@@ -353,14 +391,18 @@ function FAQItem({ question, answer, defaultOpen = false }: { question: string; 
   )
 }
 
-function StickyMobileCTA({ selectedPlanId, onClick }: { selectedPlanId: string; onClick: () => void }) {
+function StickyMobileCTA({ selectedPlanId, onClick, discountActive }: { selectedPlanId: string; onClick: () => void; discountActive: boolean }) {
   const plan = plans.find((p) => p.id === selectedPlanId) ?? plans[0]
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle/60 bg-surface/90 px-4 py-3 backdrop-blur md:hidden">
       <div className="mx-auto flex w-full max-w-[1040px] items-center justify-between gap-3">
         <div className="text-left">
-          <p className="text-xs text-text-secondary">Start free for 7 days</p>
-          <p className="text-sm font-semibold text-text-primary">{plan.label} • ${'{'}plan.perDay.toFixed(2){'}'}/day</p>
+          {discountActive ? (
+            <p className="text-xs text-text-secondary">Limited-time discount</p>
+          ) : (
+            <p className="text-xs text-text-secondary">Offer ended</p>
+          )}
+          <p className="text-sm font-semibold text-text-primary">{plan.label} • {`$${plan.perDay.toFixed(2)}`}/day</p>
         </div>
         <button
           type="button"
@@ -387,39 +429,78 @@ function DynamicBillingNotice({ selectedPlanId }: { selectedPlanId: string }) {
   )
 }
 
-function TopTimerRow({ totalSeconds }: { totalSeconds: number }) {
+function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpire?: () => void }) {
   const [secondsRemaining, setSecondsRemaining] = useState(totalSeconds)
+  const [compact, setCompact] = useState(false)
   useEffect(() => {
-    const id = window.setInterval(() => setSecondsRemaining((s) => (s > 0 ? s - 1 : 0)), 1000)
+    const id = window.setInterval(() => {
+      setSecondsRemaining((s) => {
+        if (s <= 1) {
+          window.clearInterval(id)
+          onExpire?.()
+          return 0
+        }
+        return s - 1
+      })
+    }, 1000)
     return () => window.clearInterval(id)
-  }, [totalSeconds])
+  }, [totalSeconds, onExpire])
+  useEffect(() => {
+    const onScroll = () => setCompact(window.scrollY > 180)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
   const minutes = String(Math.floor(secondsRemaining / 60)).padStart(2, '0')
   const seconds = String(secondsRemaining % 60).padStart(2, '0')
   const handleClick = () => {
     const el = document.getElementById('plans')
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (!el) return
+    try {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } catch {
+      const y = el.getBoundingClientRect().top + window.scrollY - 96
+      window.scrollTo({ top: y, behavior: 'smooth' })
+    }
   }
+  const expired = secondsRemaining <= 0
   return (
-    <div className="flex w-full flex-col items-center justify-between gap-4 rounded-2xl bg-surface px-4 py-3 shadow-sm sm:flex-row">
-      <div className="flex items-end gap-3">
-        <span className="text-sm font-semibold text-text-primary">Discount is reserved for:</span>
-        <div className="flex items-baseline gap-2">
-          <span className="text-[28px] font-extrabold leading-none text-[#F07CA3]">{minutes}</span>
-          <span className="text-[22px] font-extrabold leading-none text-[#F07CA3]">:</span>
-          <span className="text-[28px] font-extrabold leading-none text-[#F07CA3]">{seconds}</span>
-          <div className="ml-2 flex gap-4 text-[11px] uppercase tracking-widest text-text-secondary">
-            <span>minutes</span>
-            <span>seconds</span>
-          </div>
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={handleClick}
-        className="inline-flex items-center justify-center rounded-full bg-[#F07CA3] px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_10px_20px_rgba(240,124,163,0.35)] hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-[#F7C1D4]"
+    <div className="sticky top-2 z-50">
+      <motion.div
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
+        className="mx-auto w-[min(92vw,1040px)] px-0"
       >
-        Get my plan
-      </button>
+        <div className={`flex w-full items-center ${compact ? 'justify-center' : 'justify-between'} gap-4 rounded-2xl bg-surface shadow-sm ${compact ? 'border border-border-subtle/70 px-3 py-2' : 'px-4 py-3'}`}>
+          <div className="flex items-center gap-3">
+            {!compact && (
+              <span className={`font-semibold text-text-primary ${compact ? 'text-xs' : 'text-sm'}`}>{expired ? 'Offer ended' : 'Discount is reserved for:'}</span>
+            )}
+            <div className="flex items-center gap-3">
+              <TimerUnit value={minutes} label="minutes" compact={compact} />
+              <span className={`${compact ? 'text-base' : 'text-[22px]'} font-extrabold leading-none text-[#F07CA3]`}>:</span>
+              <TimerUnit value={seconds} label="seconds" compact={compact} />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleClick}
+            className={`inline-flex items-center justify-center rounded-full bg-[#F07CA3] text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_10px_20px_rgba(240,124,163,0.35)] hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-[#F7C1D4] ${compact ? 'px-4 py-2' : 'px-6 py-3'}`}
+          >
+            Get my plan
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+function TimerUnit({ value, label, compact }: { value: string; label: string; compact: boolean }) {
+  return (
+    <div className="flex flex-col items-center leading-none">
+      <span className={`${compact ? 'text-xl' : 'text-[28px]'} font-extrabold tracking-tight text-[#F07CA3]`}>{value}</span>
+      <span className={`${compact ? 'text-[9px]' : 'text-[11px]'} uppercase tracking-widest text-text-secondary`}>{label}</span>
     </div>
   )
 }
@@ -449,7 +530,7 @@ function FeatureRow({ feature }: { feature: FeatureItem }) {
 
 function TrustSignals() {
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="grid gap-2.5 sm:gap-3 sm:grid-cols-3">
       <TrustPill title="Expert crafted" description="Designed alongside dermatologists and estheticians." />
       <TrustPill title="Cancel anytime" description="Pause or switch plans without losing progress." />
       <TrustPill title="Money-back promise" description="Full refund within 30 days if you are not in love." />
@@ -497,133 +578,84 @@ function TestimonialStrip() {
 interface PaymentModalProps {
   selectedPlanId: string
   discountOffered: boolean
+  discountActive: boolean
   promoCode: string
   onPromoChange: (value: string) => void
   onClose: () => void
   onComplete: () => void
 }
 
-function PaymentModal({ selectedPlanId, discountOffered, promoCode, onPromoChange, onClose, onComplete }: PaymentModalProps) {
+function PaymentModal({ selectedPlanId, discountOffered, discountActive, promoCode, onPromoChange, onClose, onComplete }: PaymentModalProps) {
   const plan = plans.find((item) => item.id === selectedPlanId) ?? plans[0]
   const basePerDay = plan.perDay
   const discountedPerDay = (basePerDay * 0.9)
-  const displayPrice = discountOffered ? `$${discountedPerDay.toFixed(2)}/day` : `$${basePerDay.toFixed(2)}/day`
+  const displayPrice = discountActive && discountOffered ? `$${discountedPerDay.toFixed(2)}/day` : `$${basePerDay.toFixed(2)}/day`
+  const periodPriceLabel = `Regular ${plan.billingWeeks}-week price`
 
   return (
     <motion.div className="fixed inset-0 z-50 flex items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-  <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
       <motion.div
-        className="relative w-full max-w-[520px] rounded-3xl bg-surface px-6 py-8 shadow-[0_28px_60px_rgba(43,33,76,0.25)]"
-        initial={{ scale: 0.9, opacity: 0 }}
+        className="relative mx-4 w-full max-w-[768px] rounded-3xl bg-white px-6 py-6 shadow-[0_32px_64px_rgba(0,0,0,0.24)] sm:px-8 sm:py-8"
+        initial={{ scale: 0.98, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
+        exit={{ scale: 0.98, opacity: 0 }}
       >
-        <button type="button" onClick={onClose} className="absolute right-6 top-6 text-text-secondary transition hover:text-text-primary" aria-label="Close payment modal">
+        <button type="button" onClick={onClose} className="absolute left-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-surface-muted text-xl text-text-primary/70 hover:text-text-primary" aria-label="Close">
           ×
         </button>
-        <div className="space-y-6">
-          <div className="space-y-2 text-left">
-            <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-text-secondary">
-              Secure checkout
-              </span>
-            <h3 className="text-2xl font-bold text-text-primary">Start your free trial</h3>
-            <p className="text-sm text-text-secondary">
-              Activate premium access instantly. No charge until your 7-day trial finishes.
-            </p>
+
+        <h3 className="mb-6 text-center text-2xl font-bold text-text-primary sm:text-3xl">Complete your checkout</h3>
+
+        <div className="grid gap-6 sm:grid-cols-2">
+          {/* Left: Order Summary */}
+          <div className="rounded-2xl border border-border-subtle bg-surface p-5">
+            <p className="mb-2 text-sm font-semibold text-text-primary">Your Order Summary</p>
+            <div className="flex items-center justify-between py-2 text-sm">
+              <span className="text-text-secondary">{periodPriceLabel}</span>
+              <span className="font-medium text-text-primary">${plan.total.toFixed(2)}</span>
             </div>
-            
-          <div className="space-y-3 rounded-2xl bg-surface-muted px-4 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-sm font-semibold text-text-primary">{plan.label} plan</p>
-                <p className="text-xs text-text-secondary">After trial: {displayPrice} (${plan.total.toFixed(2)} total)</p>
-              </div>
-              {discountOffered && (
-                <span className="rounded-full bg-[#E5FBF0] px-3 py-1 text-xs font-semibold text-[#2BAE70]">
-                  Extra 10% off applied
-                </span>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {plan.sellingPoints.map((point) => (
-                <span key={point} className="inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1 text-xs font-semibold text-text-primary">
-                  <MiniCheckIcon className="h-3.5 w-3.5 text-[#2BAE70]" />
-                  {point}
-                </span>
-              ))}
+            <div className="my-2 h-px w-full bg-border-subtle" />
+            <div className="flex items-center justify-between py-2 text-base font-bold text-text-primary">
+              <span>Total today:</span>
+              <span>${plan.total.toFixed(2)}</span>
             </div>
           </div>
 
-          {!discountOffered && (
-            <div className="rounded-2xl border border-border-subtle bg-surface-muted px-4 py-3 text-xs text-text-secondary">
-              Thinking of leaving? Close this window and we will sweeten the deal with an extra 10% off.
+          {/* Right: Payment Methods */}
+          <div className="flex flex-col">
+            <StripeExpressPay amountCents={Math.round(plan.total * 100)} currency="usd" label="Total" onSuccess={onComplete} />
+            <div className="relative my-2 flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-text-secondary">
+              <span className="flex-1 h-px bg-border-subtle" />
+              <span>or pay with a card</span>
+              <span className="flex-1 h-px bg-border-subtle" />
             </div>
-          )}
-
-          <form className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
-                Full name
-                <input type="text" placeholder="Amelia Reid" className="mt-1 w-full rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/60 focus:border-[#9B87D5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]" />
-              </label>
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
-                Email address
-                <input type="email" placeholder="amelia@example.com" className="mt-1 w-full rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/60 focus:border-[#9B87D5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]" />
-              </label>
-            </div>
-            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
+            <PaymentBrandsRow />
+            <label className="mb-3 text-xs font-medium text-text-secondary">
               Card number
-              <input type="text" placeholder="1234 5678 9012 3456" className="mt-1 w-full rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/60 focus:border-[#9B87D5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]" />
+              <input type="text" placeholder="XXXX XXXX XXXX XXXX" className="mt-1 w-full rounded-xl border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/60 focus:border-[#A0D8CC] focus:outline-none focus:ring-2 focus:ring-[#C4E9E0]" />
             </label>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
-                Expiry
-                <input type="text" placeholder="MM/YY" className="mt-1 w-full rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/60 focus:border-[#9B87D5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-xs font-medium text-text-secondary">
+                Expiry date
+                <input type="text" placeholder="MM/YY" className="mt-1 w-full rounded-xl border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/60 focus:border-[#A0D8CC] focus:outline-none focus:ring-2 focus:ring-[#C4E9E0]" />
               </label>
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
-                CVC
-                <input type="text" placeholder="123" className="mt-1 w-full rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/60 focus:border-[#9B87D5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]" />
-              </label>
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
-                Country
-                <input type="text" placeholder="United Kingdom" className="mt-1 w-full rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/60 focus:border-[#9B87D5] focus:outline-none focus:ring-2 focus:ring-[#C9B8F5]" />
+              <label className="text-xs font-medium text-text-secondary">
+                Security code
+                <input type="text" placeholder="CVV" className="mt-1 w-full rounded-xl border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/60 focus:border-[#A0D8CC] focus:outline-none focus:ring-2 focus:ring-[#C4E9E0]" />
               </label>
             </div>
-            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
-              Promo code
-              <div className="mt-1 flex items-center gap-2 rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm shadow-sm focus-within:border-[#9B87D5] focus-within:ring-2 focus-within:ring-[#C9B8F5]">
-              <input
-                value={promoCode}
-                  onChange={(event) => onPromoChange(event.target.value)}
-                  placeholder="Enter code"
-                  className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-secondary/60 outline-none"
-                />
-                <button type="button" className="text-xs font-semibold text-[#7C5CCB]">Apply</button>
-              </div>
-            </label>
-          </form>
 
-          <div className="space-y-3 text-left">
             <button
               type="button"
               onClick={onComplete}
-              className="w-full rounded-2xl bg-gradient-to-r from-[#A385E9] via-[#7C5CCB] to-[#6B50C5] py-3 text-base font-semibold text-white shadow-[0_20px_36px_rgba(124,92,203,0.28)] transition hover:shadow-[0_22px_40px_rgba(124,92,203,0.32)]"
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#33A476] px-5 py-3 text-base font-semibold text-white shadow-[0_10px_24px_rgba(51,164,118,0.28)]"
             >
-              Confirm membership
+              <span className="text-lg">🔒</span> CONTINUE
             </button>
-            <p className="text-xs text-text-secondary">
-              We will email you before your trial ends. Cancel anytime with one tap.
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-xs text-text-secondary">
-                <MiniCheckIcon className="h-4 w-4 text-[#2BAE70]" />
-                Encrypted checkout - 30-day money-back guarantee.
-              </div>
-              <PaymentMethodsMini />
-            </div>
           </div>
-            </div>
-          </motion.div>
+        </div>
+      </motion.div>
     </motion.div>
   )
 }
@@ -644,6 +676,27 @@ function PaymentMethodsMini() {
     <div className="flex items-center gap-2 opacity-90">
   <Image src="/icons/payment_methods/apple-pay.png" alt="Apple Pay" width={44} height={20} className="h-5 w-auto" />
   <Image src="/icons/payment_methods/google-pay.png" alt="Google Pay" width={44} height={20} className="h-5 w-auto" />
+    </div>
+  )
+}
+
+function PaymentBrandsRow() {
+  const brands = [
+    { key: 'visa', light: '/icons/payment_methods/visa_light.svg', dark: '/icons/payment_methods/visa_dark.svg' },
+    { key: 'mastercard', light: '/icons/payment_methods/mastercard_light.svg', dark: '/icons/payment_methods/mastercard_dark.svg' },
+    { key: 'maestro', light: '/icons/payment_methods/maestro_light.svg', dark: '/icons/payment_methods/maestro_dark.svg' },
+    { key: 'amex', light: '/icons/payment_methods/american-express_light.svg', dark: '/icons/payment_methods/american-express_dark.svg' },
+    { key: 'diners', light: '/icons/payment_methods/diners-club_light.svg', dark: '/icons/payment_methods/diners-club_dark.svg' },
+    { key: 'discover', light: '/icons/payment_methods/discover_light.svg', dark: '/icons/payment_methods/discover_dark.svg' },
+  ]
+  return (
+    <div className="mb-4 flex flex-wrap items-center justify-center gap-4 sm:gap-5 opacity-95">
+      {brands.map((b) => (
+        <span key={b.key} className="inline-flex items-center">
+          <Image src={b.light} alt={b.key} width={56} height={24} className="h-6 w-auto dark:hidden" />
+          <Image src={b.dark} alt={b.key} width={56} height={24} className="hidden h-6 w-auto dark:block" />
+        </span>
+      ))}
     </div>
   )
 }
