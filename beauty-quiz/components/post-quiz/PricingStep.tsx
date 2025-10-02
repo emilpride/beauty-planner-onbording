@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -432,6 +432,8 @@ function DynamicBillingNotice({ selectedPlanId }: { selectedPlanId: string }) {
 function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpire?: () => void }) {
   const [secondsRemaining, setSecondsRemaining] = useState(totalSeconds)
   const [compact, setCompact] = useState(false)
+  const normalRef = useRef<HTMLDivElement | null>(null)
+  const [normalH, setNormalH] = useState<number>(0)
   useEffect(() => {
     const id = window.setInterval(() => {
       setSecondsRemaining((s) => {
@@ -446,53 +448,89 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
     return () => window.clearInterval(id)
   }, [totalSeconds, onExpire])
   useEffect(() => {
+    const measure = () => {
+      if (normalRef.current) {
+        setNormalH(normalRef.current.getBoundingClientRect().height)
+      }
+    }
     const onScroll = () => setCompact(window.scrollY > 180)
+    measure()
     onScroll()
+    window.addEventListener('resize', measure)
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    return () => {
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('scroll', onScroll)
+    }
   }, [])
   const minutes = String(Math.floor(secondsRemaining / 60)).padStart(2, '0')
   const seconds = String(secondsRemaining % 60).padStart(2, '0')
   const handleClick = () => {
     const el = document.getElementById('plans')
     if (!el) return
-    try {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    } catch {
-      const y = el.getBoundingClientRect().top + window.scrollY - 96
-      window.scrollTo({ top: y, behavior: 'smooth' })
-    }
+    // Compute offset to keep header/timer visible after scroll
+    const fixedBar = document.querySelector('[data-compact-timer]') as HTMLElement | null
+    const offset = fixedBar ? fixedBar.getBoundingClientRect().height + 16 : 96
+    const y = el.getBoundingClientRect().top + window.scrollY - offset
+    window.scrollTo({ top: y, behavior: 'smooth' })
   }
   const expired = secondsRemaining <= 0
   return (
-    <div className="sticky top-2 z-50">
-      <motion.div
-        initial={{ opacity: 0, y: -4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.18, ease: 'easeOut' }}
-        className="mx-auto w-[min(92vw,1040px)] px-0"
-      >
-        <div className={`flex w-full items-center ${compact ? 'justify-center' : 'justify-between'} gap-4 rounded-2xl bg-surface shadow-sm ${compact ? 'border border-border-subtle/70 px-3 py-2' : 'px-4 py-3'}`}>
+    <>
+      {/* Normal bar in flow */}
+      <div ref={normalRef} className="mx-auto w-[min(92vw,1040px)] px-0">
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className={`flex w-full items-center justify-between gap-4 rounded-2xl bg-surface px-4 py-3 shadow-sm ${compact ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        >
           <div className="flex items-center gap-3">
-            {!compact && (
-              <span className={`font-semibold text-text-primary ${compact ? 'text-xs' : 'text-sm'}`}>{expired ? 'Offer ended' : 'Discount is reserved for:'}</span>
-            )}
+            <span className="text-sm font-semibold text-text-primary">{expired ? 'Offer ended' : 'Discount is reserved for:'}</span>
             <div className="flex items-center gap-3">
-              <TimerUnit value={minutes} label="minutes" compact={compact} />
-              <span className={`${compact ? 'text-base' : 'text-[22px]'} font-extrabold leading-none text-[#F07CA3]`}>:</span>
-              <TimerUnit value={seconds} label="seconds" compact={compact} />
+              <TimerUnit value={minutes} label="minutes" compact={false} />
+              <span className="text-[22px] font-extrabold leading-none text-[#F07CA3]">:</span>
+              <TimerUnit value={seconds} label="seconds" compact={false} />
             </div>
           </div>
           <button
             type="button"
             onClick={handleClick}
-            className={`inline-flex items-center justify-center rounded-full bg-[#F07CA3] text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_10px_20px_rgba(240,124,163,0.35)] hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-[#F7C1D4] ${compact ? 'px-4 py-2' : 'px-6 py-3'}`}
+            className="inline-flex items-center justify-center rounded-full bg-[#F07CA3] px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_10px_20px_rgba(240,124,163,0.35)] hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-[#F7C1D4]"
           >
             Get my plan
           </button>
+        </motion.div>
+      </div>
+
+      {/* Compact fixed bar */}
+      {compact && (
+  <div className="fixed inset-x-0 top-2 z-50" data-compact-timer>
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="mx-auto w-[min(92vw,1040px)] px-0"
+          >
+            <div className="flex w-full items-center justify-center gap-4 rounded-2xl border border-border-subtle/70 bg-surface px-3 py-2 shadow-sm backdrop-blur">
+              <div className="flex items-center gap-3">
+                <TimerUnit value={minutes} label="minutes" compact={true} />
+                <span className="text-base font-extrabold leading-none text-[#F07CA3]">:</span>
+                <TimerUnit value={seconds} label="seconds" compact={true} />
+              </div>
+              <button
+                type="button"
+                onClick={handleClick}
+                className="inline-flex items-center justify-center rounded-full bg-[#F07CA3] px-4 py-2 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_10px_20px_rgba(240,124,163,0.35)] hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-[#F7C1D4]"
+              >
+                Get my plan
+              </button>
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
-    </div>
+      )}
+    </>
   )
 }
 
