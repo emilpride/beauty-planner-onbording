@@ -67,7 +67,7 @@ export default function HeightPicker({ value = 177, gender, onConfirm, onCancel 
   }
 
   // Positions
-  const knobTop = Math.max(0, stageH - lineBottom - 6) // center 12px knob
+  const knobTop = Math.max(0, stageH - lineBottom - 10) // center 20px knob
 
   const onKnobKeyDown = (e: React.KeyboardEvent) => {
     const step = e.shiftKey ? 5 : 1
@@ -98,9 +98,9 @@ export default function HeightPicker({ value = 177, gender, onConfirm, onCancel 
       </div>
 
       {/* Stage */}
-      <div ref={stageRef} className="relative flex-1 min-h-0 overflow-hidden touch-none" onPointerDown={(e) => startDrag(e.clientY)}>
+      <div ref={stageRef} className="relative flex-1 min-h-0 overflow-hidden">
         {/* Left ruler: ticks only (no numeric labels) */}
-        <div className="absolute left-0 top-0 bottom-0 w-12">
+        <div className="absolute left-0 top-0 bottom-0 w-12 touch-none" onPointerDown={(e) => startDrag(e.clientY)}>
           {/* ticks every 10cm with minor grid via gradient */}
           <div
             className="absolute inset-0"
@@ -112,24 +112,33 @@ export default function HeightPicker({ value = 177, gender, onConfirm, onCancel 
         <button
           type="button"
           aria-label="Adjust height"
-          className="absolute left-10 z-20 h-3 w-3 -translate-x-1/2 rounded-full bg-primary shadow"
+          className="absolute left-10 z-30 h-5 w-5 -translate-x-1/2 rounded-full bg-primary shadow cursor-grab active:cursor-grabbing ring-2 ring-white"
           style={{ top: knobTop }}
           onPointerDown={(e) => startDrag(e.clientY)}
           onKeyDown={onKnobKeyDown}
         />
 
-        {/* Horizontal dotted line */}
+        {/* Horizontal dotted line (thicker) */}
         <div
-          className="absolute left-12 right-20 border-t border-dotted border-primary/60 z-10"
+          className="absolute left-12 right-24 z-20 cursor-grab active:cursor-grabbing"
           style={{ bottom: lineBottom }}
+        >
+          <div className="h-3 border-t-2 border-dotted border-primary/70" />
+        </div>
+
+        {/* Fat invisible hit area for the line to improve touchability */}
+        <div
+          className="absolute left-0 right-0 h-8 -translate-y-1/2 z-20"
+          style={{ bottom: lineBottom }}
+          onPointerDown={(e) => startDrag(e.clientY)}
         />
 
         {/* Value bubble on right */}
         <div
-          className="absolute right-4 z-20 rounded-2xl bg-primary text-white text-sm font-semibold px-3 py-1 shadow"
+          className="absolute right-4 z-30 rounded-2xl bg-primary text-white text-sm font-semibold px-3 py-1 shadow"
           style={{ bottom: lineBottom - 16 }}
         >
-          {cmToFeetInches(height)} <span className="text-white/80 text-[11px]">({height})</span>
+          {cmToFeetInches(height)} ft <span className="text-white/80 text-[11px]">({height} cm)</span>
         </div>
 
         {/* Silhouette centered */}

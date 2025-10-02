@@ -62,7 +62,12 @@ export default function GeneralStep() {
           if (!y || !m || !d) {
             error = 'Please select a valid date'
           } else {
-            const age = computedAge
+            // Compute age directly from the provided value to avoid stale state
+            const today = new Date()
+            let age = today.getFullYear() - y
+            const mDiff = today.getMonth() + 1 - m
+            const dDiff = today.getDate() - d
+            if (mDiff < 0 || (mDiff === 0 && dDiff < 0)) age--
             if (age === null || age < 13 || age > 100) {
               error = 'Age must be between 13 and 100'
             }
@@ -221,7 +226,7 @@ export default function GeneralStep() {
                 const totalInches = cm / 2.54
                 const feet = Math.floor(totalInches / 12)
                 const inches = Math.round(totalInches % 12)
-                return `${feet}'${inches} (${cm})`
+                return `${feet}'${inches} ft (${cm} cm)`
               })() : 'Select your height'}
             </span>
             <svg className="h-5 w-5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
