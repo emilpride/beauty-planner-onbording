@@ -2,19 +2,45 @@
 
 import { useQuizStore } from '@/store/quizStore'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
-import UnitToggle from '@/components/ui/UnitToggle'
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import DatePicker from '@/components/ui/DatePicker'
 
 export default function GeneralStep() {
-  const { answers, setAnswer, setHeightUnit, setWeightUnit } = useQuizStore()
+  const { answers, setAnswer } = useQuizStore()
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  const [isAnimating, setAnimating] = useState(false)
+  const calendarRef = useRef<HTMLDivElement | null>(null)
+
+  const handleOpenCalendar = () => {
+    setCalendarOpen(true)
+    setTimeout(() => setAnimating(true), 10) // Allow component to mount before animating
+  }
+
+  const handleCloseCalendar = () => {
+    setAnimating(false)
+    setTimeout(() => setCalendarOpen(false), 300) // Wait for animation to finish
+  }
+
+  // Compute age from birthDate
+  const computedAge = useMemo(() => {
+    if (!answers.birthDate) return null
+    const today = new Date()
+    const [y, m, d] = answers.birthDate.split('-').map((v) => parseInt(v, 10))
+    if (!y || !m || !d) return null
+    let age = today.getFullYear() - y
+    const mDiff = today.getMonth() + 1 - m
+    const dDiff = today.getDate() - d
+    if (mDiff < 0 || (mDiff === 0 && dDiff < 0)) age--
+    return age
+  }, [answers.birthDate])
 
   const isFormValid = () => {
     return (
       answers.name.trim() !== '' &&
-      answers.age !== null &&
-      answers.age >= 13 &&
-      answers.age <= 100 &&
+      computedAge !== null &&
+      computedAge >= 13 &&
+      computedAge <= 100 &&
       answers.height.trim() !== '' &&
       answers.weight.trim() !== ''
     )
@@ -26,9 +52,19 @@ export default function GeneralStep() {
       case 'name':
         if (!value.trim()) error = 'Please enter your name'
         break
-      case 'age':
-        if (value === null || value < 13 || value > 100) {
-          error = 'Please enter a valid age (13-100)'
+      case 'birthDate':
+        if (!value) {
+          error = 'Please select your birth date'
+        } else {
+          const [y, m, d] = value.split('-').map((v: string) => parseInt(v, 10))
+          if (!y || !m || !d) {
+            error = 'Please select a valid date'
+          } else {
+            const age = computedAge
+            if (age === null || age < 13 || age > 100) {
+              error = 'Age must be between 13 and 100'
+            }
+          }
         }
         break
       case 'height':
@@ -45,8 +81,50 @@ export default function GeneralStep() {
 
   const handleInputChange = (field: keyof typeof answers, value: any) => {
     setAnswer(field, value)
+    if (field === 'birthDate') {
+      // Also update derived age for backward compatibility
+      const [y, m, d] = String(value).split('-').map((v) => parseInt(v, 10))
+      if (y && m && d) {
+        const today = new Date()
+        let age = today.getFullYear() - y
+        const mDiff = today.getMonth() + 1 - m
+        const dDiff = today.getDate() - d
+        if (mDiff < 0 || (mDiff === 0 && dDiff < 0)) age--
+        setAnswer('age', isFinite(age) ? age : null)
+      } else {
+        setAnswer('age', null)
+      }
+    }
     validateField(field, value)
   }
+
+  // Close calendar on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
+        handleCloseCalendar()
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // Prevent body scroll when modal open
+  useEffect(() => {
+    if (calendarOpen) {
+      const prev = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = prev
+      }
+    }
+  }, [calendarOpen])
+
+  // Enforce metric units for simplified UI
+  useEffect(() => {
+    if (answers.heightUnit !== 'cm') setAnswer('heightUnit', 'cm')
+    if (answers.weightUnit !== 'kg') setAnswer('weightUnit', 'kg')
+  }, [answers.heightUnit, answers.weightUnit, setAnswer])
 
   return (
     <OnboardingStep
@@ -69,71 +147,90 @@ export default function GeneralStep() {
             placeholder="Enter your name"
           />
         </div>
+        <div className="relative">
+          <label className="block text-sm font-medium text-text-secondary mb-1">
+            Birthday
+          </label>
+          <button
+            type="button"
+            onClick={handleOpenCalendar}
+            className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-white ${
+              errors.birthDate ? 'border-red-500' : 'border-gray-300'
+            }`}
+            aria-haspopup="dialog"
+            aria-expanded={calendarOpen}
+          >
+            <span className={`text-left ${answers.birthDate ? 'text-text-primary' : 'text-gray-400'}`}>
+              {answers.birthDate ? new Date(answers.birthDate).toLocaleDateString() : 'Select your birth date'}
+            </span>
+            <svg className="h-5 w-5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+            </svg>
+          </button>
+          {errors.birthDate && (
+            <p className="mt-1 text-xs text-red-600">{errors.birthDate}</p>
+          )}
+        </div>
+        {calendarOpen && (
+          <div
+            className="fixed inset-0 z-[100] bg-black/30 flex items-center justify-center p-4 animate-in fade-in duration-300"
+            role="dialog"
+            aria-modal="true"
+            onClick={handleCloseCalendar}
+          >
+            <div
+              ref={calendarRef}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl animate-in zoom-in-95 duration-300"
+            >
+              <DatePicker
+                value={answers.birthDate ? new Date(answers.birthDate) : null}
+                min={new Date(new Date().getFullYear() - 100, new Date().getMonth(), new Date().getDate())}
+                max={new Date(new Date().getFullYear() - 13, new Date().getMonth(), new Date().getDate())}
+                onCancel={handleCloseCalendar}
+                onConfirm={(d) => {
+                  // Format date manually to avoid timezone issues from toISOString()
+                  const y = d.getFullYear()
+                  const m = d.getMonth() + 1
+                  const day = d.getDate()
+                  const ymd = `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                  handleInputChange('birthDate', ymd)
+                  handleCloseCalendar()
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-text-secondary mb-1">
-            Age
+            Height
           </label>
           <input
-            type="number"
-            value={answers.age || ''}
-            onChange={(e) =>
-              handleInputChange('age', e.target.value ? parseInt(e.target.value) : null)
-            }
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary placeholder-gray-400 ${
-              errors.age ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Enter your age"
-          />
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-text-secondary">
-              Height
-            </label>
-            <UnitToggle
-              selectedValue={answers.heightUnit}
-              onChange={(value) => setHeightUnit(value as 'cm' | 'ft&in')}
-              options={[
-                { value: 'ft&in', label: 'ft, in' },
-                { value: 'cm', label: 'cm' }
-              ]}
-            />
-          </div>
-          <input
             type="text"
+            inputMode="numeric"
             value={answers.height}
             onChange={(e) => handleInputChange('height', e.target.value)}
             className={`w-full px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary placeholder-gray-400 ${
               errors.height ? 'border-red-500' : 'border-gray-300'
             }`}
-            placeholder={answers.heightUnit === 'cm' ? '175' : "5' 9\""}
+            placeholder={'175'}
           />
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-text-secondary">
-              Weight
-            </label>
-            <UnitToggle
-              selectedValue={answers.weightUnit}
-              onChange={(value) => setWeightUnit(value as 'kg' | 'lbs')}
-              options={[
-                { value: 'lbs', label: 'lbs' },
-                { value: 'kg', label: 'kg' }
-              ]}
-            />
-          </div>
+          <label className="block text-sm font-medium text-text-secondary mb-1">
+            Weight
+          </label>
           <input
             type="text"
+            inputMode="numeric"
             value={answers.weight}
             onChange={(e) => handleInputChange('weight', e.target.value)}
             className={`w-full px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary placeholder-gray-400 ${
               errors.weight ? 'border-red-500' : 'border-gray-300'
             }`}
-            placeholder={answers.weightUnit === 'kg' ? '70' : '154'}
+            placeholder={'70'}
           />
         </div>
         

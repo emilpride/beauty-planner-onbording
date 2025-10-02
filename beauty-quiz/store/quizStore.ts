@@ -21,6 +21,7 @@ export interface QuizAnswers {
   // Step 7: General Info
   name: string
   age: number | null
+  birthDate: string
   height: string
   heightUnit: 'ft&in' | 'cm'
   weight: string
@@ -123,6 +124,7 @@ const initialAnswers: QuizAnswers = {
   goals: [],
   name: '',
   age: null,
+  birthDate: '',
   height: '',
   heightUnit: 'ft&in',
   weight: '',
