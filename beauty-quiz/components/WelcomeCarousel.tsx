@@ -8,7 +8,7 @@ const welcomeSlides = [
   {
     id: 1,
     image: '/images/on_boarding_images/welcome_img_1.png',
-    title: "Beauty is not just about your routineвЂ”it's also about mental and physical well-being",
+    title: "Beauty is not just about your routine—it's also about mental and physical well-being",
     showSignIn: true
   },
   {
@@ -19,12 +19,12 @@ const welcomeSlides = [
   {
     id: 3,
     image: '/images/on_boarding_images/welcome_img_3.png',
-    title: "Discover Beauty Mirror Features for Your Journey! With smart tracking and personalized routines, Beauty Mirror keeps you motivated and balanced in beauty, mind, and body."
+    title: "Beauty Mirror: smart tracking and personalized routines for a balanced you."
   },
   {
     id: 4,
     image: '/images/on_boarding_images/welcome_img_4.png',
-    title: "Unlock Your Best Self with Beauty Mirror! Stay consistent, cultivate healthy beauty & wellness Activities, and unlock your natural glowвЂ”inside and out!"
+    title: "Unlock your best self with Beauty Mirror—stay consistent, build healthy habits, and glow inside and out."
   }
 ]
 
@@ -156,15 +156,19 @@ export default function WelcomeCarousel() {
             </button>
           </div>
 
-          {/* Sign In Link - Only on first slide */}
-          {welcomeSlides[currentSlide].showSignIn && (
-            <p className="text-center mt-4 text-text-secondary">
-              Already have an account?{' '}
-              <button className="text-primary font-semibold">
-                Sign in
-              </button>
-            </p>
-          )}
+          {/* Sign In Link - Reserve space even when hidden to prevent layout shift */}
+          <div className="mt-4 min-h-[28px]">
+            {welcomeSlides[currentSlide].showSignIn ? (
+              <p className="text-center text-text-secondary">
+                Already have an account?{' '}
+                <button className="text-primary font-semibold">Sign in</button>
+              </p>
+            ) : (
+              <p className="text-center text-text-secondary invisible pointer-events-none select-none">
+                Already have an account? Sign in
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>
