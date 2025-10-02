@@ -4,11 +4,13 @@ import { useQuizStore } from '@/store/quizStore'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import DatePicker from '@/components/ui/DatePicker'
+import HeightPicker from '@/components/ui/HeightPicker'
 
 export default function GeneralStep() {
   const { answers, setAnswer } = useQuizStore()
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
   const [calendarOpen, setCalendarOpen] = useState(false)
+  const [heightPickerOpen, setHeightPickerOpen] = useState(false)
   const [isAnimating, setAnimating] = useState(false)
   const calendarRef = useRef<HTMLDivElement | null>(null)
 
@@ -206,16 +208,29 @@ export default function GeneralStep() {
           <label className="block text-sm font-medium text-text-secondary mb-1">
             Height
           </label>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={answers.height}
-            onChange={(e) => handleInputChange('height', e.target.value)}
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary placeholder-gray-400 ${
+          <button
+            type="button"
+            onClick={() => setHeightPickerOpen(true)}
+            className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-white ${
               errors.height ? 'border-red-500' : 'border-gray-300'
             }`}
-            placeholder={'175'}
-          />
+          >
+            <span className={`text-left ${answers.height ? 'text-text-primary' : 'text-gray-400'}`}>
+              {answers.height ? (() => {
+                const cm = parseInt(answers.height, 10)
+                const totalInches = cm / 2.54
+                const feet = Math.floor(totalInches / 12)
+                const inches = Math.round(totalInches % 12)
+                return `${feet}'${inches} (${cm})`
+              })() : 'Select your height'}
+            </span>
+            <svg className="h-5 w-5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+            </svg>
+          </button>
+          {errors.height && (
+            <p className="mt-1 text-xs text-red-600">{errors.height}</p>
+          )}
         </div>
 
         <div>
@@ -257,6 +272,20 @@ export default function GeneralStep() {
           </select>
         </div>
       </div>
+
+      {heightPickerOpen && (
+        <div className="fixed inset-0 z-[101] bg-white rounded-3xl overflow-hidden">
+          <HeightPicker
+            value={answers.height ? parseInt(answers.height) : 177}
+            gender={answers.gender}
+            onConfirm={(height) => {
+              handleInputChange('height', height.toString())
+              setHeightPickerOpen(false)
+            }}
+            onCancel={() => setHeightPickerOpen(false)}
+          />
+        </div>
+      )}
     </OnboardingStep>
   )
 }
