@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuizStore } from '@/store/quizStore'
 import dynamic from 'next/dynamic'
 const StripeExpressPay = dynamic(() => import('../payments/StripeExpressPay'), { ssr: false })
+// import PhonePreview from '../ui/PhonePreview'
 
 interface PlanOption {
   id: string
@@ -166,12 +167,12 @@ export default function PricingStep() {
     <div className="relative min-h-screen bg-transparent px-4 py-10 sm:px-6 lg:px-12">
       <BackgroundDecor />
       <div className="relative mx-auto flex w-full max-w-[1040px] flex-col gap-10">
-  <TopTimerRow totalSeconds={COUNTDOWN_SECONDS} onExpire={() => setDiscountActive(false)} />
+  <TopTimerRow totalSeconds={COUNTDOWN_SECONDS} onExpire={() => { setDiscountActive(false); setDiscountOffered(false); }} />
 
         <div className="space-y-10">
           <TrustSignals />
 
-          <GuaranteeBanner />
+          {/* 'See your app' section removed per request */}
 
           <Divider label="Pick your access" />
           <PlansPanel selectedPlan={selectedPlan} onSelect={setSelectedPlan} discountActive={discountActive} />
@@ -180,10 +181,10 @@ export default function PricingStep() {
             <button
               type="button"
               onClick={handleOpenPayment}
-              className="relative inline-flex min-w-[260px] items-center justify-center rounded-full bg-[#F07CA3] px-10 py-4 text-base font-extrabold uppercase tracking-wide text-white shadow-[0_20px_36px_rgba(240,124,163,0.35)] focus:outline-none focus:ring-4 focus:ring-[#F7C1D4]"
+              className="relative inline-flex min-w-[260px] items-center justify-center rounded-full bg-primary px-10 py-4 text-base font-extrabold uppercase tracking-wide text-white shadow-[0_20px_36px_rgba(124,92,203,0.28)] focus:outline-none focus:ring-4 focus:ring-primary/30"
               aria-label="Get my plan"
             >
-              <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-[#F07CA3]/30" aria-hidden></span>
+              <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-primary/30" aria-hidden></span>
               Get my plan
             </button>
             <DynamicBillingNotice selectedPlanId={selectedPlan} />
@@ -232,16 +233,16 @@ function PlanCard({ plan, active, onSelect, discountActive }: { plan: PlanOption
     <button
       type="button"
       onClick={onSelect}
-      className={`group relative flex h-full flex-col rounded-2xl sm:rounded-3xl border pl-12 pr-4 py-4 sm:px-5 sm:py-6 text-left transition focus:outline-none focus:ring-2 focus:ring-[#F07CA3] focus:ring-offset-2 focus:ring-offset-white ${
+      className={`group relative flex h-full flex-col rounded-2xl sm:rounded-3xl border pl-12 pr-4 py-4 sm:px-5 sm:py-6 text-left transition focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-white ${
         active
-          ? 'border-[#F07CA3] bg-surface shadow-[0_18px_38px_rgba(240,124,163,0.25)]'
+          ? 'border-primary bg-surface shadow-[0_18px_38px_rgba(124,92,203,0.18)]'
           : 'border-border-subtle bg-surface shadow-sm hover:-translate-y-1 hover:shadow-[0_16px_30px_rgba(91,69,136,0.14)]'
       }`}
     >
       {/* Mobile radio on the left center */}
       <span
         className={`sm:hidden absolute left-3 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 ${
-          active ? 'border-[#F07CA3] bg-[#F07CA3]' : 'border-[#D6D9EE] bg-transparent'
+          active ? 'border-primary bg-primary' : 'border-[#D6D9EE] bg-transparent'
         }`}
         aria-hidden
       >
@@ -249,7 +250,7 @@ function PlanCard({ plan, active, onSelect, discountActive }: { plan: PlanOption
       </span>
       {plan.tag && (
         <div className="pointer-events-none absolute -top-4 sm:-top-5 left-1/2 z-10 -translate-x-1/2">
-          <div className="rounded-full bg-[#F07CA3] px-3 sm:px-4 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-white shadow-[0_8px_16px_rgba(240,124,163,0.28)]">
+          <div className="rounded-full bg-primary px-3 sm:px-4 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-white shadow-[0_8px_16px_rgba(124,92,203,0.24)]">
             {plan.tag}
           </div>
         </div>
@@ -291,7 +292,7 @@ function PlanCard({ plan, active, onSelect, discountActive }: { plan: PlanOption
               </span>
             </div>
             <span
-              className={`hidden sm:inline-flex mt-1 h-6 w-6 items-center justify-center rounded-full border-2 ${active ? 'border-[#F07CA3] bg-[#F07CA3]' : 'border-[#D6D9EE] bg-transparent'}`}
+              className={`hidden sm:inline-flex mt-1 h-6 w-6 items-center justify-center rounded-full border-2 ${active ? 'border-primary bg-primary' : 'border-[#D6D9EE] bg-transparent'}`}
               aria-hidden
             >
               {active && <CheckIcon className="h-4 w-4 text-white" />}
@@ -327,23 +328,7 @@ function PlanCard({ plan, active, onSelect, discountActive }: { plan: PlanOption
   )
 }
 
-function GuaranteeBanner() {
-  return (
-  <div className="flex flex-col items-center gap-2 sm:gap-3 rounded-2xl border border-border-subtle bg-surface px-3 py-3 sm:px-4 sm:py-4 text-center sm:flex-row sm:justify-between">
-      <div className="flex items-center gap-3 text-text-primary">
-        <svg className="h-6 w-6 text-[#2BAE70]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 2l8 4v6c0 5-3.6 9.6-8 10-4.4-.4-8-5-8-10V6l8-4z" opacity=".4" />
-          <path d="M8.5 12.5l2.2 2.2 4.8-4.8" />
-        </svg>
-        <div className="text-left">
-          <p className="text-sm font-semibold">30-day money‑back guarantee</p>
-          <p className="text-xs text-text-secondary">Not delighted? Get a full refund within 30 days. No questions asked.</p>
-        </div>
-      </div>
-      <div className="text-xs text-text-secondary">No hidden fees • Cancel anytime • Instant access</div>
-    </div>
-  )
-}
+// GuaranteeBanner removed per request
 
 // Removed HeroHeader and PaymentMethodsRow as requested
 
@@ -489,14 +474,14 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
             <span className="text-sm font-semibold text-text-primary">{expired ? 'Offer ended' : 'Discount is reserved for:'}</span>
             <div className="flex items-center gap-3">
               <TimerUnit value={minutes} label="minutes" compact={false} />
-              <span className="text-[22px] font-extrabold leading-none text-[#F07CA3]">:</span>
+              <span className="text-[22px] font-extrabold leading-none text-primary">:</span>
               <TimerUnit value={seconds} label="seconds" compact={false} />
             </div>
           </div>
           <button
             type="button"
             onClick={handleClick}
-            className="inline-flex items-center justify-center rounded-full bg-[#F07CA3] px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_10px_20px_rgba(240,124,163,0.35)] hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-[#F7C1D4]"
+            className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_10px_20px_rgba(124,92,203,0.28)] hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-primary/30"
           >
             Get my plan
           </button>
@@ -516,13 +501,13 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
             <div className="flex w-full items-center justify-center gap-4 rounded-2xl border border-border-subtle/70 bg-surface px-3 py-2 shadow-sm backdrop-blur">
               <div className="flex items-center gap-3">
                 <TimerUnit value={minutes} label="minutes" compact={true} />
-                <span className="text-base font-extrabold leading-none text-[#F07CA3]">:</span>
+                <span className="text-base font-extrabold leading-none text-primary">:</span>
                 <TimerUnit value={seconds} label="seconds" compact={true} />
               </div>
               <button
                 type="button"
                 onClick={handleClick}
-                className="inline-flex items-center justify-center rounded-full bg-[#F07CA3] px-4 py-2 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_10px_20px_rgba(240,124,163,0.35)] hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-[#F7C1D4]"
+                className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_10px_20px_rgba(124,92,203,0.28)] hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-primary/30"
               >
                 Get my plan
               </button>
@@ -537,7 +522,7 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
 function TimerUnit({ value, label, compact }: { value: string; label: string; compact: boolean }) {
   return (
     <div className="flex flex-col items-center leading-none">
-      <span className={`${compact ? 'text-xl' : 'text-[28px]'} font-extrabold tracking-tight text-[#F07CA3]`}>{value}</span>
+      <span className={`${compact ? 'text-xl' : 'text-[28px]'} font-extrabold tracking-tight text-primary`}>{value}</span>
       <span className={`${compact ? 'text-[9px]' : 'text-[11px]'} uppercase tracking-widest text-text-secondary`}>{label}</span>
     </div>
   )
@@ -568,10 +553,10 @@ function FeatureRow({ feature }: { feature: FeatureItem }) {
 
 function TrustSignals() {
   return (
-    <div className="grid gap-2.5 sm:gap-3 sm:grid-cols-3">
+      <div className="grid gap-2.5 sm:gap-3 sm:grid-cols-3">
       <TrustPill title="Expert crafted" description="Designed alongside dermatologists and estheticians." />
       <TrustPill title="Cancel anytime" description="Pause or switch plans without losing progress." />
-      <TrustPill title="Money-back promise" description="Full refund within 30 days if you are not in love." />
+      <TrustPill title="30-day money‑back guarantee" description="Not delighted? Get a full refund within 30 days. No questions asked." />
     </div>
   )
 }
