@@ -148,7 +148,7 @@ export default function RegularCareResultsStep() {
   // Timeline item component
   const TimelineItem = ({ title, description, icon, index, rootRef }: { title: string; description: string; icon: React.ReactNode; index: number; rootRef: React.RefObject<HTMLDivElement | null> }) => {
     const itemRef = useRef<HTMLLIElement | null>(null);
-    const itemInView = useInView(itemRef, { root: rootRef.current ?? undefined, amount: 0.25, margin: '-10% 0% -10% 0%', once: true });
+  const itemInView = useInView(itemRef, { root: rootRef, amount: 0.25, margin: '-10% 0% -10% 0%', once: true });
 
     return (
       <li ref={itemRef} className="relative grid grid-cols-[36px_1fr] gap-3">

@@ -69,8 +69,8 @@ const accentGradients = [
 
 const accentGlows = ['rgba(163,133,233,0.45)', 'rgba(255,152,152,0.45)', 'rgba(255,226,120,0.45)']
 
-const floatTransition = { duration: 8, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }
-const pillSpring = { type: 'spring', stiffness: 380, damping: 32, mass: 0.8 }
+const floatTransition = { duration: 8, repeat: Infinity, repeatType: 'mirror' as const, ease: 'easeInOut' as const }
+const pillSpring = { type: 'spring' as const, stiffness: 380, damping: 32, mass: 0.8 }
 
 const formatTimeLabel = (time: string) => {
   if (!time) {
