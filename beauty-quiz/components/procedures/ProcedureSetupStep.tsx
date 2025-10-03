@@ -303,6 +303,128 @@ const MonthlyDaysModal = ({ open, initialSelection, onCancel, onSave }: MonthlyD
   )
 }
 
+interface TimePickerModalProps {
+  open: boolean
+  initialTime: string | undefined
+  onCancel: () => void
+  onSave: (time24: string) => void
+}
+
+const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val))
+
+const to12h = (time24?: string): { hour: number; minute: number; ampm: 'AM' | 'PM' } => {
+  if (!time24) return { hour: 7, minute: 0, ampm: 'AM' }
+  const [hStr, mStr] = time24.split(':')
+  let h = Number(hStr)
+  const m = clamp(Number(mStr), 0, 59)
+  if (Number.isNaN(h) || Number.isNaN(m)) return { hour: 7, minute: 0, ampm: 'AM' }
+  const ampm: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM'
+  h = h % 12
+  if (h === 0) h = 12
+  return { hour: h, minute: m, ampm }
+}
+
+const to24h = (hour12: number, minute: number, ampm: 'AM' | 'PM') => {
+  let h = hour12 % 12
+  if (ampm === 'PM') h += 12
+  const hh = String(h).padStart(2, '0')
+  const mm = String(clamp(minute, 0, 59)).padStart(2, '0')
+  return `${hh}:${mm}`
+}
+
+const roundToStep = (value: number, step: number) => Math.round(value / step) * step
+
+const TimePickerModal = ({ open, initialTime, onCancel, onSave }: TimePickerModalProps) => {
+  const base = to12h(initialTime)
+  const [hour, setHour] = useState<number>(base.hour)
+  const [minute, setMinute] = useState<number>(roundToStep(base.minute, 5) % 60)
+  const [ampm, setAmpm] = useState<'AM' | 'PM'>(base.ampm)
+
+  useEffect(() => {
+    if (open) {
+      const t = to12h(initialTime)
+      setHour(t.hour)
+      setMinute(roundToStep(t.minute, 5) % 60)
+      setAmpm(t.ampm)
+    }
+  }, [open, initialTime])
+
+  if (!open) return null
+
+  const incHour = () => setHour((prev) => (prev % 12) + 1)
+  const decHour = () => setHour((prev) => (prev - 2 + 12) % 12 + 1)
+  const incMinute = () => setMinute((prev) => (prev + 5) % 60)
+  const decMinute = () => setMinute((prev) => (prev - 5 + 60) % 60)
+
+  return (
+    <Modal onClose={onCancel}>
+      <div className="flex flex-col gap-6">
+        <div className="text-center">
+          <h2 className="text-lg font-semibold text-text-primary">Pick a time</h2>
+          <p className="text-sm text-text-secondary">Choose the exact time for this activity.</p>
+        </div>
+        <div className="grid grid-cols-3 items-center gap-4">
+          {/* Hour selector */}
+          <div className="flex flex-col items-center">
+            <button type="button" onClick={incHour} className="grid h-8 w-8 place-items-center rounded-full text-text-primary hover:bg-[#ECE9FF] dark:hover:bg-white/10">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+            <div className="mt-2 min-w-[64px] rounded-xl border border-border-subtle bg-surface px-4 py-3 text-center text-2xl font-semibold text-text-primary">{String(hour).padStart(2, '0')}</div>
+            <button type="button" onClick={decHour} className="mt-2 grid h-8 w-8 place-items-center rounded-full text-text-primary hover:bg-[#ECE9FF] dark:hover:bg-white/10">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+          </div>
+          {/* Minute selector */}
+          <div className="flex flex-col items-center">
+            <button type="button" onClick={incMinute} className="grid h-8 w-8 place-items-center rounded-full text-text-primary hover:bg-[#ECE9FF] dark:hover:bg-white/10">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+            <div className="mt-2 min-w-[64px] rounded-xl border border-border-subtle bg-surface px-4 py-3 text-center text-2xl font-semibold text-text-primary">{String(minute).padStart(2, '0')}</div>
+            <button type="button" onClick={decMinute} className="mt-2 grid h-8 w-8 place-items-center rounded-full text-text-primary hover:bg-[#ECE9FF] dark:hover:bg-white/10">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+          </div>
+          {/* AM/PM toggle */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="rounded-full bg-[#ECE9FF] dark:bg-white/10 p-1">
+              <button
+                type="button"
+                onClick={() => setAmpm('AM')}
+                className={`px-4 py-2 text-sm font-semibold rounded-full ${ampm === 'AM' ? 'bg-[#5C4688] text-white' : 'text-text-primary'}`}
+              >
+                AM
+              </button>
+              <button
+                type="button"
+                onClick={() => setAmpm('PM')}
+                className={`ml-1 px-4 py-2 text-sm font-semibold rounded-full ${ampm === 'PM' ? 'bg-[#5C4688] text-white' : 'text-text-primary'}`}
+              >
+                PM
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-full border border-border-subtle/60 px-5 py-2 text-sm font-medium text-text-primary transition hover:border-[#8F74E5] hover:text-[#8F74E5]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => onSave(to24h(hour, minute, ampm))}
+            className="rounded-full bg-[#A385E9] px-5 py-2 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(163,133,233,0.32)] transition hover:bg-[#8F74E5]"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 interface QuickStatProps {
   label: string
   value: string
@@ -343,6 +465,7 @@ export default function ProcedureSetupStep() {
     })
   })
   const [openMonthlyModal, setOpenMonthlyModal] = useState<{ index: number; days: number[] } | null>(null)
+  const [openTimeModal, setOpenTimeModal] = useState<{ index: number; time: string | undefined } | null>(null)
 
   useEffect(() => {
     if (selectedActivities.length === 0) {
@@ -385,8 +508,8 @@ export default function ProcedureSetupStep() {
         }
 
         if (repeat === 'Weekly') {
-          const weekdays = activity.weekdays?.filter((d) => d >= 0 && d <= 6) ?? []
-          return { ...activity, repeat, allDay: false, weekdays, weeklyInterval: activity.weeklyInterval || 1 }
+          // Clear selected days when switching to Weekly
+          return { ...activity, repeat, allDay: false, weekdays: [], weeklyInterval: activity.weeklyInterval || 1 }
         }
 
         // Monthly
@@ -474,6 +597,14 @@ export default function ProcedureSetupStep() {
       Evening: '19:00',
     }
     updateActivity(idx, { timePeriod: period, time: timeMap[period], allDay: false })
+  }
+
+  const savePickedTime = (idx: number, time24: string) => {
+    // Derive period from hour
+    const [hhStr] = time24.split(':')
+    const hh = Number(hhStr)
+    const period: ActivitySetting['timePeriod'] = hh < 12 ? 'Morning' : hh < 18 ? 'Afternoon' : 'Evening'
+    updateActivity(idx, { time: time24, allDay: false, timePeriod: period })
   }
 
   return (
@@ -651,22 +782,23 @@ export default function ProcedureSetupStep() {
                       />
                     </label>
                   </div>
-                  <div className="relative">
-                    <input
-                      type="time"
-                      value={activity.time}
-                      onChange={(e) => updateActivity(index, { time: e.target.value, allDay: !e.target.value ? activity.allDay : false })}
+                  <div>
+                    <button
+                      type="button"
                       disabled={activity.allDay}
-                      className={`w-full rounded-[8px] border border-border-subtle bg-surface px-4 py-3 pr-10 text-[15px] text-text-primary focus:outline-none ${
-                        activity.allDay ? 'opacity-60 cursor-not-allowed' : ''
+                      onClick={() => setOpenTimeModal({ index, time: activity.time })}
+                      className={`flex w-full items-center justify-between rounded-[8px] border border-border-subtle bg-surface px-4 py-3 text-[15px] transition ${
+                        activity.allDay ? 'opacity-60 cursor-not-allowed' : 'hover:border-[#8F74E5]'
                       }`}
-                    />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.5" />
-                        <path d="M12 8V12L14.5 13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </span>
+                    >
+                      <span className="font-medium text-text-primary">{activity.time ? formatTimeLabel(activity.time) : 'Pick a time'}</span>
+                      <span className="grid h-8 w-8 place-items-center rounded-full text-text-secondary">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.5" />
+                          <path d="M12 8V12L14.5 13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                    </button>
                   </div>
 
                   <div className="mt-3 flex gap-2">
@@ -820,6 +952,17 @@ export default function ProcedureSetupStep() {
         onSave={(days) => {
           if (openMonthlyModal) {
             handleMonthlySave(openMonthlyModal.index, days)
+          }
+        }}
+      />
+      <TimePickerModal
+        open={openTimeModal !== null}
+        initialTime={openTimeModal?.time}
+        onCancel={() => setOpenTimeModal(null)}
+        onSave={(time24) => {
+          if (openTimeModal) {
+            savePickedTime(openTimeModal.index, time24)
+            setOpenTimeModal(null)
           }
         }}
       />
