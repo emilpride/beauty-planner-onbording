@@ -13,6 +13,7 @@ interface ActivitySetting {
   name: string
   note: string
   repeat: 'Daily' | 'Weekly' | 'Monthly' | null
+  weeklyInterval: number
   allDay: boolean
   weekdays: number[]
   monthlyDays: number[]
@@ -36,6 +37,7 @@ const createActivitySetting = (activityId: string, fallbackName?: string): Activ
     name: meta.name,
     note: '',
     repeat: null,
+  weeklyInterval: 1,
     allDay: true,
     weekdays: [],
     monthlyDays: [],
@@ -100,10 +102,8 @@ const formatMonthlySummary = (days: number[]) => {
 }
 
 const formatWeekdaySummary = (weekdays: number[]) => {
-  if (!weekdays.length || weekdays.length === 7) {
-    return 'Every day'
-  }
-
+  if (!weekdays.length) return 'Select weekdays'
+  if (weekdays.length === 7) return 'Every day'
   return weekdays.map((day) => weekdayNames[day]).join(', ')
 }
 
@@ -114,9 +114,9 @@ const formatRepeatSummary = (activity: ActivitySetting) => {
   }
 
   if (activity.repeat === 'Weekly') {
-    // In Weekly mode, we interpret weekdays[0] as the index of the selected number (0..6 => 1..7)
-    const count = activity.weekdays.length === 1 ? weeklyNumberLabels[activity.weekdays[0]] : 0
-    return `Weekly  -  ${count} day${count === 1 ? '' : 's'} per week`
+    const n = activity.weeklyInterval || 1
+    const intervalText = n === 1 ? 'week' : 'weeks'
+    return `Weekly  -  ${formatWeekdaySummary(activity.weekdays)} every ${n} ${intervalText}`
   }
 
   return `Monthly  -  ${activity.monthlyDays.length ? formatMonthlySummary(activity.monthlyDays) : 'Select dates'}`
@@ -380,14 +380,13 @@ export default function ProcedureSetupStep() {
         if (activityIndex !== index) return activity
 
         if (repeat === 'Daily') {
-          // Default to custom selection; "Everyday" toggle can select all.
-          const weekdays = activity.weekdays
-          return { ...activity, repeat, weekdays }
+          // Daily means every day; no extra selection UI needed.
+          return { ...activity, repeat, weekdays: [...FULL_WEEK] }
         }
 
         if (repeat === 'Weekly') {
-          const weekdays = activity.weekdays
-          return { ...activity, repeat, allDay: false, weekdays }
+          const weekdays = activity.weekdays?.filter((d) => d >= 0 && d <= 6) ?? []
+          return { ...activity, repeat, allDay: false, weekdays, weeklyInterval: activity.weeklyInterval || 1 }
         }
 
         // Monthly
@@ -406,21 +405,7 @@ export default function ProcedureSetupStep() {
         if (index !== activityIndex) {
           return activity
         }
-
-        // Weekly: allow selecting only one day from 1..7
-        if (activity.repeat === 'Weekly') {
-          // Toggle the single selected day; allow clearing selection back to empty
-          if (activity.weekdays.includes(dayIndex)) {
-            return { ...activity, weekdays: [] }
-          }
-          return { ...activity, weekdays: [dayIndex] }
-        }
-
-        // Daily: toggle multiple days freely (but don't allow empty-only deselect if it would remove the last selected)
         const isSelected = activity.weekdays.includes(dayIndex)
-        if (isSelected && activity.weekdays.length === 1) {
-          return activity
-        }
         const nextDays = isSelected
           ? activity.weekdays.filter((day) => day !== dayIndex)
           : [...activity.weekdays, dayIndex].sort((a, b) => a - b)
@@ -600,53 +585,30 @@ export default function ProcedureSetupStep() {
                   </div>
                 )}
 
-                {/* Weekly extra: On these days */}
+                {/* Weekly extra: On these days (weekday multi-select, no Everyday toggle) */}
                 {activity.repeat === 'Weekly' && (
                   <div className="mt-3">
-                    <div className="mb-2 px-1 text-[14px] font-bold text-text-primary">
-                      {(() => {
-                        const count = activity.weekdays.length === 1 ? weeklyNumberLabels[activity.weekdays[0]] : 0
-                        return `${count} day${count === 1 ? '' : 's'} per week`
-                      })()}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {weeklyNumberLabels.map((num, dayIndex) => {
-                        const isActive = activity.weekdays.includes(dayIndex)
-                        return (
-                          <button
-                            type="button"
-                            key={`weekly-${index}-${dayIndex}-${num}`}
-                            onClick={() => toggleWeekday(index, dayIndex)}
-                            className={`h-10 w-10 rounded-full text-sm font-medium transition ${
-                              isActive
-                                ? 'bg-[#5C4688] text-white shadow'
-                                : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'
-                            }`}
-                          >
-                            {num}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Daily extra: On these days + Everyday */}
-                {activity.repeat === 'Daily' && (
-                  <div className="mt-3">
-                    <div className="mb-2 flex items-center justify-between px-1 text-[14px] font-bold text-text-primary">
+                    <div className="mb-2 flex items-center flex-wrap gap-2 px-1 text-[14px] font-bold text-text-primary">
                       <span>On these days</span>
-                      <label className="flex items-center gap-2 text-[12px] font-medium text-text-secondary">
-                        <span>Everyday</span>
-                        <ToggleSwitch
-                          checked={activity.weekdays.length === 7}
-                          onChange={(value) =>
-                            updateActivity(index, {
-                              weekdays: value ? [...FULL_WEEK] : [],
-                            })
-                          }
-                        />
-                      </label>
+                      <span className="text-text-secondary font-medium">every</span>
+                      <div className="relative">
+                        <select
+                          aria-label="Weekly interval"
+                          value={activity.weeklyInterval}
+                          onChange={(e) => updateActivity(index, { weeklyInterval: Math.min(7, Math.max(1, Number(e.target.value) || 1)) })}
+                          className="appearance-none rounded-[8px] border border-border-subtle bg-surface px-2 py-1 pr-7 text-[14px] font-semibold text-text-primary focus:outline-none"
+                        >
+                          {[1,2,3,4,5,6,7].map((n) => (
+                            <option key={n} value={n}>{n}</option>
+                          ))}
+                        </select>
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                      </div>
+                      <span className="text-text-secondary font-medium">week{activity.weeklyInterval > 1 ? 's' : ''}</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {dayLabels.map((label, dayIndex) => {
@@ -654,7 +616,7 @@ export default function ProcedureSetupStep() {
                         return (
                           <button
                             type="button"
-                            key={`daily-${index}-${dayIndex}-${label}`}
+                            key={`weekly-${index}-${dayIndex}-${label}`}
                             onClick={() => toggleWeekday(index, dayIndex)}
                             className={`h-10 w-10 rounded-full text-sm font-medium transition ${
                               isActive
