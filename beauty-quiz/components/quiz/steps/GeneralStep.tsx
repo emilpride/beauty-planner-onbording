@@ -5,12 +5,14 @@ import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import DatePicker from '@/components/ui/DatePicker'
 import HeightPicker from '@/components/ui/HeightPicker'
+import WeightPicker from '@/components/ui/WeightPicker'
 
 export default function GeneralStep() {
   const { answers, setAnswer } = useQuizStore()
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [heightPickerOpen, setHeightPickerOpen] = useState(false)
+  const [weightPickerOpen, setWeightPickerOpen] = useState(false)
   const [isAnimating, setAnimating] = useState(false)
   const calendarRef = useRef<HTMLDivElement | null>(null)
 
@@ -170,8 +172,17 @@ export default function GeneralStep() {
             <span className={`text-left ${answers.birthDate ? 'text-text-primary' : 'text-gray-400'}`}>
               {answers.birthDate ? new Date(answers.birthDate).toLocaleDateString() : 'Select your birth date'}
             </span>
-            <svg className="h-5 w-5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+            <svg
+              className="h-5 w-5 text-primary"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.7}
+              aria-hidden="true"
+            >
+              <rect x="3.5" y="5.5" width="17" height="15" rx="2" />
+              <path d="M8 3.5v3M16 3.5v3M3.5 9.5h17" strokeLinecap="round" />
+              <circle cx="12" cy="14" r="1.2" fill="currentColor" stroke="none" />
             </svg>
           </button>
           {errors.birthDate && (
@@ -229,8 +240,18 @@ export default function GeneralStep() {
                 return `${feet}'${inches} ft (${cm} cm)`
               })() : 'Select your height'}
             </span>
-            <svg className="h-5 w-5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+            <svg
+              className="h-5 w-5 text-primary"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.7}
+              aria-hidden="true"
+            >
+              <path d="M12 3v18" strokeLinecap="round" />
+              <path d="M8 7l4-4 4 4" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M8 17l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M6 6h-1M6 9h-2M6 12h-1.5M6 15h-2M6 18h-1" strokeLinecap="round" />
             </svg>
           </button>
           {errors.height && (
@@ -242,16 +263,37 @@ export default function GeneralStep() {
           <label className="block text-sm font-medium text-text-secondary mb-1">
             Weight
           </label>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={answers.weight}
-            onChange={(e) => handleInputChange('weight', e.target.value)}
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary placeholder-gray-400 ${
+          <button
+            type="button"
+            onClick={() => setWeightPickerOpen(true)}
+            className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-white ${
               errors.weight ? 'border-red-500' : 'border-gray-300'
             }`}
-            placeholder={'70'}
-          />
+          >
+            <span className={`text-left ${answers.weight ? 'text-text-primary' : 'text-gray-400'}`}>
+              {answers.weight ? (() => {
+                const kg = parseInt(answers.weight, 10)
+                const lb = Math.round(kg * 2.20462)
+                return `${lb} lb (${kg} kg)`
+              })() : 'Select your weight'}
+            </span>
+            <svg
+              className="h-5 w-5 text-primary"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.7}
+              aria-hidden="true"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="4" />
+              <path d="M8 9a4 4 0 0 1 8 0" />
+              <path d="M12 9v3" strokeLinecap="round" />
+              <circle cx="12" cy="12" r="0.75" fill="currentColor" stroke="none" />
+            </svg>
+          </button>
+          {errors.weight && (
+            <p className="mt-1 text-xs text-red-600">{errors.weight}</p>
+          )}
         </div>
         
         <div>
@@ -288,6 +330,19 @@ export default function GeneralStep() {
               setHeightPickerOpen(false)
             }}
             onCancel={() => setHeightPickerOpen(false)}
+          />
+        </div>
+      )}
+
+      {weightPickerOpen && (
+        <div className="fixed inset-0 z-[101] bg-white rounded-3xl overflow-hidden">
+          <WeightPicker
+            valueKg={answers.weight ? parseInt(answers.weight, 10) : 80}
+            onConfirm={(kg) => {
+              handleInputChange('weight', String(kg))
+              setWeightPickerOpen(false)
+            }}
+            onCancel={() => setWeightPickerOpen(false)}
           />
         </div>
       )}
