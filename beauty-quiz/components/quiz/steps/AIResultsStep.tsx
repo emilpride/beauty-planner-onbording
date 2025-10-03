@@ -108,19 +108,26 @@ export default function AIResultsStep() {
       </div>
 
       {paused && questionIndex >= 0 && (
-        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50">
-          <div className="flex items-center gap-2 rounded-full border border-border-subtle/60 bg-surface/95 dark:bg-surface/90 px-3 py-2 shadow-soft backdrop-blur-sm">
-            <span className="text-sm font-medium text-text-primary">{questions[questionIndex]}</span>
-            <div className="flex gap-1">
+        <div
+          className="fixed inset-x-4 z-50"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.25rem)' }}
+        >
+          <div
+            className="mx-auto w-[min(100%,32rem)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-border-subtle/60 bg-surface/95 dark:bg-surface/90 px-4 py-3 shadow-elevated backdrop-blur-md"
+          >
+            <span className="text-base sm:text-lg font-semibold text-text-primary text-center sm:text-left">
+              {questions[questionIndex]}
+            </span>
+            <div className="flex items-center justify-center gap-2">
               <button
                 onClick={() => answerQuestion('yes')}
-                className="px-3 py-1.5 rounded-full bg-primary text-white text-sm font-semibold shadow-soft hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="min-w-[84px] px-4 py-2 rounded-xl bg-primary text-white text-base font-semibold shadow-soft hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/40 active:scale-[0.98]"
               >
                 Yes
               </button>
               <button
                 onClick={() => answerQuestion('no')}
-                className="px-3 py-1.5 rounded-full bg-gray-200 text-text-primary dark:bg-white/10 dark:text-white text-sm font-semibold hover:bg-gray-300 dark:hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/20"
+                className="min-w-[84px] px-4 py-2 rounded-xl bg-gray-200 text-text-primary dark:bg-white/10 dark:text-white text-base font-semibold hover:bg-gray-300 dark:hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/20 active:scale-[0.98]"
               >
                 No
               </button>

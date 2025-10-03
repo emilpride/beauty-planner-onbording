@@ -3,7 +3,7 @@
 import { useTheme } from '@/components/theme/ThemeProvider'
 import { Moon, Sun } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 /**
  * Floating theme toggle shown on every page (top-right).
@@ -14,17 +14,34 @@ import { useMemo } from 'react'
 export default function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   const isDark = theme === 'dark'
+  const [visible, setVisible] = useState(true)
 
   const nextTheme = useMemo(() => (isDark ? 'light' : 'dark'), [isDark])
 
   const handleToggle = () => setTheme(nextTheme)
 
+  useEffect(() => {
+    // If sessionStorage is not available, keep it visible (web). Hide only if explicitly not selected yet.
+    try {
+      const flag = sessionStorage.getItem('themeSelected')
+      if (flag === '1') {
+        setVisible(true)
+      } else {
+        // Hide only on quiz flow pages where app bar exists to avoid overlap before selection
+        const onQuizFlow = typeof window !== 'undefined' && window.location.pathname.startsWith('/quiz')
+        setVisible(!onQuizFlow)
+      }
+    } catch {
+      setVisible(true)
+    }
+  }, [])
+
   return (
     <div
-      className="pointer-events-auto fixed right-3 top-3 z-[60] sm:right-5 sm:top-5"
+      className={`pointer-events-auto fixed right-3 z-[60] sm:right-5 transition-opacity ${visible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       style={{
-        // Nudge below safe-area on iOS
-        top: 'max(0.75rem, env(safe-area-inset-top))',
+        // Place below app bar/progress area
+        top: 'max(4.75rem, calc(env(safe-area-inset-top) + 3.75rem))',
         right: 'max(0.75rem, env(safe-area-inset-right))',
       }}
     >

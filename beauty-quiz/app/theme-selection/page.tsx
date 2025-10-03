@@ -27,6 +27,9 @@ export default function ThemeSelectionPage() {
   const toggle = () => handleSelect(isDark ? 'light' : 'dark')
 
   const handleContinue = () => {
+    try {
+      sessionStorage.setItem('themeSelected', '1')
+    } catch {}
     router.push('/welcome')
   }
 

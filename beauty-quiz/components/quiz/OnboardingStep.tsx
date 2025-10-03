@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useQuizStore } from '@/store/quizStore'
 
 interface OnboardingStepProps {
-  title: string
+  title: React.ReactNode
   subtitle?: string
   children: React.ReactNode
   condition?: boolean
@@ -89,12 +89,18 @@ export default function OnboardingStep({
           ['--safe-bottom' as any]: 'env(safe-area-inset-bottom)'
         }}
       >
-        <div className="space-y-1 mb-3 mt-0">
-          <h1 className="text-xl font-bold text-text-primary leading-tight">
+        <div className="space-y-1 mb-3 mt-0 min-w-0">
+          <h1
+            className="font-bold text-text-primary leading-tight break-words whitespace-pre-line [overflow-wrap:anywhere] [hyphens:auto] [-webkit-hyphens:auto] text-lg sm:text-xl"
+            style={{
+              // Provide graceful scaling on extra narrow devices
+              fontSize: 'clamp(1rem, 4.5vw, 1.25rem)'
+            }}
+          >
             {title}
           </h1>
           {subtitle && (
-            <p className="text-sm font-medium text-text-secondary leading-relaxed whitespace-pre-line m-0">
+            <p className="text-sm font-medium text-text-secondary leading-relaxed whitespace-pre-line m-0 break-words [overflow-wrap:anywhere]">
               {subtitle}
             </p>
           )}

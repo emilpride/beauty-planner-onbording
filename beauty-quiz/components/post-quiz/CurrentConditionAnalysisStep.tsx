@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -116,6 +116,37 @@ const parseWeight = (weightValue: string, unit: 'kg' | 'lbs'): number | null => 
   return unit === 'kg' ? numeric : numeric * 0.453592
 }
 
+// ---- Color utilities (module scope) ----
+const hexToRgb = (hex: string) => {
+  const clean = hex.replace('#', '')
+  const bigint = parseInt(clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean, 16)
+  const r = (bigint >> 16) & 255
+  const g = (bigint >> 8) & 255
+  const b = bigint & 255
+  return { r, g, b }
+}
+
+const rgbToHex = (r: number, g: number, b: number) => {
+  const toHex = (v: number) => v.toString(16).padStart(2, '0')
+  return `#${toHex(Math.round(r))}${toHex(Math.round(g))}${toHex(Math.round(b))}`
+}
+
+const colorAt = (stops: { pos: number; color: string }[], t: number) => {
+  const clampedT = Math.min(1, Math.max(0, t))
+  let i = 0
+  while (i < stops.length - 1 && clampedT > stops[i + 1].pos) i++
+  const a = stops[i]
+  const b = stops[Math.min(i + 1, stops.length - 1)]
+  const span = b.pos - a.pos || 1
+  const localT = span === 0 ? 0 : (clampedT - a.pos) / span
+  const ca = hexToRgb(a.color)
+  const cb = hexToRgb(b.color)
+  const r = ca.r + (cb.r - ca.r) * localT
+  const g = ca.g + (cb.g - ca.g) * localT
+  const bch = ca.b + (cb.b - ca.b) * localT
+  return rgbToHex(r, g, bch)
+}
+
 const ScoreBadge = ({ value, accent = 'rgb(var(--color-primary))' }: { value: number; accent?: string }) => (
   <div className="flex items-center gap-1 text-sm font-semibold text-text-primary">
     <span className="h-8 w-8 rounded-full border-2 border-current/15 bg-white text-center leading-8 shadow-soft dark:bg-surface/90" style={{ color: accent }}>
@@ -142,6 +173,25 @@ function CircularScore({
   const circumference = 2 * Math.PI * radius
   const clamped = Math.max(0, Math.min(value, 10))
   const progress = clamped / 10
+  const [display, setDisplay] = useState(0)
+
+  // Animate the numeric label from 0 to value
+  useEffect(() => {
+    let raf: number | null = null
+    const duration = 800
+    const start = performance.now()
+    const from = 0
+    const to = clamped
+    const tick = (t: number) => {
+      const elapsed = t - start
+      const p = Math.min(1, elapsed / duration)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setDisplay(from + (to - from) * eased)
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => { if (raf) cancelAnimationFrame(raf) }
+  }, [clamped])
 
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
@@ -181,7 +231,7 @@ function CircularScore({
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-sm font-semibold text-text-primary">{clamped.toFixed(1)}</span>
+        <span className="text-sm font-semibold text-text-primary">{display.toFixed(1)}</span>
       </div>
     </div>
   )
@@ -222,6 +272,25 @@ export default function CurrentConditionAnalysisStep() {
     return clamp((bmi - min) / (max - min), 0, 1)
   }, [bmi])
 
+  // Animated BMI number and color based on category
+  const [bmiAnimated, setBmiAnimated] = useState(0)
+  useEffect(() => {
+    if (!bmi) return
+    let raf: number | null = null
+    const duration = 900
+    const start = performance.now()
+    const from = 0
+    const to = bmi
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / duration)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setBmiAnimated(from + (to - from) * eased)
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => { if (raf) cancelAnimationFrame(raf) }
+  }, [bmi])
+
   const heightLabel = answers.height ? `${answers.height} ${answers.heightUnit === 'cm' ? 'cm' : 'ft & in'}` : 'Not provided'
   const weightLabel = answers.weight ? `${answers.weight} ${answers.weightUnit === 'kg' ? 'kg' : 'lbs'}` : 'Not provided'
 
@@ -234,9 +303,56 @@ export default function CurrentConditionAnalysisStep() {
   }
 
   const overallScore = baseScores.overall
+  const [bmsAnimated, setBmsAnimated] = useState(0)
+  useEffect(() => {
+    let raf: number | null = null
+    const duration = 900
+    const start = performance.now()
+    const from = 0
+    const to = overallScore
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / duration)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setBmsAnimated(from + (to - from) * eased)
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => { if (raf) cancelAnimationFrame(raf) }
+  }, [overallScore])
+  // Compute BMS number color from horizontal gradient at current animated position
+  const bmsColor = useMemo(() => {
+    const stops = [
+      { pos: 0.0, color: '#FF7D7E' },
+      { pos: 0.4, color: '#FFA64D' },
+      { pos: 0.6, color: '#FBF447' },
+      { pos: 1.0, color: '#33C75A' },
+    ]
+    const t = Math.min(1, Math.max(0, bmsAnimated / 10))
+    return colorAt(stops, t)
+  }, [bmsAnimated])
 
-  const sliderGradient = 'linear-gradient(180deg, #0066CC 0%, #43B7FF 16.67%, #33C75A 33.33%, #FBF447 50%, #FFA64D 66.67%, #FF7D7E 83.33%, #8B0000 100%)'
-  const barGradient = 'linear-gradient(90deg, #0066CC 0%, #43B7FF 16.67%, #33C75A 33.33%, #FBF447 50%, #FFA64D 66.67%, #FF7D7E 83.33%, #8B0000 100%)'
+  // BMI vertical gradient should match the provided reference (top warm -> bottom cool)
+  const bmiGradient = useMemo(() => {
+    return 'linear-gradient(180deg, #FF7D7E 0%, #FFA64D 20%, #FBF447 40%, #33C75A 60%, #53E5FF 80%, #0066CC 100%)'
+  }, [])
+
+  // colorAt helpers moved to module scope above
+
+  // Compute BMI number color from gradient at the indicator position
+  const bmiNumberColor = useMemo(() => {
+    // Stops for the vertical BMI gradient (top=0 -> bottom=1)
+    const stops = [
+      { pos: 0.0, color: '#FF7D7E' },
+      { pos: 0.2, color: '#FFA64D' },
+      { pos: 0.4, color: '#FBF447' },
+      { pos: 0.6, color: '#33C75A' },
+      { pos: 0.8, color: '#53E5FF' },
+      { pos: 1.0, color: '#0066CC' },
+    ]
+    // Handle is placed at top = (1 - bmiPosition)
+    const t = 1 - bmiPosition
+    return colorAt(stops, t)
+  }, [bmiPosition])
 
   return (
     <motion.div 
@@ -270,7 +386,7 @@ export default function CurrentConditionAnalysisStep() {
           transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
         />
       </motion.div>
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-2xl flex-col gap-5 px-5 pb-12 pt-8">
+  <div className="relative z-10 mx-auto flex min-h-screen max-w-2xl flex-col gap-5 px-5 pb-20 pt-8" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>
         <motion.header 
           className="flex items-center gap-3"
           initial={{ opacity: 0, y: -20 }}
@@ -368,12 +484,10 @@ export default function CurrentConditionAnalysisStep() {
                   className="absolute w-[10px] h-[344px] left-[13px] top-0 rounded-full"
                   style={{ background: '#EBEDFC' }}
                 />
-                {/* Gradient Fill */}
+                {/* Gradient Fill (category-aligned) */}
                 <div 
                   className="absolute w-[18px] h-[344px] left-[9px] top-0 rounded-full"
-                  style={{ 
-                    background: 'linear-gradient(180deg, #0066CC 0%, #43B7FF 16.67%, #33C75A 33.33%, #FBF447 50%, #FFA64D 66.67%, #FF7D7E 83.33%, #8B0000 100%)' 
-                  }}
+                  style={{ background: bmiGradient }}
                 />
                 {/* Slider Handle */}
                 <motion.div
@@ -405,7 +519,7 @@ export default function CurrentConditionAnalysisStep() {
                 <motion.div 
                   className="text-5xl font-semibold leading-none"
                   style={{ 
-                    color: '#F8EF13',
+                    color: bmiNumberColor,
                     width: '90px',
                     height: '56px',
                     fontFamily: 'Raleway',
@@ -417,21 +531,7 @@ export default function CurrentConditionAnalysisStep() {
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 1.4, duration: 0.5 }}
                 >
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.6, duration: 0.3 }}
-                  >
-                    {bmi ? (
-                      <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 1.8, duration: 0.5 }}
-                      >
-                        {bmi.toFixed(1)}
-                      </motion.span>
-                    ) : '–'}
-                  </motion.span>
+                  {bmi ? bmiAnimated.toFixed(1) : '–'}
                 </motion.div>
               </motion.div>
               
@@ -460,6 +560,7 @@ export default function CurrentConditionAnalysisStep() {
 
           {CONDITION_ORDER.map(({ id, title }, index) => {
             const score = baseScores[id]
+            const scoreColor = score >= 7 ? '#33C75A' : score >= 4 ? '#FFA64D' : '#FF7D7E'
             return (
               <motion.article 
                 key={id} 
@@ -474,7 +575,7 @@ export default function CurrentConditionAnalysisStep() {
               >
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
-                  <CircularScore value={score} size={44} thickness={6} gradientId={`grad-${id}`} />
+                  <CircularScore value={score} size={44} thickness={6} gradientId={`grad-${id}`} colors={[scoreColor, scoreColor, scoreColor]} />
                 </div>
                 <p className="mt-3 text-sm leading-relaxed text-text-secondary">{CONDITION_COPY[id]}</p>
               </motion.article>
@@ -494,19 +595,27 @@ export default function CurrentConditionAnalysisStep() {
               </p>
             </div>
             
-            {/* BMS Score Display with animated circular ring */}
+            {/* BMS Score Display (large number above scale) */}
             <motion.div 
               className="flex flex-col items-center justify-center mb-6"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.2, duration: 0.6 }}
             >
-              <CircularScore value={overallScore} size={112} thickness={10} gradientId="grad-overall" colors={["#33C75A", "#84DE54", "#FFA64D"]} />
+              <motion.div 
+                className="font-semibold leading-none"
+                style={{ fontSize: '48px', lineHeight: '56px', color: bmsColor }}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 1.25, duration: 0.5 }}
+              >
+                {bmsAnimated.toFixed(1)}
+              </motion.div>
               <motion.p 
                 className="mt-2 text-sm font-semibold text-text-primary"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1.6, duration: 0.5 }}
+                transition={{ delay: 1.4, duration: 0.5 }}
               >
                 Your BMS is: <span className="text-primary">Balanced</span>
               </motion.p>
@@ -514,30 +623,34 @@ export default function CurrentConditionAnalysisStep() {
                 className="text-sm text-text-secondary mt-1"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1.8, duration: 0.5 }}
+                transition={{ delay: 1.6, duration: 0.5 }}
               >
                 Keep up the consistent routine!
               </motion.p>
             </motion.div>
 
-            {/* BMS Scale */}
+            {/* BMS Scale (animated fill and handle) */}
             <motion.div 
-              className="relative w-full h-9 mb-6"
+              className="relative w-full h-9 mb-6 overflow-visible"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 2.2, duration: 0.6 }}
             >
               {/* Background Track */}
               <div 
-                className="absolute w-full h-[10px] top-[13px] rounded-full"
+                className="absolute w-full h-[18px] top-[9px] rounded-full"
                 style={{ background: '#EBEDFC' }}
               />
-              {/* Gradient Fill */}
-              <div 
-                className="absolute w-full h-[18px] top-[9px] rounded-full"
+              {/* Gradient Fill (animated width) */}
+              <motion.div 
+                className="absolute h-[18px] top-[9px] rounded-full"
                 style={{ 
-                  background: 'linear-gradient(90deg, #33C75A 0%, #84DE54 36.54%, #FFA64D 69.71%, #FF7D7E 100%)' 
+                  // Left red/orange -> right green (per reference)
+                  background: 'linear-gradient(90deg, #FF7D7E 0%, #FFA64D 40%, #FBF447 60%, #33C75A 100%)',
+                  width: '0%'
                 }}
+                animate={{ width: `${overallScore * 10}%` }}
+                transition={{ delay: 2.3, duration: 1.2, ease: 'easeOut' }}
               />
               {/* Slider Handle */}
               <motion.div

@@ -43,19 +43,19 @@ export default function MoodStep() {
 
   return (
     <OnboardingStep
-      title="How are you feeling today?"
+      title={"How are you feeling\n today?"}
       subtitle="Your mood can be an important indicator of your overall well-being."
       condition={answers.mood !== ''}
       hideButton={true}
     >
-      <div className="flex justify-around items-center py-2">
+      <div className="grid grid-cols-3 gap-2 place-items-center py-2">
         {options.map((option, index) => {
           const isSelected = answers.mood === option.id
           return (
             <motion.button
               key={option.id}
               onClick={() => handleOptionSelect(option.id)}
-              className={`flex flex-col items-center space-y-2 rounded-xl px-4 py-3 transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 ${
+              className={`w-full max-w-[110px] flex flex-col items-center space-y-2 rounded-xl px-3 py-3 transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 ${
                 isSelected
                   ? 'scale-110 bg-primary/15 shadow-soft'
                   : 'opacity-70 bg-surface/70 hover:opacity-100 hover:bg-surface-muted'
