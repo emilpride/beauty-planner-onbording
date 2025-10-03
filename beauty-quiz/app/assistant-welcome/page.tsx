@@ -43,9 +43,9 @@ export default function AssistantWelcomePage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background transition-colors">
+    <div className="relative min-h-[100dvh] overflow-hidden bg-background transition-colors">
       <AnimatedBackground />
-      <div className="relative z-10 min-h-screen flex flex-col">
+  <div className="relative z-10 min-h-[100dvh] flex flex-col -translate-y-[15vh] sm:-translate-y-[9vh] md:-translate-y-[5vh]">
         <div className="absolute top-8 left-6 z-20">
           <button
             onClick={() => router.push('/assistant-selection')}

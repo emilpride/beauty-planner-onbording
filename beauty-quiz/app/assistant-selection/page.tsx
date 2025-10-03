@@ -51,9 +51,9 @@ export default function AssistantSelectionPage() {
   return (
     <>
       <style>{animationStyles}</style>
-      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-[100dvh] flex items-center justify-center p-4 relative overflow-hidden">
         <AnimatedBackground />
-        <div className="max-w-md w-full text-center rounded-3xl border border-border-subtle/70 bg-surface/90 p-8 shadow-elevated backdrop-blur relative z-10">
+  <div className="max-w-md w-full text-center rounded-3xl border border-border-subtle/70 bg-surface/90 p-8 shadow-elevated backdrop-blur relative z-10 -translate-y-[10vh] sm:-translate-y-[5vh] md:-translate-y-[1vh]">
           <div className="absolute top-4 left-4">
             <button
               onClick={() => router.push('/welcome')}

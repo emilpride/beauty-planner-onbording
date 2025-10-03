@@ -89,10 +89,10 @@ export default function WelcomeCarousel() {
   const currentSlideData = welcomeSlides[currentSlide]
 
   return (
-    <div className="h-[100dvh] bg-surface flex flex-col overflow-hidden">
+  <div className="h-[100dvh] bg-surface flex flex-col overflow-hidden">
       {/* Slider Container */}
       <div 
-        className="flex-1 relative"
+        className="relative sm:flex-1"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -102,10 +102,10 @@ export default function WelcomeCarousel() {
           style={{ transform: `translateX(-${currentSlide * 100}%)` }}
         >
           {welcomeSlides.map((slide, index) => (
-            <div key={slide.id} className="w-full flex-shrink-0 flex flex-col items-center justify-center px-6">
+            <div key={slide.id} className="w-full flex-shrink-0 flex flex-col items-center px-6 pt-3">
               {/* Image */}
-              <div className="flex-1 flex items-center justify-center w-full max-w-sm">
-                <div className="relative w-full h-[55vh] max-h-[450px] rounded-[40px] sm:rounded-[44px] md:rounded-[48px] overflow-hidden">
+              <div className="w-full max-w-sm">
+                <div className="relative w-full h-[55vh] sm:h-[55vh] md:h-[55vh] max-h-[520px] rounded-[40px] sm:rounded-[44px] md:rounded-[48px] overflow-hidden">
                   <Image
                     src={slide.image}
                     alt={`Welcome slide ${slide.id}`}
@@ -117,8 +117,8 @@ export default function WelcomeCarousel() {
               </div>
 
               {/* Text Content */}
-              <div className="w-full max-w-sm text-center mb-6 flex flex-col justify-center items-center gap-3">
-                <h1 className="text-xl font-bold text-text-primary leading-relaxed transition-opacity duration-300">
+              <div className="w-full max-w-sm text-center mt-3 mb-4 flex flex-col items-center gap-2">
+                <h1 className="text-[17px] font-bold text-text-primary leading-relaxed transition-opacity duration-300">
                   {slide.title}
                 </h1>
               </div>
@@ -128,9 +128,9 @@ export default function WelcomeCarousel() {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="px-6 pb-6">
+      <div className="px-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}>
         {/* Page Indicators */}
-        <div className="flex justify-center space-x-2 mb-4">
+        <div className="flex justify-center space-x-2 mb-3">
           {welcomeSlides.map((_, index) => (
             <button
               key={index}
@@ -150,14 +150,14 @@ export default function WelcomeCarousel() {
             <button
               onClick={nextSlide}
               disabled={isTransitioning}
-              className="w-full bg-[#A385E9] hover:bg-primary/90 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-200 text-base"
+              className="w-full bg-[#A385E9] hover:bg-primary/90 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-200 text-[15px]"
             >
               Next
             </button>
           </div>
 
           {/* Sign In Link - Reserve space even when hidden to prevent layout shift */}
-          <div className="mt-4 min-h-[28px]">
+          <div className="mt-3 min-h-[24px]">
             {welcomeSlides[currentSlide].showSignIn ? (
               <p className="text-center text-text-secondary">
                 Already have an account?{' '}

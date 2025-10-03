@@ -27,9 +27,6 @@ export default function GoalStep() {
       title="What Do You Want To Achieve With Beauty Mirror?"
       subtitle="Your aspirations guide our efforts to support and empower you on your journey. Select all that apply."
       condition={answers.goals.length > 0}
-      // Make more room for the grid so all selected options remain visible
-      cardTopDvH={38}
-      contentMaxHeightAdjust={24}
     >
       <div className="grid grid-cols-2 gap-2 px-2 pb-2">
         {goals.map((goal, index) => {
