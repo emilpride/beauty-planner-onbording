@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { motion, useInView, useMotionValue, useTransform, animate, useScroll } from 'framer-motion';
-import { useRef, useEffect } from 'react';
+import { motion, useInView, useMotionValue, useTransform, animate, useScroll } from 'framer-motion'
+import { useRef, useEffect } from 'react'
 
 export default function RegularCareResultsStep() {
   const router = useRouter()
@@ -15,17 +15,16 @@ export default function RegularCareResultsStep() {
   // Mock data for independent version
   const mockAnswers = {
     gender: 1, // female by default
-    name: 'Test User'
+    name: 'Test User',
   }
 
   // Get BMI images based on user's gender
   const getBMIImages = () => {
     const isFemale = mockAnswers.gender === 1 // 1 = female, 0 = male
     const prefix = isFemale ? 'bmi_female' : 'bmi_male'
-    
     return {
       current: `/images/on_boarding_images/${prefix}_1.png`, // User's current result
-      target: `/images/on_boarding_images/${prefix}_3.png`   // Target goal
+      target: `/images/on_boarding_images/${prefix}_3.png`, // Target goal
     }
   }
 
@@ -38,8 +37,8 @@ export default function RegularCareResultsStep() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       ),
-      title: "Start using the app:",
-      description: "Get personalized routines for skin, hair, fitness & self-care."
+      title: 'Start using the app:',
+      description: 'Get personalized routines for skin, hair, fitness & self-care.',
     },
     {
       icon: (
@@ -47,8 +46,8 @@ export default function RegularCareResultsStep() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
         </svg>
       ),
-      title: "Stay consistent with your routine:",
-      description: "Automatic reminders help you build healthy habits."
+      title: 'Stay consistent with your routine:',
+      description: 'Automatic reminders help you build healthy habits.',
     },
     {
       icon: (
@@ -56,58 +55,71 @@ export default function RegularCareResultsStep() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       ),
-      title: "Complete daily self-care rituals:",
-      description: "Follow your plan to nurture beauty & well-being."
+      title: 'Complete daily self-care rituals:',
+      description: 'Follow your plan to nurture beauty & well-being.',
     },
     {
       icon: (
         <svg className="w-6 h-6 text-current" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
         </svg>
       ),
-      title: "Unlock achievements & stay motivated:",
-      description: "Reach new milestones as you stick to your routine."
-    }
+      title: 'Unlock achievements & stay motivated:',
+      description: 'Reach new milestones as you stick to your routine.',
+    },
   ]
 
   const struggles = [
-    "Struggle to stay consistent with self-care",
-    "Forget important skincare, haircare, or wellness steps",
-    "No clear way to track your beauty habits"
-  ];
+    'Struggle to stay consistent with self-care',
+    'Forget important skincare, haircare, or wellness steps',
+    'No clear way to track your beauty habits',
+  ]
 
   const solutions = [
-    "Follow a structured beauty & wellness routine effortlessly",
-    "Get reminders to keep up with your personalized plan",
-    "See your completed routines and progress over time",
-    "Unlock achievements and stay inspired"
-  ];
+    'Follow a structured beauty & wellness routine effortlessly',
+    'Get reminders to keep up with your personalized plan',
+    'See your completed routines and progress over time',
+    'Unlock achievements and stay inspired',
+  ]
 
-  const benefitsRef = useRef(null);
-  const strugglesRef = useRef(null);
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const benefitsInView = useInView(benefitsRef, { once: true, amount: 0.3 });
-  const strugglesInView = useInView(strugglesRef, { once: true, amount: 0.3 });
+  const benefitsRef = useRef<HTMLDivElement | null>(null)
+  const strugglesRef = useRef<HTMLDivElement | null>(null)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const benefitsInView = useInView(benefitsRef, { once: true, amount: 0.3 })
+  const strugglesInView = useInView(strugglesRef, { once: true, amount: 0.3 })
 
   // Vertical timeline progress (scroll-driven)
-  const timelineRef = useRef<HTMLDivElement | null>(null);
-  const { scrollYProgress: timelineProgress } = useScroll({ container: scrollContainerRef, target: timelineRef, offset: ["start 0.85", "end 0.15"] });
-  const progressHeight = useTransform(timelineProgress, [0, 1], ["0%", "100%"]);
+  const timelineRef = useRef<HTMLDivElement | null>(null)
+  const { scrollYProgress: timelineProgress } = useScroll({ container: scrollContainerRef, target: timelineRef, offset: ['start 0.85', 'end 0.15'] })
+  const progressHeight = useTransform(timelineProgress, [0, 1], ['0%', '100%'])
 
-  const pathLength = useMotionValue(0);
-  const withoutAppX = useTransform(pathLength, [0, 1], [65, 315]);
-  const withoutAppY = useTransform(pathLength, [0, 1], [200, 170]);
-  const withAppX = useTransform(pathLength, [0, 1], [65, 315]);
-  const withAppY = useTransform(pathLength, [0, 1], [200, 80]);
+  // Motion values for graphs
+  const pathLength = useMotionValue(0)
+  const bioPathLength = useMotionValue(0)
+  const lifePathLength = useMotionValue(0)
+  const withoutAppX = useTransform(pathLength, [0, 1], [65, 315])
+  const withoutAppY = useTransform(pathLength, [0, 1], [200, 170])
+  const withAppX = useTransform(pathLength, [0, 1], [65, 315])
+  const withAppY = useTransform(pathLength, [0, 1], [200, 80])
 
   useEffect(() => {
     const animation = animate(pathLength, 1, {
       duration: 2,
-      ease: "easeInOut",
-      delay: 0.5
-    });
-    return animation.stop;
-  }, [pathLength]);
+      ease: 'easeInOut',
+      delay: 0.5,
+    })
+    return animation.stop
+  }, [pathLength])
+
+  useEffect(() => {
+    const a = animate(bioPathLength, 1, { duration: 2, ease: 'easeInOut', delay: 0.3 })
+    return a.stop
+  }, [bioPathLength])
+
+  useEffect(() => {
+    const a = animate(lifePathLength, 1, { duration: 2.2, ease: 'easeInOut', delay: 0.4 })
+    return a.stop
+  }, [lifePathLength])
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -178,7 +190,7 @@ export default function RegularCareResultsStep() {
   // Timeline item component
   const TimelineItem = ({ title, description, icon, index, rootRef }: { title: string; description: string; icon: React.ReactNode; index: number; rootRef: React.RefObject<HTMLDivElement | null> }) => {
     const itemRef = useRef<HTMLLIElement | null>(null);
-  const itemInView = useInView(itemRef, { root: rootRef as any, amount: 0.3, margin: '-10% 0% -10% 0%', once: false });
+    const itemInView = useInView(itemRef, { root: rootRef as any, amount: 0.3, margin: '-10% 0% -10% 0%', once: false });
 
     return (
       <li ref={itemRef} className="relative grid grid-cols-[36px_1fr] gap-3">
@@ -186,47 +198,22 @@ export default function RegularCareResultsStep() {
           {/* Burst effect */}
           <motion.span
             className="absolute inset-0 rounded-full"
-            style={{ filter: 'blur(2px)' }}
-            initial={{ opacity: 0, scale: 0.6 }}
-            animate={itemInView ? { opacity: [0.25, 0], scale: [0.6, 1.8] } : { opacity: 0, scale: 0.6 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+            style={{
+              background:
+                'radial-gradient(closest-side, rgba(163,133,233,0.35), rgba(163,133,233,0.0))',
+            }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={itemInView ? { opacity: 1, scale: [1, 1.12, 1] } : {}}
+            transition={{ duration: 0.7, delay: 0.1 }}
           />
-          {/* Icon wrapper */}
-          <motion.div
-            className="mt-0 flex items-center justify-center w-9 h-9 rounded-full ring-2 ring-white/40 shadow-soft"
-            initial={false}
-            animate={itemInView
-              ? { backgroundColor: 'rgb(var(--color-primary))', color: '#fff', scale: [1, 1.18, 1], opacity: 1 }
-              : { backgroundColor: 'rgba(var(--color-primary),0.08)', color: 'rgb(var(--color-primary))', opacity: 0.6 }}
-            transition={{ duration: 0.5, times: [0, 0.6, 1], ease: 'easeOut' }}
-          >
+          <div className="w-9 h-9 rounded-full bg-surface-muted/80 ring-1 ring-border-subtle/50 flex items-center justify-center text-primary">
             {icon}
-          </motion.div>
-
-          {/* Glow pulse */}
-          <motion.span
-            className="absolute -inset-1 rounded-full"
-            style={{ filter: 'blur(8px)', background: 'radial-gradient(circle, rgba(var(--color-primary),0.5) 0%, rgba(var(--color-primary),0) 70%)' }}
-            initial={{ opacity: 0 }}
-            animate={itemInView ? { opacity: [0.25, 0.12, 0.25] } : { opacity: 0 }}
-            transition={{ duration: 1.2, repeat: itemInView ? Infinity : 0, repeatType: 'reverse' }}
-          />
-        </div>
-        {/* Text with entrance + underline sweep */}
-        <motion.div className="pt-0.5" initial={{ opacity: 0, y: 10 }} animate={itemInView ? { opacity: 1, y: 0 } : {}} transition={{ type: 'spring', stiffness: 140, damping: 16 }}>
-          <div className="inline-block">
-            <h4 className="font-semibold text-text-primary text-sm relative inline-block">
-              {title}
-              <motion.span
-                className="absolute left-0 -bottom-0.5 h-[2px] bg-primary/80"
-                initial={{ width: 0, opacity: 0 }}
-                animate={itemInView ? { width: '100%', opacity: 1 } : { width: 0, opacity: 0 }}
-                transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
-              />
-            </h4>
           </div>
-          <p className="text-xs text-text-secondary mt-0.5">{description}</p>
-        </motion.div>
+        </div>
+        <div className="space-y-1">
+          <h4 className="font-semibold text-text-primary leading-tight">{title}</h4>
+          <p className="text-sm text-text-secondary leading-tight">{description}</p>
+        </div>
       </li>
     );
   };
@@ -440,12 +427,209 @@ export default function RegularCareResultsStep() {
             </div>
           </motion.div>
 
+        {/* Life Expectancy Projection - Bar Chart (moved under BMS) */}
+        <motion.div
+          className="w-full rounded-xl p-4 border border-border-subtle/60 shadow-soft"
+          style={{ background: 'linear-gradient(135deg, rgba(var(--color-card-muted), 1) 0%, rgba(var(--color-primary), 0.06) 100%)' }}
+          variants={itemVariants}
+        >
+          {(() => {
+            const maxYears = 100
+            const baselineYears = 65
+            const withAppYears = 85
+            const withoutAppYears = 70
+            const h = (years: number) => `${(years / maxYears) * 100}%`
+            return (
+              <>
+                <div className="mb-4">
+                  <h4 className="text-lg font-bold text-text-primary mb-1">Life Expectancy Enhancement</h4>
+                  <div className="text-2xl font-bold text-text-primary">+8%</div>
+                </div>
+
+                {/* Horizontal bar chart (stacked) */}
+                <div className="w-full space-y-3 mb-4 px-2">
+                  {/* Baseline */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-24 text-xs text-text-secondary text-right">Baseline</div>
+                    <div className="flex-1 h-8 rounded-r-full bg-border-subtle/30 relative overflow-visible">
+                      <motion.div
+                        className="h-8 rounded-r-full relative shadow-[0_6px_14px_rgba(0,0,0,0.12)]"
+                        style={{ width: h(baselineYears), background: 'linear-gradient(90deg, rgba(138,96,255,0.95) 0%, rgba(163,133,233,0.75) 100%)' }}
+                        initial={{ width: 0 }}
+                        animate={{ width: h(baselineYears) }}
+                        transition={{ duration: 0.8, delay: 0.2 }}
+                      >
+                        <div className="absolute -right-10 top-1/2 -translate-y-1/2 text-sm font-semibold text-text-primary">{baselineYears} yrs</div>
+                      </motion.div>
+                    </div>
+                  </div>
+
+                  {/* With App */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-24 text-xs text-text-secondary text-right">With App</div>
+                    <div className="flex-1 h-8 rounded-r-full bg-border-subtle/30 relative overflow-visible">
+                      <motion.div
+                        className="h-8 rounded-r-full relative shadow-[0_6px_14px_rgba(0,0,0,0.12)]"
+                        style={{ width: h(withAppYears), background: 'linear-gradient(90deg, rgba(110,214,130,0.95) 0%, rgba(138,96,255,0.35) 100%)' }}
+                        initial={{ width: 0 }}
+                        animate={{ width: h(withAppYears) }}
+                        transition={{ duration: 0.8, delay: 0.4 }}
+                      >
+                        <div className="absolute -right-10 top-1/2 -translate-y-1/2 text-sm font-semibold text-text-primary">{withAppYears} yrs</div>
+                      </motion.div>
+                    </div>
+                  </div>
+
+                  {/* Without App */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-24 text-xs text-text-secondary text-right">Without App</div>
+                    <div className="flex-1 h-8 rounded-r-full bg-border-subtle/30 relative overflow-visible">
+                      <motion.div
+                        className="h-8 rounded-r-full relative shadow-[0_6px_14px_rgba(0,0,0,0.12)]"
+                        style={{ width: h(withoutAppYears), background: 'linear-gradient(90deg, rgba(255,138,80,0.95) 0%, rgba(138,96,255,0.25) 100%)' }}
+                        initial={{ width: 0 }}
+                        animate={{ width: h(withoutAppYears) }}
+                        transition={{ duration: 0.8, delay: 0.6 }}
+                      >
+                        <div className="absolute -right-10 top-1/2 -translate-y-1/2 text-sm font-semibold text-text-primary">{withoutAppYears} yrs</div>
+                      </motion.div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Legend */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(90deg, #8A60FF, #A385E9)' }}></div>
+                    <span className="text-sm text-text-secondary flex-1">Current lifestyle baseline</span>
+                    <span className="text-sm font-semibold text-text-primary">{baselineYears} yrs</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(90deg, #6ED682, #A385E9)' }}></div>
+                    <span className="text-sm text-text-secondary flex-1">With beauty & wellness app</span>
+                    <span className="text-sm font-semibold text-text-primary">{withAppYears} yrs</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(90deg, #FF8A50, #8A60FF)' }}></div>
+                    <span className="text-sm text-text-secondary flex-1">Without structured care</span>
+                    <span className="text-sm font-semibold text-text-primary">{withoutAppYears} yrs</span>
+                  </div>
+                </div>
+              </>
+            )
+          })()}
+        </motion.div>
+
+        {/* Age Snapshot - Bar Chart (Current, Biological, With App) — moved under BMS */}
+        <motion.div
+          className="w-full rounded-xl p-4 border border-border-subtle/60 shadow-soft mt-6"
+          style={{ background: 'linear-gradient(135deg, rgba(var(--color-card-muted), 1) 0%, rgba(var(--color-primary), 0.06) 100%)' }}
+          variants={itemVariants}
+        >
+          {(() => {
+            const maxYears = 100
+            const currentAge = 31
+            const biologicalAge = 33
+            const withAppAge = 28
+            // Slight height boost to raise bars visually
+            const h = (years: number) => `${Math.min((years / maxYears) * 100 * 1.3, 100)}%`
+            return (
+              <>
+                <div className="mb-4">
+                  <h4 className="text-lg font-bold text-text-primary mb-1">Age Snapshot</h4>
+                  <div className="text-sm text-text-secondary">Lower is better (biological)</div>
+                </div>
+
+                <div className="relative w-full h-56 mb-4">
+                  {/* Grid lines */}
+                  <div className="absolute inset-0 z-0">
+                    {[0, 25, 50, 75, 100].map((percent) => (
+                      <div key={percent} className="absolute w-full border-b border-dashed border-border-subtle/20" style={{ bottom: `${percent}%` }} />
+                    ))}
+                  </div>
+
+                  {/* Bars container */}
+                  <div className="absolute inset-0 flex items-end justify-center gap-10 px-8 z-10">
+                    {/* Bar 1: Current (Chronological) */}
+                    <div className="flex items-end justify-center flex-1 max-w-[88px] h-full">
+                      <motion.div
+                        className="w-full rounded-t-[12px] rounded-b-[6px] relative shadow-[0_6px_14px_rgba(0,0,0,0.12)] overflow-visible"
+                        style={{ background: 'linear-gradient(180deg, rgba(138,96,255,0.95) 0%, rgba(163,133,233,0.75) 100%)' }}
+                        initial={{ height: 0, transformOrigin: 'bottom' }}
+                        animate={{ height: h(currentAge), transformOrigin: 'bottom' }}
+                        transition={{ duration: 0.8, delay: 0.2 }}
+                      >
+                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-sm font-semibold text-text-primary">{currentAge} yrs</div>
+                        <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[12px] pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 100%)' }} />
+                      </motion.div>
+                    </div>
+
+                    {/* Bar 2: Biological (current) */}
+                    <div className="flex items-end justify-center flex-1 max-w-[88px] h-full">
+                      <motion.div
+                        className="w-full rounded-t-[12px] rounded-b-[6px] relative shadow-[0_6px_14px_rgba(0,0,0,0.12)] overflow-visible"
+                        style={{ background: 'linear-gradient(180deg, rgba(255,138,80,0.95) 0%, rgba(138,96,255,0.25) 100%)' }}
+                        initial={{ height: 0, transformOrigin: 'bottom' }}
+                        animate={{ height: h(biologicalAge), transformOrigin: 'bottom' }}
+                        transition={{ duration: 0.8, delay: 0.4 }}
+                      >
+                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-sm font-semibold text-text-primary">{biologicalAge} yrs</div>
+                        <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[12px] pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 100%)' }} />
+                      </motion.div>
+                    </div>
+
+                    {/* Bar 3: With App (projected biological) */}
+                    <div className="flex items-end justify-center flex-1 max-w-[88px] h-full">
+                      <motion.div
+                        className="w-full rounded-t-[12px] rounded-b-[6px] relative shadow-[0_6px_14px_rgba(0,0,0,0.12)] overflow-visible"
+                        style={{ background: 'linear-gradient(180deg, rgba(110,214,130,0.95) 0%, rgba(138,96,255,0.35) 100%)' }}
+                        initial={{ height: 0, transformOrigin: 'bottom' }}
+                        animate={{ height: h(withAppAge), transformOrigin: 'bottom' }}
+                        transition={{ duration: 0.8, delay: 0.6 }}
+                      >
+                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-sm font-semibold text-text-primary">{withAppAge} yrs</div>
+                        <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[12px] pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 100%)' }} />
+                      </motion.div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bar captions */}
+                <div className="px-8 grid grid-cols-3 gap-10 -mt-2 mb-2">
+                  <div className="text-xs text-text-secondary text-center">Current</div>
+                  <div className="text-xs text-text-secondary text-center">Biological</div>
+                  <div className="text-xs text-text-secondary text-center">With App</div>
+                </div>
+
+                {/* Legend */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(90deg, #8A60FF, #A385E9)' }}></div>
+                    <span className="text-sm text-text-secondary flex-1">Current chronological age</span>
+                    <span className="text-sm font-semibold text-text-primary">{currentAge} yrs</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(90deg, #FF8A50, #8A60FF)' }}></div>
+                    <span className="text-sm text-text-secondary flex-1">Current biological age</span>
+                    <span className="text-sm font-semibold text-text-primary">{biologicalAge} yrs</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(90deg, #6ED682, #A385E9)' }}></div>
+                    <span className="text-sm text-text-secondary flex-1">Biological age with app</span>
+                    <span className="text-sm font-semibold text-text-primary">{withAppAge} yrs</span>
+                  </div>
+                </div>
+              </>
+            )
+          })()}
+        </motion.div>
+
           {/* Before/After Images - unified width */}
           <motion.div 
             className="w-full rounded-xl p-4 border border-border-subtle/60 shadow-soft" style={{ backgroundColor: 'rgb(var(--color-card-muted))' }}
             variants={itemVariants}
           >
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-2 sm:gap-3">
               {/* User's Current Result */}
               <motion.div
                 className="text-center"
@@ -461,7 +645,7 @@ export default function RegularCareResultsStep() {
                     objectFit="contain"
                   />
                 </div>
-                <div className="text-sm text-text-secondary font-medium mt-2">Your Current</div>
+                <div className="text-sm text-text-secondary font-medium mt-2">You now</div>
               </motion.div>
               
               {/* Arrow */}
@@ -496,7 +680,7 @@ export default function RegularCareResultsStep() {
                     objectFit="contain"
                   />
                 </div>
-                <div className="text-sm text-text-secondary font-medium mt-2">Target Goal</div>
+                <div className="text-sm text-text-secondary font-medium mt-2">You healthy</div>
               </motion.div>
             </div>
           </motion.div>
@@ -641,6 +825,8 @@ export default function RegularCareResultsStep() {
               ))}
             </motion.div>
           </motion.div>
+
+          {/* Biological Age Progress chart removed per request */}
 
           {/* CTA or footer can remain */}
         </div>
