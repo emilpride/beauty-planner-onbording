@@ -24,7 +24,7 @@ export default function SignUpStep() {
   }
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative bg-background">
       {/* Back Button */}
       <div className="absolute top-8 left-6 z-20">
         <button
@@ -48,12 +48,7 @@ export default function SignUpStep() {
         </button>
       </div>
       
-      {/* Navbar */}
-      <div className="pt-8 px-6">
-        <div className="flex items-center justify-center">
-          <h1 className="text-2xl font-bold text-purple-800">Sign Up</h1>
-        </div>
-      </div>
+      {/* Removed top title */}
 
       {/* Main Content */}
       <div className="px-6 pt-8 pb-6">
@@ -70,18 +65,18 @@ export default function SignUpStep() {
           </div>
 
           {/* Sign Up Card */}
-          <div className="w-full max-w-sm bg-surface rounded-lg p-6 space-y-6">
+          <div className="w-full max-w-sm bg-surface rounded-2xl p-6 space-y-6 border border-border-subtle/60 shadow-soft">
             {/* Header */}
-            <div className="text-center space-y-3">
-              <h2 className="text-2xl font-bold text-purple-800">Join Beauty Mirror Today</h2>
-              <p className="text-gray-500 text-sm leading-relaxed">
-                Start your Activity journey with Beauty Mirror. It's quick, easy, and free!
+            <div className="text-center space-y-2">
+              <h2 className="text-xl font-bold text-text-primary">Create your account</h2>
+              <p className="text-text-secondary text-sm leading-relaxed">
+                Don’t lose your progress — create an account to keep everything in sync.
               </p>
             </div>
 
             {/* Email Input */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-purple-800">Email</label>
+              <label className="text-sm font-semibold text-text-primary">Email</label>
               <div className="relative">
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -93,14 +88,14 @@ export default function SignUpStep() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm text-gray-900"
+                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-border-subtle/60 bg-surface text-sm text-text-primary placeholder:text-text-secondary/60 focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
             </div>
 
             {/* Password Input */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-purple-800">Password</label>
+              <label className="text-sm font-semibold text-text-primary">Password</label>
               <div className="relative">
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -112,7 +107,7 @@ export default function SignUpStep() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Password"
-                  className="w-full pl-10 pr-10 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm text-gray-900"
+                  className="w-full pl-10 pr-10 py-3 rounded-lg border border-border-subtle/60 bg-surface text-sm text-text-primary placeholder:text-text-secondary/60 focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
                 <button
                   type="button"
@@ -130,32 +125,32 @@ export default function SignUpStep() {
             {/* Sign Up Button */}
             <button
               onClick={handleSignUp}
-              className="w-full bg-purple-500 text-white py-3 rounded-xl font-semibold text-sm hover:bg-purple-600 transition-colors"
+              className="w-full bg-primary text-white py-3 rounded-xl font-semibold text-sm hover:brightness-110 transition-colors shadow-soft"
             >
               Sign Up
             </button>
 
             {/* Sign In Link */}
             <div className="text-center">
-              <span className="text-gray-600 text-sm">Already have an account? </span>
-              <button className="text-purple-500 text-sm font-medium hover:underline">
+              <span className="text-text-secondary text-sm">Already have an account? </span>
+              <button className="text-primary text-sm font-medium hover:underline">
                 Sign in
               </button>
             </div>
 
             {/* Divider */}
             <div className="flex items-center space-x-2">
-              <div className="flex-1 h-px bg-gray-200"></div>
-              <span className="text-gray-500 text-sm font-semibold">or</span>
-              <div className="flex-1 h-px bg-gray-200"></div>
+              <div className="flex-1 h-px bg-border-subtle/60"></div>
+              <span className="text-text-secondary text-sm font-semibold">or</span>
+              <div className="flex-1 h-px bg-border-subtle/60"></div>
             </div>
 
-            {/* Social Sign Up Buttons */}
-            <div className="space-y-4">
+            {/* Social Sign Up Buttons (single neat column) */}
+            <div className="space-y-3">
               {/* Google */}
               <button
                 onClick={() => handleSocialSignUp('Google')}
-                className="w-full flex items-center justify-center space-x-5 py-3 border border-border-subtle/60 rounded-xl hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-border-subtle/60 bg-surface hover:bg-surface-muted transition-colors"
               >
                 <div className="w-5 h-5">
                   <svg viewBox="0 0 24 24" width="20" height="20">
@@ -165,61 +160,61 @@ export default function SignUpStep() {
                     <path fill="#EB4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                   </svg>
                 </div>
-                <span className="text-gray-700 text-sm font-semibold">Continue with Google</span>
+                <span className="text-text-primary text-sm font-semibold">Continue with Google</span>
                 <div className="w-5"></div>
               </button>
 
               {/* Apple */}
               <button
                 onClick={() => handleSocialSignUp('Apple')}
-                className="w-full flex items-center justify-center space-x-5 py-3 border border-border-subtle/60 rounded-xl hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-border-subtle/60 bg-surface hover:bg-surface-muted transition-colors"
               >
                 <div className="w-5 h-5">
                   <svg viewBox="0 0 24 24" width="20" height="20">
                     <path fill="#000000" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
                   </svg>
                 </div>
-                <span className="text-gray-700 text-sm font-semibold">Continue with Apple</span>
+                <span className="text-text-primary text-sm font-semibold">Continue with Apple</span>
                 <div className="w-5"></div>
               </button>
 
               {/* Facebook */}
               <button
                 onClick={() => handleSocialSignUp('Facebook')}
-                className="w-full flex items-center justify-center space-x-5 py-3 border border-border-subtle/60 rounded-xl hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-border-subtle/60 bg-surface hover:bg-surface-muted transition-colors"
               >
                 <div className="w-5 h-5">
                   <svg viewBox="0 0 24 24" width="20" height="20">
                     <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                   </svg>
                 </div>
-                <span className="text-gray-700 text-sm font-semibold">Continue with Facebook</span>
+                <span className="text-text-primary text-sm font-semibold">Continue with Facebook</span>
                 <div className="w-5"></div>
               </button>
 
               {/* Twitter */}
               <button
                 onClick={() => handleSocialSignUp('Twitter')}
-                className="w-full flex items-center justify-center space-x-5 py-3 border border-border-subtle/60 rounded-xl hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-border-subtle/60 bg-surface hover:bg-surface-muted transition-colors"
               >
                 <div className="w-5 h-5">
                   <svg viewBox="0 0 24 24" width="20" height="20">
                     <path fill="#1DA1F2" d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
                   </svg>
                 </div>
-                <span className="text-gray-700 text-sm font-semibold">Continue with Twitter</span>
+                <span className="text-text-primary text-sm font-semibold">Continue with Twitter</span>
                 <div className="w-6"></div>
               </button>
             </div>
 
             {/* Terms and Privacy */}
-            <div className="text-center text-xs text-gray-600 leading-relaxed">
+            <div className="text-center text-xs text-text-secondary leading-relaxed">
               By proceeding, you agree with the{' '}
               <a 
                 href="https://beautymirror.app/terms" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-purple-500 hover:underline"
+                className="text-primary hover:underline"
               >
                 Terms of Use
               </a>
@@ -228,7 +223,7 @@ export default function SignUpStep() {
                 href="https://beautymirror.app/privacy" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-purple-500 hover:underline"
+                className="text-primary hover:underline"
               >
                 Privacy Policy
               </a>

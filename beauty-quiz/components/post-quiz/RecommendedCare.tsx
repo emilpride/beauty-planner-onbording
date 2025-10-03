@@ -246,7 +246,7 @@ export default function RecommendedCare({ baseScores }: { baseScores: BaseScores
 
       <motion.button
         type="button"
-        onClick={() => router.push('/procedures/0')}
+        onClick={() => router.push('/signup')}
         className="mt-6 w-full rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-soft transition hover:brightness-110"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
