@@ -107,6 +107,7 @@ interface QuizStore {
   answers: QuizAnswers
   currentStep: number
   totalSteps: number
+  isTransitioning: boolean
   hydrate: () => void
   setAnswer: <K extends keyof QuizAnswers>(field: K, value: QuizAnswers[K]) => void
   setHeightUnit: (unit: 'cm' | 'ft&in') => void
@@ -114,6 +115,7 @@ interface QuizStore {
   nextStep: () => void
   prevStep: () => void
   goToStep: (step: number) => void
+  setTransitioning: (flag: boolean) => void
   resetQuiz: () => void
   completeOnboarding: () => void
 }
@@ -172,6 +174,7 @@ export const useQuizStore = create<QuizStore>()(
       answers: initialAnswers,
       currentStep: 0,
           totalSteps: 38, // Increased after splitting photo upload into 3 screens
+      isTransitioning: false,
       
       hydrate: () => {
         set((state) => state)
@@ -199,6 +202,11 @@ export const useQuizStore = create<QuizStore>()(
             ...state.answers,
             weightUnit: unit,
           },
+        })),
+
+      setTransitioning: (flag: boolean) =>
+        set(() => ({
+          isTransitioning: flag,
         })),
       
       nextStep: () =>

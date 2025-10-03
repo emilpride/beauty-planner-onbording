@@ -121,12 +121,17 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   const [hasMeasured, setHasMeasured] = useState(false)
   
   // Only use Zustand on client side
-  const quizStore = useQuizStore()
-  const { totalSteps, goToStep, answers } = quizStore || { totalSteps: 33, goToStep: () => {}, answers: { assistant: 0 } }
+  const { totalSteps, goToStep, answers, isTransitioning, setTransitioning } = useQuizStore()
   
   useEffect(() => {
     setIsHydrated(true)
   }, [])
+
+  // Reset transitioning flag when step changes
+  useEffect(() => {
+    setTransitioning(false)
+  }, [stepNumber, setTransitioning])
+
   
   useEffect(() => {
     if (!isHydrated) return
@@ -144,35 +149,44 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
     }
   }, [stepNumber, goToStep, totalSteps, router, answers.assistant, isHydrated])
 
-  useEffect(() => {
-
+  // Centralized entry sequencing: reset flags and precompute layout to avoid blank delays
+  useLayoutEffect(() => {
     setIsExiting(false)
     setIsGoingBack(false)
-    setShowQuestion(false)
     setShowCharacter(false)
     setIsReady(false)
-    
+    setAnimationReady(false)
 
-    const questionTimer = setTimeout(() => {
-      setShowQuestion(true)
-    }, 100)
-    
+    const viewportH = Math.max(window.innerHeight, document.documentElement.clientHeight)
 
-    const characterTimer = setTimeout(() => {
-      setShowCharacter(true)
-    }, 600)
-    
-
-    const readyTimer = setTimeout(() => {
-      setIsReady(true)
-    }, 800)
-    
-    return () => {
-      clearTimeout(questionTimer)
-      clearTimeout(characterTimer)
-      clearTimeout(readyTimer)
+    // For fullscreen steps, show immediately
+    if (stepNumber >= 35) {
+      setTimeout(() => {
+        setHasMeasured(true)
+        setShowQuestion(true)
+        setIsReady(true)
+      }, 0)
+      return
     }
-  }, [stepNumber])
+
+    // Precompute card position immediately to avoid waiting for measurement
+    // If there's no character, place card under appbar/progress zone and mark ready
+    const hasCharacter = Boolean(getImageForStep(stepNumber, answers.assistant === 2 ? 'ellie' : 'max'))
+    if (!hasCharacter) {
+      const approxTop = Math.max(Math.round(viewportH * 0.12), 88)
+      setCardTopPx(approxTop)
+      setHasMeasured(true)
+      setShowQuestion(true)
+      setIsReady(true)
+    } else {
+      // With character, approximate using 40dvh until precise measurement runs
+      const approxTop = Math.max(Math.round(viewportH * 0.40), 200)
+      setCardTopPx(approxTop)
+      setHasMeasured(true)
+      setShowQuestion(true)
+      // isReady will become true once the character image loads
+    }
+  }, [stepNumber, answers.assistant])
 
   
 
@@ -182,6 +196,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   const currentCardHeight = cardHeights[stepNumber] || 0.5;
 
   const assistantName = answers.assistant === 2 ? 'ellie' : 'max'
+
 
   const startExitAnimation = () => {
     setIsExiting(true)
@@ -279,6 +294,23 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   const isFullScreen = stepNumber >= 35; // Post-quiz screens start from CurrentConditionAnalysis (35)
   const isAutoTransitionScreen = false; // AI Analysis Intro was removed
 
+  // Fallback: ensure content is shown after a reasonable delay if measurement fails
+  useEffect(() => {
+    if (!isFullScreen && !hasMeasured) {
+      const fallbackTimer = setTimeout(() => {
+        // Only trigger fallback if we still haven't measured AND haven't shown question
+        if (!hasMeasured && !showQuestion) {
+          console.warn(`Step ${stepNumber}: Measurement fallback triggered`)
+          setHasMeasured(true)
+          setShowQuestion(true)
+          setCardTopPx(88) // Default fallback position
+        }
+      }, 600) // Tight fallback to avoid long blank screens
+
+      return () => clearTimeout(fallbackTimer)
+    }
+  }, [stepNumber, hasMeasured, isFullScreen, showQuestion])
+
   if (!StepComponent) {
     // Fallback for not-yet-created components
     return (
@@ -297,7 +329,20 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   }
 
   // Ensure animation order: card (text) enters first, then character
-  const cardEntered = showQuestion && hasMeasured && !isExiting && !isGoingBack
+  // Add a small delay for animation start
+  const [animationReady, setAnimationReady] = useState(false)
+  
+  useEffect(() => {
+    if (showQuestion && hasMeasured) {
+      // Small delay to allow animation to start
+      const timer = setTimeout(() => setAnimationReady(true), 50)
+      return () => clearTimeout(timer)
+    } else {
+      setAnimationReady(false)
+    }
+  }, [showQuestion, hasMeasured])
+
+  const cardEntered = animationReady && !isExiting && !isGoingBack
   const characterEntered = showCharacter && cardEntered && !isExiting && !isGoingBack
 
   // Measure card top based on character box bottom or fallback to app bar/progress bar height
@@ -305,6 +350,8 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
     if (isFullScreen) {
       setCardTopPx(0)
       setHasMeasured(true)
+      setShowQuestion(true)
+      setIsReady(true)
       return
     }
 
@@ -319,6 +366,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
         const topPx = Math.max(0, Math.round(charRect.bottom - mainRect.top))
         setCardTopPx(topPx)
         setHasMeasured(true)
+        setShowQuestion(true)
         return
       }
 
@@ -328,6 +376,10 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
       const approxTop = Math.max(Math.round(viewportH * 0.12), 88)
       setCardTopPx(approxTop)
       setHasMeasured(true)
+      setShowQuestion(true)
+      if (!hasCharacter) {
+        setIsReady(true)
+      }
     }
 
     // Initial compute before paint and on resize/orientation
@@ -342,10 +394,16 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
     }
   }, [imageUrl, isFullScreen, stepNumber, assistantName, showCharacter])
 
+  // When character image loads or there is no character, allow character to enter and mark ready
+  const handleCharacterLoaded = () => {
+    setShowCharacter(true)
+    setIsReady(true)
+  }
+
   return (
     <div className={`w-full relative ${isFullScreen ? 'min-h-[100dvh]' : 'min-h-[100dvh] overflow-hidden'}`}>
-      {/* Animated Background */}
-      <AnimatedBackground />
+  {/* Animated Background (paused until step is ready to reduce motion conflicts) */}
+  <AnimatedBackground paused={!isReady} />
 
       {isHydrated ? (
         <>
@@ -393,6 +451,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
                     height={300}
                     className="object-contain h-full w-auto"
                     priority
+                    onLoad={handleCharacterLoaded}
                   />
                 </div>
               </div>
@@ -402,13 +461,14 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
               className={`${!isFullScreen ? 'absolute left-0 right-0' : ''} z-20 transition-[opacity,transform] duration-500 ease-out ${
                 cardEntered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
               }`}
-              style={
-                !isFullScreen
+              style={{
+                transitionDelay: cardEntered ? '100ms' : '0ms',
+                ...(!isFullScreen
                   ? cardTopPx != null
                     ? { top: `${cardTopPx}px`, ['--card-top' as any]: `${cardTopPx}px` }
                     : { top: '12dvh' }
-                  : undefined
-              }
+                  : {})
+              }}
             >
               <div
                 className={`bg-white shadow-2xl ${isFullScreen ? 'min-h-[100dvh]' : 'rounded-3xl overflow-hidden'}`}
@@ -425,7 +485,10 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
               >
                 {/* Inner flex column; height is auto, OnboardingStep will handle scroll caps */}
                 <div className="flex flex-col">
-                  <StepComponent />
+                  {cardEntered && (
+                    // Mount content only when the card is entering/visible to avoid off-screen animations finishing before visible
+                    <StepComponent key={stepNumber} />
+                  )}
                 </div>
               </div>
             </div>

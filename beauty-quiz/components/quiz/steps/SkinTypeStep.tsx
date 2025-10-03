@@ -13,7 +13,7 @@ const options = [
 ]
 
 export default function SkinTypeStep() {
-  const { answers, setAnswer, currentStep, nextStep } = useQuizStore()
+  const { answers, setAnswer, currentStep, nextStep, setTransitioning } = useQuizStore()
   const router = useRouter()
   const hasTransitioned = useRef(false)
 
@@ -22,12 +22,9 @@ export default function SkinTypeStep() {
     
     setAnswer('skinType', optionId as any)
     hasTransitioned.current = true
-    
-
-    setTimeout(() => {
-      nextStep()
-      router.push(`/quiz/${currentStep + 1}`)
-    }, 800)
+    setTransitioning(true)
+    nextStep()
+    router.push(`/quiz/${currentStep + 1}`)
   }
 
   const handleSkip = () => {
@@ -35,12 +32,9 @@ export default function SkinTypeStep() {
     
     setAnswer('skinType', '')
     hasTransitioned.current = true
-    
-
-    setTimeout(() => {
-      nextStep()
-      router.push(`/quiz/${currentStep + 1}`)
-    }, 800)
+    setTransitioning(true)
+    nextStep()
+    router.push(`/quiz/${currentStep + 1}`)
   }
 
 

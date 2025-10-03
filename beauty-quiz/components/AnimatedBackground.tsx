@@ -1,6 +1,10 @@
 'use client'
 
-export default function AnimatedBackground() {
+type AnimatedBackgroundProps = {
+  paused?: boolean
+}
+
+export default function AnimatedBackground({ paused = false }: AnimatedBackgroundProps) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {/* Ellipse 46 */}
@@ -12,7 +16,8 @@ export default function AnimatedBackground() {
           background: '#53E5FF',
           filter: 'blur(120px)',
           transform: 'rotate(14.51deg)',
-          animation: 'float1 8s ease-in-out infinite'
+          animation: 'float1 8s ease-in-out infinite',
+          animationPlayState: paused ? 'paused' : 'running'
         }}
       />
       {/* Ellipse 47 */}
@@ -24,7 +29,8 @@ export default function AnimatedBackground() {
           background: '#FF99CC',
           filter: 'blur(120px)',
           transform: 'matrix(-0.97, 0.25, 0.25, 0.97, 0, 0)',
-          animation: 'float2 10s ease-in-out infinite'
+          animation: 'float2 10s ease-in-out infinite',
+          animationPlayState: paused ? 'paused' : 'running'
         }}
       />
     </div>

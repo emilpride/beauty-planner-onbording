@@ -13,7 +13,7 @@ const options = [
 ]
 
 export default function ProcrastinationStep() {
-  const { answers, setAnswer, currentStep, nextStep } = useQuizStore()
+  const { answers, setAnswer, currentStep, nextStep, setTransitioning } = useQuizStore()
   const router = useRouter()
   const hasTransitioned = useRef(false)
 
@@ -24,10 +24,9 @@ export default function ProcrastinationStep() {
     hasTransitioned.current = true
     
 
-    setTimeout(() => {
-      nextStep()
-      router.push(`/quiz/${currentStep + 1}`)
-    }, 800)
+    setTransitioning(true)
+    nextStep()
+    router.push(`/quiz/${currentStep + 1}`)
   }
 
 

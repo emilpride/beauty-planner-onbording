@@ -37,7 +37,7 @@ export default function OnboardingStep({
   onBackAnimation,
 }: OnboardingStepProps) {
   const router = useRouter()
-  const { nextStep, currentStep } = useQuizStore()
+  const { nextStep, currentStep, setTransitioning } = useQuizStore()
   
   // Estimate footer height so content area can auto-size and only scroll when needed
   // Main button ~64-72px + paddings (pt-4) => ~100-110px; skip adds ~64-76px
@@ -54,12 +54,11 @@ export default function OnboardingStep({
       if (onExitAnimation) {
         onExitAnimation()
       }
-
-      setTimeout(() => {
-        const nextStepIndex = currentStep + 1
-        router.push(`/quiz/${nextStepIndex}`)
-        nextStep()
-      }, 500)
+      // Signal transition; navigation will be immediate here.
+      setTransitioning(true)
+      const nextStepIndex = currentStep + 1
+      router.push(`/quiz/${nextStepIndex}`)
+      nextStep()
     } else if (onDisabledTap) {
       onDisabledTap()
     }
@@ -70,10 +69,12 @@ export default function OnboardingStep({
       onSkip()
     } else {
       const nextStepIndex = currentStep + 1
+      setTransitioning(true)
       router.push(`/quiz/${nextStepIndex}`)
       nextStep()
     }
   }
+
 
   return (
     <div className={`flex flex-col p-4 ${centerContent ? 'justify-center' : ''}`}>

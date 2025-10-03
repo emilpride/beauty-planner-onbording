@@ -20,7 +20,7 @@ interface CustomActivity {
 
 export default function PhysicalActivitiesStep() {
   const router = useRouter()
-  const { answers, setAnswer, currentStep, nextStep } = useQuizStore()
+  const { answers, setAnswer, currentStep, nextStep, setTransitioning } = useQuizStore()
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)

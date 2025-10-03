@@ -13,7 +13,7 @@ const options = [
 ]
 
 export default function FocusStep() {
-  const { answers, setAnswer, currentStep, nextStep } = useQuizStore()
+  const { answers, setAnswer, currentStep, nextStep, setTransitioning } = useQuizStore()
   const router = useRouter()
   const hasTransitioned = useRef(false)
 
@@ -23,10 +23,9 @@ export default function FocusStep() {
     setAnswer('focus', optionId as any)
     hasTransitioned.current = true
 
-    setTimeout(() => {
-      nextStep()
-      router.push(`/quiz/${currentStep + 1}`)
-    }, 800)
+    setTransitioning(true)
+    nextStep()
+    router.push(`/quiz/${currentStep + 1}`)
   }
 
   useEffect(() => {
