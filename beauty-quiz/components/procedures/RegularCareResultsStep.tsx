@@ -114,19 +114,20 @@ export default function RegularCareResultsStep() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
+        staggerChildren: 0.08,
       },
     },
   };
 
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
+    hidden: { y: 16, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
-    transition: {
+      transition: {
         type: 'spring' as const,
-        stiffness: 100,
+        stiffness: 140,
+        damping: 16,
       },
     },
   };
@@ -135,9 +136,9 @@ export default function RegularCareResultsStep() {
     { name: 'Emily', image: '/images/reviews/review_1.png', text: 'This service is a real find! Thanks for the accuracy and professionalism!' },
     { name: 'Aisha', image: '/images/reviews/review_2.png', text: "I'm stoked! The results have been a source of inspiration." },
     { name: 'Mira', image: '/images/reviews/review_3.png', text: 'The plan keeps me consistent—real results.' },
-    { name: 'Lisa', image: '/images/reviews/review_1.png', text: 'The planning feature is amazing! My routine is perfectly organized now.' },
-    { name: 'Sofia', image: '/images/reviews/review_1.png', text: "Finally found the perfect beauty routine planner! It's so easy to follow." },
-    { name: 'Anna', image: '/images/reviews/review_1.png', text: 'My beauty routine has never been this organized! Love the planning tools.' },
+    { name: 'Lisa', image: '/images/reviews/review_4.png', text: 'The planning feature is amazing! My routine is perfectly organized now.' },
+    { name: 'Sofia', image: '/images/reviews/review_5.png', text: "Finally found the perfect beauty routine planner! It's so easy to follow." },
+    { name: 'Anna', image: '/images/reviews/review_6_old_woman.png', text: 'My beauty routine has never been this organized! Love the planning tools.' },
     // New short American English reviews
     { name: 'Chloe', image: '/images/reviews/review_4.png', text: 'Planning made it click—quick wins and real results.' },
     { name: 'Jasmine', image: '/images/reviews/review_5.png', text: 'So easy to stick with—my routine finally feels effortless.' },
@@ -145,10 +146,39 @@ export default function RegularCareResultsStep() {
     { name: 'Evelyn', image: '/images/reviews/review_6_old_woman.png', text: 'Simple plan, big payoff. Loving the glow-up.' },
   ];
 
+  // Carousel constants and motion
+  const STRIDE = 145; // card width + gap approximation
+  const nCards = testimonials.length;
+  const totalWidth = STRIDE * nCards;
+  const x = useMotionValue(-totalWidth);
+  const draggingRef = useRef(false);
+
+  useEffect(() => {
+    let raf = 0;
+    let last = performance.now();
+    const speed = 20; // px/sec auto drift to the left
+
+    const tick = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      if (!draggingRef.current) {
+        const next = x.get() - speed * dt;
+        x.set(next);
+        const curr = x.get();
+        // normalize into [-2*totalWidth, 0]
+        if (curr < -2 * totalWidth) x.set(curr + totalWidth);
+        if (curr > 0) x.set(curr - totalWidth);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [totalWidth, x]);
+
   // Timeline item component
   const TimelineItem = ({ title, description, icon, index, rootRef }: { title: string; description: string; icon: React.ReactNode; index: number; rootRef: React.RefObject<HTMLDivElement | null> }) => {
     const itemRef = useRef<HTMLLIElement | null>(null);
-  const itemInView = useInView(itemRef, { root: rootRef, amount: 0.25, margin: '-10% 0% -10% 0%', once: true });
+  const itemInView = useInView(itemRef, { root: rootRef as any, amount: 0.3, margin: '-10% 0% -10% 0%', once: false });
 
     return (
       <li ref={itemRef} className="relative grid grid-cols-[36px_1fr] gap-3">
@@ -166,17 +196,36 @@ export default function RegularCareResultsStep() {
             className="mt-0 flex items-center justify-center w-9 h-9 rounded-full ring-2 ring-white/40 shadow-soft"
             initial={false}
             animate={itemInView
-              ? { backgroundColor: 'rgb(var(--color-primary))', color: '#fff', scale: [1, 1.22, 0.96, 1] }
+              ? { backgroundColor: 'rgb(var(--color-primary))', color: '#fff', scale: [1, 1.18, 1], opacity: 1 }
               : { backgroundColor: 'rgba(var(--color-primary),0.08)', color: 'rgb(var(--color-primary))', opacity: 0.6 }}
-            transition={{ duration: 0.55, times: [0, 0.35, 0.7, 1], ease: 'easeOut' }}
+            transition={{ duration: 0.5, times: [0, 0.6, 1], ease: 'easeOut' }}
           >
             {icon}
           </motion.div>
+
+          {/* Glow pulse */}
+          <motion.span
+            className="absolute -inset-1 rounded-full"
+            style={{ filter: 'blur(8px)', background: 'radial-gradient(circle, rgba(var(--color-primary),0.5) 0%, rgba(var(--color-primary),0) 70%)' }}
+            initial={{ opacity: 0 }}
+            animate={itemInView ? { opacity: [0.25, 0.12, 0.25] } : { opacity: 0 }}
+            transition={{ duration: 1.2, repeat: itemInView ? Infinity : 0, repeatType: 'reverse' }}
+          />
         </div>
-        {/* Text: always present, no delayed gating */}
-        <motion.div className="pt-0.5" initial={false} animate={{ opacity: 1 }}>
-          <h4 className="font-semibold text-text-primary text-sm">{title}</h4>
-          <p className="text-xs text-text-secondary">{description}</p>
+        {/* Text with entrance + underline sweep */}
+        <motion.div className="pt-0.5" initial={{ opacity: 0, y: 10 }} animate={itemInView ? { opacity: 1, y: 0 } : {}} transition={{ type: 'spring', stiffness: 140, damping: 16 }}>
+          <div className="inline-block">
+            <h4 className="font-semibold text-text-primary text-sm relative inline-block">
+              {title}
+              <motion.span
+                className="absolute left-0 -bottom-0.5 h-[2px] bg-primary/80"
+                initial={{ width: 0, opacity: 0 }}
+                animate={itemInView ? { width: '100%', opacity: 1 } : { width: 0, opacity: 0 }}
+                transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+              />
+            </h4>
+          </div>
+          <p className="text-xs text-text-secondary mt-0.5">{description}</p>
         </motion.div>
       </li>
     );
@@ -199,7 +248,7 @@ export default function RegularCareResultsStep() {
             </p>
           </motion.div>
 
-          {/* Progress Graph - unified width */}
+          {/* Progress Graph - unified width (BMS clarity) */}
           <motion.div
             className="w-full rounded-xl p-4 border border-border-subtle/60 shadow-soft"
             style={{
@@ -207,6 +256,17 @@ export default function RegularCareResultsStep() {
             }}
             variants={itemVariants}
           >
+            {/* Legend: clarify it's BMS with/without app */}
+            <div className="mb-3 flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-2 w-5 rounded" style={{ background: 'linear-gradient(90deg, #2AEA5C, #84DE54)' }} />
+                <span className="text-xs text-text-secondary">BMS with app</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-2 w-5 rounded" style={{ background: 'linear-gradient(90deg, #FFA64D, #FE6C6C)' }} />
+                <span className="text-xs text-text-secondary">BMS without app</span>
+              </div>
+            </div>
             <div className="relative w-full aspect-[350/270]">
               <svg viewBox="0 0 350 270" className="absolute inset-0 w-full h-full">
                 <defs>
@@ -214,10 +274,24 @@ export default function RegularCareResultsStep() {
                   <stop offset="0%" stopColor="#84DE54" />
                     <stop offset="100%" stopColor="#2AEA5C" />
                   </linearGradient>
-                <linearGradient id="withoutAppGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                {/* Light theme gradient for "without app" */}
+                <linearGradient id="withoutAppGradientLight" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#FFA64D" />
                   <stop offset="100%" stopColor="#FE6C6C" />
                 </linearGradient>
+                {/* Dark theme gradient for "without app" with brighter tones */}
+                <linearGradient id="withoutAppGradientDark" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#FFC46B" />
+                  <stop offset="100%" stopColor="#FF7A7A" />
+                </linearGradient>
+                {/* Soft glow for dark theme visibility */}
+                <filter id="glowDark" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
                 <linearGradient id="verticalBarGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="1.04%" stopColor="rgba(111, 221, 141, 0)" />
                   <stop offset="28.13%" stopColor="#2BAE70" />
@@ -226,7 +300,7 @@ export default function RegularCareResultsStep() {
                   </linearGradient>
                 </defs>
 
-              {/* Vertical Bar */}
+              {/* Vertical Bar (decorative) */}
               <motion.rect 
                 x="260" y="40" width="70" height="190" 
                 fill="url(#verticalBarGradient)" 
@@ -234,6 +308,20 @@ export default function RegularCareResultsStep() {
                 animate={{ opacity: 0.25, scaleY: 1 }}
                 transition={{ duration: 1, delay: 1 }}
               />
+
+              {/* Y Axis (BMS 0-10) */}
+              <line x1="40" y1="50" x2="40" y2="230" stroke="#B3D2E8" strokeWidth="2" />
+              {([0,2,4,6,8,10] as const).map((tick, i) => {
+                const y = 230 - i * 20; // 0..10 step 2
+                return (
+                  // @ts-ignore - inline SVG mapping okay
+                  <g key={tick}>
+                    <line x1="36" y1={y} x2="40" y2={y} stroke="#B3D2E8" strokeWidth="2" />
+                    <text x="30" y={y + 4} textAnchor="end" fill="#69798E" fontWeight="600" fontSize="11">{tick}</text>
+                  </g>
+                )
+              })}
+              <text x="18" y="140" transform="rotate(-90 18 140)" textAnchor="middle" fill="#476B9A" fontWeight="700" fontSize="12">BMS (0–10)</text>
 
               {/* Axis Line */}
               <line x1="20" y1="230" x2="330" y2="230" stroke="#B3D2E8" strokeWidth="2" />
@@ -243,9 +331,18 @@ export default function RegularCareResultsStep() {
               <text x="315" y="250" textAnchor="middle" fill="#69798E" fontWeight="600" fontSize="16">30 Days</text>
 
               {/* Graph Lines */}
+              {/* Without app line - light theme */}
               <motion.path 
+                className="dark:hidden"
                 d="M 65 200 C 150 220, 200 200, 315 170" 
-                stroke="url(#withoutAppGradient)" strokeWidth="3" fill="none" 
+                stroke="url(#withoutAppGradientLight)" strokeWidth="3" fill="none" 
+                style={{ pathLength }}
+              />
+              {/* Without app line - dark theme with glow */}
+              <motion.path 
+                className="hidden dark:block"
+                d="M 65 200 C 150 220, 200 200, 315 170" 
+                stroke="url(#withoutAppGradientDark)" strokeWidth="4" fill="none" filter="url(#glowDark)"
                 style={{ pathLength }}
               />
               <motion.path 
@@ -255,8 +352,11 @@ export default function RegularCareResultsStep() {
               />
 
               {/* Line Labels */}
-              <text x="190" y="195" textAnchor="middle" fill="#333333" fontWeight="500" fontSize="15">Without app</text>
-              <text x="190" y="60" textAnchor="middle" fill="#476B9A" fontWeight="700" fontSize="17">With app</text>
+              {/* Light theme label */}
+              <text className="dark:hidden" x="190" y="195" textAnchor="middle" fill="#333333" fontWeight="600" fontSize="13">BMS without app</text>
+              {/* Dark theme label with brighter color for contrast */}
+              <text className="hidden dark:block" x="190" y="195" textAnchor="middle" fill="#FFC46B" fontWeight="700" fontSize="13">BMS without app</text>
+              <text x="190" y="60" textAnchor="middle" fill="#476B9A" fontWeight="700" fontSize="14">BMS with app</text>
 
               {/* Score Circles */}
               <motion.g 
@@ -285,11 +385,19 @@ export default function RegularCareResultsStep() {
                 </text>
               </motion.g>
 
-              {/* Static 5/10 circle at the start */}
-              <g transform="translate(65, 200)">
+              {/* Static 5/10 circle at the start - light */}
+              <g transform="translate(65, 200)" className="dark:hidden">
                 <circle r="34" fill="#FFF2E5" />
                 <circle r="30" fill="none" stroke="#FFA64D" strokeWidth="6" strokeDasharray="94.2 188.4" transform="rotate(-90 0 0)" />
                 <text textAnchor="middle" y="10" fontWeight="700" fontSize="32" fill="#DA7C1D">
+                  5<tspan fontSize="16" dy="-12" dx="2">/10</tspan>
+                </text>
+              </g>
+              {/* Static 5/10 circle at the start - dark with glow */}
+              <g transform="translate(65, 200)" className="hidden dark:block" filter="url(#glowDark)">
+                <circle r="34" fill="#3A2A22" />
+                <circle r="30" fill="none" stroke="#FF7A4D" strokeWidth="7" strokeDasharray="94.2 188.4" transform="rotate(-90 0 0)" />
+                <text textAnchor="middle" y="10" fontWeight="700" fontSize="32" fill="#FFC46B">
                   5<tspan fontSize="16" dy="-12" dx="2">/10</tspan>
                 </text>
               </g>
@@ -401,16 +509,28 @@ export default function RegularCareResultsStep() {
           </motion.div>
 
           {/* Benefits as a vertical timeline (stabilized) */}
-          <div 
+          <motion.div 
             className="space-y-4" 
             ref={benefitsRef as any}
+            variants={itemVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ amount: 0.25, once: true }}
           >
             <div className="text-center space-y-3">
               <h3 className="text-xl font-bold text-text-primary">Noticeable Improvements In One Month:</h3>
             </div>
             <div ref={timelineRef} className="relative py-1">
               {/* Background track */}
-              <div className="absolute left-[18px] top-0 bottom-0 w-[3px] rounded-full bg-primary/10" />
+              <div className="absolute left-[18px] top-0 bottom-0 w-[3px] rounded-full bg-primary/10 overflow-hidden">
+                {/* Shimmer */}
+                <motion.div
+                  className="absolute left-0 right-0 h-8"
+                  style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.0) 0%, rgba(var(--color-primary),0.22) 50%, rgba(255,255,255,0.0) 100%)' }}
+                  animate={{ top: ['-2rem', '100%'] }}
+                  transition={{ duration: 1.8, repeat: Infinity, ease: 'linear' }}
+                />
+              </div>
               {/* Foreground progress line with moving cap */}
               <motion.div
                 className="absolute left-[18px] top-0 w-[3px] rounded-full"
@@ -428,7 +548,7 @@ export default function RegularCareResultsStep() {
                 ))}
               </ul>
             </div>
-          </div>
+          </motion.div>
 
           {/* Struggles vs Solutions - fixed icon sizes */}
           <motion.div 
@@ -470,65 +590,53 @@ export default function RegularCareResultsStep() {
             </div>
           </motion.div>
 
-          {/* Testimonials with auto-scroll + drag */}
+          {/* Testimonials with infinite drag loop */}
           <motion.div className="w-full overflow-hidden relative cursor-grab active:cursor-grabbing" variants={itemVariants}>
             <div className="pointer-events-none absolute inset-y-0 left-0 w-8 z-10" style={{background: 'linear-gradient(90deg, rgb(var(--color-surface)) 0%, rgba(255,255,255,0) 100%)'}} />
             <div className="pointer-events-none absolute inset-y-0 right-0 w-8 z-10" style={{background: 'linear-gradient(270deg, rgb(var(--color-surface)) 0%, rgba(255,255,255,0) 100%)'}} />
-            <motion.div 
+            <motion.div
               className="flex flex-row items-start gap-2.5"
-              style={{ width: 'max-content' }}
+              style={{ width: 'max-content', x }}
               drag="x"
-              dragConstraints={{ left: -testimonials.length * 145, right: 0 }}
-              dragElastic={0.1}
-              animate={{ x: [0, -testimonials.length * 145] }}
-              transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
+              dragConstraints={{ left: -2 * totalWidth, right: 0 }}
+              dragElastic={0.08}
+              onDragStart={() => (draggingRef.current = true)}
+              onDragEnd={() => {
+                draggingRef.current = false;
+                const val = x.get();
+                if (val > 0) {
+                  x.set(val - totalWidth);
+                } else if (val < -2 * totalWidth) {
+                  x.set(val + totalWidth);
+                }
+              }}
             >
-              {testimonials.map((review, index) => (
-                <div key={index} className="flex flex-col items-start p-2 gap-2 bg-surface flex-none border border-border-subtle/60 shadow-soft rounded-lg select-none" style={{ width: '141px', height: '298px' }}>
-                  <Image src={review.image} alt={`User review ${review.name}`} width={125} height={125} className="w-full h-auto object-cover flex-none rounded-md pointer-events-none" draggable={false} />
-                  <div className="flex flex-row items-center gap-1 flex-none">
-                    <span className="font-bold text-sm text-text-primary">{review.name}</span>
-                    <div className="flex items-center gap-1">
-                      <div className="flex-none flex items-center justify-center w-4 h-4" style={{ background: '#A385E9', borderRadius: '50%' }}>
-                        <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><path d="M1 3L2.5 4.5L5 1.5" stroke="white" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              {[0, 1, 2].map((copy) => (
+                <div key={`copy-${copy}`} className="flex flex-row items-start gap-2.5">
+                  {testimonials.map((review, index) => (
+                    <div key={`${copy}-${index}`} className="flex flex-col items-start p-2 gap-2 bg-surface flex-none border border-border-subtle/60 shadow-soft rounded-lg select-none" style={{ width: '141px', height: '298px' }}>
+                      <Image src={review.image} alt={`User review ${review.name}`} width={125} height={125} className="w-full h-auto object-cover flex-none rounded-md pointer-events-none" draggable={false} />
+                      <div className="flex flex-row items-center gap-1 flex-none">
+                        <span className="font-bold text-sm text-text-primary">{review.name}</span>
+                        <div className="flex items-center gap-1">
+                          <div className="flex-none flex items-center justify-center w-4 h-4" style={{ background: '#A385E9', borderRadius: '50%' }}>
+                            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><path d="M1 3L2.5 4.5L5 1.5" stroke="white" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </div>
+                          <span className="font-bold text-xs" style={{ color: '#A385E9' }}>Verified</span>
+                        </div>
                       </div>
-                      <span className="font-bold text-xs" style={{ color: '#A385E9' }}>Verified</span>
-                    </div>
-                  </div>
-                  <div className="flex-none self-stretch border border-border-subtle/60" />
-                  <div className="flex flex-row items-center gap-2 flex-none">
-                    <div className="flex flex-row items-start flex-none">
-                      {[...Array(5)].map((_, i) => (
-                        <svg key={i} className="flex-none" width="10" height="10" viewBox="0 0 10 10" fill="#FABB05"><path d="M5 0L6.18 3.82L10 3.82L7.27 6.18L8.45 10L5 7.64L1.55 10L2.73 6.18L0 3.82L3.82 3.82L5 0Z"/></svg>
-                      ))}
-                    </div>
-                    <span className="text-xs text-text-secondary">5.0 rating</span>
-                  </div>
-                  <p className="flex-none self-stretch text-sm text-text-primary" style={{ fontWeight: 500 }}>{review.text}</p>
-                </div>
-              ))}
-              {testimonials.map((review, index) => (
-                <div key={`dup-${index}`} className="flex flex-col items-start p-2 gap-2 bg-surface flex-none border border-border-subtle/60 shadow-soft rounded-lg select-none" style={{ width: '141px', height: '298px' }}>
-                  <Image src={review.image} alt={`User review ${review.name}`} width={125} height={125} className="w-full h-auto object-cover flex-none rounded-md pointer-events-none" draggable={false} />
-                  <div className="flex flex-row items-center gap-1 flex-none">
-                    <span className="font-bold text-sm text-text-primary">{review.name}</span>
-                    <div className="flex items-center gap-1">
-                      <div className="flex-none flex items-center justify-center w-4 h-4" style={{ background: '#A385E9', borderRadius: '50%' }}>
-                        <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><path d="M1 3L2.5 4.5L5 1.5" stroke="white" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <div className="flex-none self-stretch border border-border-subtle/60" />
+                      <div className="flex flex-row items-center gap-2 flex-none">
+                        <div className="flex flex-row items-start flex-none">
+                          {[...Array(5)].map((_, i) => (
+                            <svg key={i} className="flex-none" width="10" height="10" viewBox="0 0 10 10" fill="#FABB05"><path d="M5 0L6.18 3.82L10 3.82L7.27 6.18L8.45 10L5 7.64L1.55 10L2.73 6.18L0 3.82L3.82 3.82L5 0Z"/></svg>
+                          ))}
+                        </div>
+                        <span className="text-xs text-text-secondary">5.0 rating</span>
                       </div>
-                      <span className="font-bold text-xs" style={{ color: '#A385E9' }}>Verified</span>
+                      <p className="flex-none self-stretch text-sm text-text-primary" style={{ fontWeight: 500 }}>{review.text}</p>
                     </div>
-                  </div>
-                  <div className="flex-none self-stretch border border-border-subtle/60" />
-                  <div className="flex flex-row items-center gap-2 flex-none">
-                    <div className="flex flex-row items-start flex-none">
-                      {[...Array(5)].map((_, i) => (
-                        <svg key={i} className="flex-none" width="10" height="10" viewBox="0 0 10 10" fill="#FABB05"><path d="M5 0L6.18 3.82L10 3.82L7.27 6.18L8.45 10L5 7.64L1.55 10L2.73 6.18L0 3.82L3.82 3.82L5 0Z"/></svg>
-                      ))}
-                    </div>
-                    <span className="text-xs text-text-secondary">5.0 rating</span>
-                  </div>
-                  <p className="flex-none self-stretch text-sm text-text-primary" style={{ fontWeight: 500 }}>{review.text}</p>
+                  ))}
                 </div>
               ))}
             </motion.div>
@@ -561,7 +669,7 @@ export default function RegularCareResultsStep() {
               repeatType: 'loop',
             }}
           >
-            Price Plans
+            Get App Access
           </motion.button>
         </div>
       </motion.div>

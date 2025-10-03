@@ -65,7 +65,8 @@ const sleepVisuals = {
 
 const pulseTransition = {
   repeat: Infinity,
-  ease: 'easeInOut',
+  repeatType: 'mirror' as const,
+  ease: [0.4, 0, 0.2, 1] as [number, number, number, number],
 }
 
 export default function SleepRhythmInsightStep() {
