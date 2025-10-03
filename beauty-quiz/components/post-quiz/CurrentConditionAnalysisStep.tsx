@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import RecommendedCare from '@/components/post-quiz/RecommendedCare'
 import { useQuizStore } from '@/store/quizStore'
 
 const BMI_CATEGORIES = [
@@ -241,6 +242,82 @@ export default function CurrentConditionAnalysisStep() {
   const router = useRouter()
   const { answers } = useQuizStore()
 
+  // ---- Age computation ----
+  const chronologicalAge = useMemo(() => {
+    // Prefer birthDate if present; fallback to provided age
+    if (answers.birthDate) {
+      const d = new Date(answers.birthDate)
+      if (!isNaN(d.getTime())) {
+        const now = new Date()
+        let age = now.getFullYear() - d.getFullYear()
+        const m = now.getMonth() - d.getMonth()
+        if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--
+        return Math.max(0, age)
+      }
+    }
+    if (typeof answers.age === 'number' && Number.isFinite(answers.age)) return Math.max(0, Math.floor(answers.age))
+    return null
+  }, [answers.birthDate, answers.age])
+
+  // Heuristic biological age estimate from lifestyle factors
+  const { positiveFactors, negativeFactors, biologicalAgeTarget } = useMemo(() => {
+    const pos: string[] = []
+    const neg: string[] = []
+
+    // Sleep
+    if (answers.sleepHours === '7-8') pos.push('7–8 hours of sleep')
+    if (answers.sleepHours === '<6') neg.push('Sleep deprivation (<6h)')
+
+    // Activity / lifestyle
+    if (answers.lifestyle === 'active' || answers.lifestyle === 'sports') pos.push('Active lifestyle')
+    if (answers.lifestyle === 'sedentary') neg.push('Sedentary routine')
+
+    // Stress
+    if (answers.stressLevel === 'rarely') pos.push('Low stress')
+    if (answers.stressLevel === 'often' || answers.stressLevel === 'always') neg.push('High stress')
+
+    // Physical activities selection
+    if (answers.physicalActivities && answers.physicalActivities.length > 0) pos.push('Regular workouts')
+
+    // Diet
+    if (answers.diet && answers.diet.length > 0) pos.push('Balanced diet')
+
+    // Energy/mood small signals
+    if (answers.energyLevel >= 4) pos.push('Good energy')
+    if (answers.mood === 'terrible' || answers.mood === 'bad') neg.push('Low mood')
+
+    const base = chronologicalAge ?? 30
+    const delta = Math.max(-5, Math.min(5, pos.length * -0.7 + neg.length * 0.8))
+    const target = Math.max(0, Math.round(base + delta))
+
+    return { positiveFactors: pos, negativeFactors: neg, biologicalAgeTarget: target }
+  }, [answers.sleepHours, answers.lifestyle, answers.stressLevel, answers.physicalActivities, answers.diet, answers.energyLevel, answers.mood, chronologicalAge])
+
+  // Animate biological age number
+  const [bioAgeAnimated, setBioAgeAnimated] = useState(0)
+  useEffect(() => {
+    let raf: number | null = null
+    const start = performance.now()
+    const duration = 900
+    const from = 0
+    const to = biologicalAgeTarget
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / duration)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setBioAgeAnimated(from + (to - from) * eased)
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => { if (raf) cancelAnimationFrame(raf) }
+  }, [biologicalAgeTarget])
+
+  const bioAgeColor = useMemo(() => {
+    if (chronologicalAge == null) return '#33C75A'
+    if (biologicalAgeTarget <= chronologicalAge - 1) return '#33C75A' // younger -> green
+    if (biologicalAgeTarget >= chronologicalAge + 1) return '#FF7D7E' // older -> red
+    return '#FFA64D' // about the same -> amber
+  }, [chronologicalAge, biologicalAgeTarget])
+
   const heightMeters = useMemo(
     () => parseHeight(answers.height, answers.heightUnit),
     [answers.height, answers.heightUnit],
@@ -354,6 +431,7 @@ export default function CurrentConditionAnalysisStep() {
     return colorAt(stops, t)
   }, [bmiPosition])
 
+
   return (
     <motion.div 
       className="relative bg-background min-h-screen"
@@ -425,6 +503,126 @@ export default function CurrentConditionAnalysisStep() {
         </motion.header>
 
         <section className="space-y-5">
+          {/* Age summary block */}
+          <motion.article 
+            className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft overflow-hidden relative"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.6, ease: 'easeOut' }}
+          >
+            {/* Subtle decorative gradients */}
+            <motion.div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full blur-3xl opacity-20"
+              style={{ background: 'radial-gradient(circle, #8A60FF 0%, transparent 60%)' }}
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 10, repeat: Infinity }}
+            />
+            <motion.div className="pointer-events-none absolute -bottom-14 -left-10 h-48 w-48 rounded-full blur-3xl opacity-15"
+              style={{ background: 'radial-gradient(circle, #53E5FF 0%, transparent 60%)' }}
+              animate={{ scale: [1, 1.08, 1] }}
+              transition={{ duration: 12, repeat: Infinity }}
+            />
+
+            <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-stretch">
+                {/* Chronological age */}
+                <motion.div 
+                  className="rounded-2xl p-5 bg-gradient-to-br from-primary/5 to-transparent border border-border-subtle/50"
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.35, duration: 0.5 }}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-text-secondary">Chronological Age</p>
+                  <div className="mt-2 flex items-end gap-2">
+                    <span className="text-4xl font-bold text-text-primary leading-none">{chronologicalAge ?? '—'}</span>
+                    <span className="mb-0.5 text-sm font-semibold text-text-secondary">yrs</span>
+                  </div>
+                </motion.div>
+
+                {/* Biological age */}
+                <motion.div 
+                  className="rounded-2xl p-5 bg-gradient-to-br from-[#33C75A]/10 via-transparent to-transparent border border-border-subtle/50"
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.5 }}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-text-secondary">Biological Age</p>
+                  <div className="mt-2 flex items-end gap-2">
+                    <motion.span 
+                      className="text-4xl font-bold leading-none"
+                      style={{ color: bioAgeColor }}
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.6, duration: 0.5 }}
+                    >
+                      {Math.round(bioAgeAnimated)}
+                    </motion.span>
+                    <span className="mb-0.5 text-sm font-semibold text-text-secondary">yrs</span>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Factors */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <motion.div 
+                  className="rounded-2xl border border-border-subtle/60 p-4 bg-white/70 dark:bg-surface/80"
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.55, duration: 0.4 }}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    <p className="text-sm font-semibold text-text-primary">Positive Factors</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {positiveFactors.length > 0 ? (
+                      positiveFactors.map((f, i) => (
+                        <motion.span
+                          key={f + i}
+                          className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-300 dark:border-emerald-400/30"
+                          initial={{ scale: 0.95, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: 0.6 + i * 0.05, duration: 0.25 }}
+                        >
+                          {f}
+                        </motion.span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-text-secondary">Нет данных</span>
+                    )}
+                  </div>
+                </motion.div>
+
+                <motion.div 
+                  className="rounded-2xl border border-border-subtle/60 p-4 bg-white/70 dark:bg-surface/80"
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.6, duration: 0.4 }}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <XCircle className="h-4 w-4 text-rose-500" />
+                    <p className="text-sm font-semibold text-text-primary">Negative Factors</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {negativeFactors.length > 0 ? (
+                      negativeFactors.map((f, i) => (
+                        <motion.span
+                          key={f + i}
+                          className="px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-400/10 dark:text-rose-300 dark:border-rose-400/30"
+                          initial={{ scale: 0.95, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: 0.65 + i * 0.05, duration: 0.25 }}
+                        >
+                          {f}
+                        </motion.span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-text-secondary">Нет данных</span>
+                    )}
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          </motion.article>
           <motion.article 
             className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
             initial={{ opacity: 0, y: 30 }}
@@ -672,17 +870,10 @@ export default function CurrentConditionAnalysisStep() {
               />
             </motion.div>
 
-            <motion.button
-              type="button"
-              onClick={() => router.push('/signup')}
-              className="w-full rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-soft transition hover:brightness-110"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            >
-              To The Activities
-            </motion.button>
           </motion.article>
+
+          {/* Recommended Care (standalone block below) */}
+          <RecommendedCare baseScores={{ skin: baseScores.skin, hair: baseScores.hair, physic: baseScores.physic, mental: baseScores.mental }} />
         </section>
       </div>
     </motion.div>
