@@ -211,8 +211,8 @@ export default function PricingStep() {
           }}
         />
 
-        <div className="space-y-10">
-          <TrustSignals />
+    <div className="space-y-10">
+      <TrustSignals />
 
           <Divider label="Pick your access" />
           <PlansPanel
@@ -290,7 +290,6 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
-
   const minutes = String(Math.floor(secondsRemaining / 60)).padStart(2, '0')
   const seconds = String(secondsRemaining % 60).padStart(2, '0')
 
@@ -325,7 +324,7 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
           <button
             type="button"
             onClick={handleClick}
-            className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_10px_20px_rgba(124,92,203,0.28)] hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-primary/30"
+            className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-xs sm:px-6 sm:py-3 sm:text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_10px_20px_rgba(124,92,203,0.28)] hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-primary/30"
           >
             Get my plan
           </button>
@@ -350,7 +349,7 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
               <button
                 type="button"
                 onClick={handleClick}
-                className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_10px_20px_rgba(124,92,203,0.28)] hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-primary/30"
+                className="inline-flex items-center justify-center rounded-full bg-primary px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_10px_20px_rgba(124,92,203,0.28)] hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-primary/30"
               >
                 Get my plan
               </button>
@@ -540,10 +539,24 @@ function FAQSection() {
   const items = [
     {
       q: "When will I be charged?",
-      a: "You will not be charged today. If you keep premium past the 7‑day trial, you will be charged based on your selected plan.",
+      a: "You won't be charged today. If you keep premium past the 7‑day trial, your first payment will be charged automatically at the end of your trial for the plan you selected. You'll see the price before confirming, and we also send a reminder in the app so there are no surprises.",
     },
-    { q: "Can I cancel anytime?", a: "Yes. You can cancel anytime from settings with a single tap and you will keep access until the end of the current period." },
-    { q: "Do you offer refunds?", a: "Absolutely. If you are not in love within 30 days, we will refund you in full. Just contact support from the app." },
+    {
+      q: "Can I cancel anytime?",
+      a: "Yes. You can cancel anytime from your account settings in the app or website with a single tap. You'll keep access to premium features until the end of your current billing period—no penalties or hidden fees.",
+    },
+    {
+      q: "Do you offer refunds?",
+      a: "Absolutely. If you're not in love within 30 days, contact support from the app and we'll provide a full refund. We can also help you adjust your routine if you'd like to continue and get better results.",
+    },
+    {
+      q: "What happens after my plan ends?",
+      a: "Your plan renews automatically at the standard price shown during checkout. You'll get a reminder before renewal, and you can pause or cancel renewal anytime from settings.",
+    },
+    {
+      q: "Which payment methods are supported?",
+      a: "We support major cards (Visa, Mastercard, American Express), and Apple Pay/Google Pay where available. All payments are processed securely by Stripe.",
+    },
   ]
   return (
     <div className="divide-y divide-border-subtle rounded-2xl border border-border-subtle bg-surface">
@@ -800,7 +813,7 @@ function Divider({ label }: { label: string }) {
 
 function FeaturesGrid({ items }: { items: FeatureItem[] }) {
   return (
-    <div className="grid w-full gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid w-full gap-3 grid-cols-2 sm:grid-cols-3 xl:grid-cols-4">
       {items.map((feature) => (
         <FeatureRow key={feature.id} feature={feature} />
       ))}
@@ -810,13 +823,13 @@ function FeaturesGrid({ items }: { items: FeatureItem[] }) {
 
 function FeatureRow({ feature }: { feature: FeatureItem }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border-subtle bg-surface p-3 shadow-sm">
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${feature.gradient}`}>
-        <Image src={feature.iconSrc} width={24} height={24} alt="" className="h-6 w-6" />
+    <div className="flex flex-col items-center text-center gap-2 rounded-2xl border border-border-subtle bg-surface p-3 sm:p-4 shadow-sm">
+      <div className={`flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${feature.gradient}`}>
+        <Image src={feature.iconSrc} width={28} height={28} alt="" className="h-6 w-6 sm:h-7 sm:w-7" />
       </div>
       <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-text-primary">{feature.label}</p>
-        <p className="truncate text-xs text-text-secondary">{feature.description}</p>
+        <p className="text-[12px] sm:text-sm font-semibold text-text-primary line-clamp-1">{feature.label}</p>
+        <p className="text-[11px] sm:text-xs text-text-secondary line-clamp-2">{feature.description}</p>
       </div>
     </div>
   )
@@ -846,15 +859,84 @@ function TrustPill({ title, description }: { title: string; description: string 
 
 function TestimonialStrip() {
   return (
-    <div className="flex flex-col gap-3 rounded-3xl border border-border-subtle bg-surface px-5 py-5 shadow-[0_18px_34px_rgba(108,83,173,0.12)] sm:flex-row sm:items-center sm:gap-4">
-      <div className="flex items-center">
-        <span className="text-xl">⭐️⭐️⭐️⭐️⭐️</span>
+    <div className="rounded-3xl border border-border-subtle bg-surface p-4 sm:p-5 md:p-6 shadow-[0_18px_34px_rgba(108,83,173,0.12)]">
+  <div className="grid items-start gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-[auto_auto_1fr]">
+        {/* Square pill: Rating */}
+  <div className="relative flex w-full aspect-square sm:h-24 sm:w-24 items-center justify-center rounded-2xl border border-primary/20 bg-surface-muted/50 p-2">
+          <div className="text-center leading-tight">
+            <div className="flex items-end justify-center gap-1 leading-none">
+              <span className="text-2xl font-extrabold text-primary">4.9</span>
+              <span className="text-sm font-semibold text-text-secondary">/5</span>
+            </div>
+            <div className="mt-1 flex items-center justify-center gap-0.5" aria-label="5 out of 5 stars">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <StarSolid key={i} className="h-4 w-4 text-[#F6B100]" />
+              ))}
+            </div>
+            <div className="mt-1 text-[10px] leading-none text-text-secondary">1k+ reviews</div>
+          </div>
+        </div>
+
+        {/* Square pill: Users */}
+  <div className="relative flex w-full aspect-square sm:h-24 sm:w-24 items-center justify-center rounded-2xl border border-primary/20 bg-surface-muted/50 p-2">
+          <div className="text-center leading-tight">
+            <p className="text-sm font-semibold text-text-primary leading-none">10k+ users</p>
+            <div className="mt-2 flex items-center justify-center">
+              <Image src="/images/reviews/users.png" alt="Users" width={88} height={24} className="h-6 w-auto" />
+            </div>
+          </div>
+        </div>
+
+  {/* Testimonial text */}
+        <div className="min-w-0 col-span-2 sm:col-span-1">
+          <p className="text-sm text-text-primary leading-relaxed text-center sm:text-left">
+            “The routines and reminders keep me consistent. I saw real improvements in a few weeks.”
+          </p>
+          <span className="mt-1 block text-center sm:text-left text-xs text-text-secondary">— Verified member</span>
+        </div>
       </div>
-      <p className="text-sm text-text-primary">
-        “The routines and reminders keep me consistent. I saw real improvements in a few weeks.”
-      </p>
-      <span className="text-xs text-text-secondary">— Verified member</span>
     </div>
+  )
+}
+
+function SocialProofPills() {
+  return (
+    <div className="grid gap-2.5 sm:gap-3 sm:grid-cols-2">
+      {/* Rating pill */}
+      <div className="rounded-2xl border border-primary/25 bg-surface px-4 py-4">
+        <div className="flex items-end gap-2">
+          <span className="text-[28px] sm:text-[32px] font-extrabold leading-none text-primary">4.9</span>
+          <span className="text-base sm:text-lg font-semibold leading-none text-text-secondary">/5</span>
+        </div>
+        <div className="mt-2 flex items-center gap-1" aria-label="5 out of 5 stars">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <StarSolid key={i} className="h-4 w-4 text-[#F6B100]" />
+          ))}
+        </div>
+        <div className="mt-2 text-xs sm:text-sm text-text-secondary">1k+ reviews</div>
+      </div>
+
+      {/* Users pill */}
+      <div className="rounded-2xl border border-primary/25 bg-surface px-4 py-4">
+        <p className="text-sm font-semibold text-text-primary mb-2">10k+ users</p>
+        <div className="flex items-center">
+          <Image src="/images/reviews/users.png" alt="Users" width={140} height={36} className="h-9 w-auto" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function StarSolid({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden="true"
+      className={className ?? "h-4 w-4 text-[#F6B100]"}
+    >
+      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.802 2.036a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.539 1.118l-2.802-2.036a1 1 0 00-1.175 0l-2.802 2.036c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.88 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+    </svg>
   )
 }
 

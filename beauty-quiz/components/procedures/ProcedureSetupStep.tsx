@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, useRef, useLayoutEffect, type ReactNode } from 'react'
 import { LayoutGroup, motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useQuizStore } from '@/store/quizStore'
 import { getActivityMeta, FULL_WEEK } from './activityMeta'
+import { getDefaultNote, type GenderKey } from './defaultActivityNotes'
 import { getProceduresIconById } from './proceduresIconCatalog'
 
 interface ActivitySetting {
@@ -29,13 +30,13 @@ interface ActivitySetting {
   remindUnit: 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | 'years'
 }
 
-const createActivitySetting = (activityId: string, fallbackName?: string): ActivitySetting => {
+const createActivitySetting = (activityId: string, fallbackName?: string, gender: GenderKey = 'unknown'): ActivitySetting => {
   const meta = getActivityMeta(activityId, fallbackName)
 
   return {
     id: activityId,
     name: meta.name,
-    note: '',
+    note: getDefaultNote(activityId, gender),
     repeat: null,
   weeklyInterval: 1,
     allDay: true,
@@ -157,6 +158,45 @@ const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: (valu
         }`}
       />
     </button>
+  )
+}
+
+// Auto-growing textarea with optional expand mode for comfortable editing
+function AutoGrowTextarea({
+  value,
+  onChange,
+  placeholder,
+  expanded = false,
+  className = '',
+}: {
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  placeholder?: string
+  expanded?: boolean
+  className?: string
+}) {
+  const ref = useRef<HTMLTextAreaElement | null>(null)
+
+  useLayoutEffect(() => {
+    if (!expanded && ref.current) {
+      const el = ref.current
+      el.style.height = '0px'
+      el.style.height = el.scrollHeight + 'px'
+    }
+  }, [value, expanded])
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={
+        `${className} ${expanded ? 'resize-y overflow-auto min-h-[120px]' : 'resize-none overflow-hidden'} ` +
+        'w-full rounded-[8px] bg-transparent px-4 py-3 text-[15px] text-text-primary placeholder:text-text-secondary focus:outline-none'
+      }
+      style={expanded ? undefined : { height: 'auto' }}
+    />
   )
 }
 
@@ -450,26 +490,32 @@ const QuickStat = ({ label, value, detail, delay }: QuickStatProps) => {
 export default function ProcedureSetupStep() {
   const { answers, nextStep } = useQuizStore()
   const router = useRouter()
+  const genderKey: GenderKey = answers.gender === 1 ? 'male' : answers.gender === 2 ? 'female' : 'unknown'
 
   const selectedActivities = answers.selectedActivities || []
   const activityMetaOverrides = answers.activityMetaOverrides || {}
 
   const [activitySettings, setActivitySettings] = useState<ActivitySetting[]>(() => {
     if (selectedActivities.length === 0) {
-      return [createActivitySetting('default-1', 'Morning Skincare')]
+      return [createActivitySetting('default-1', 'Morning Skincare', genderKey)]
     }
 
     return selectedActivities.map((activityId) => {
       const override = activityMetaOverrides[activityId]
-      return createActivitySetting(activityId, override?.name)
+      const initial = createActivitySetting(activityId, override?.name, genderKey)
+      const persistedNote = answers.activityNotes?.[activityId]
+      return persistedNote ? { ...initial, note: persistedNote } : initial
     })
   })
   const [openMonthlyModal, setOpenMonthlyModal] = useState<{ index: number; days: number[] } | null>(null)
   const [openTimeModal, setOpenTimeModal] = useState<{ index: number; time: string | undefined } | null>(null)
+  const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({})
+  const [showErrors, setShowErrors] = useState(false)
+  const activityRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   useEffect(() => {
     if (selectedActivities.length === 0) {
-      setActivitySettings([createActivitySetting('default-1', 'Morning Skincare')])
+      setActivitySettings([createActivitySetting('default-1', 'Morning Skincare', genderKey)])
       return
     }
 
@@ -486,10 +532,12 @@ export default function ProcedureSetupStep() {
           return existingActivity
         }
 
-        return createActivitySetting(activityId, override?.name)
+        const created = createActivitySetting(activityId, override?.name, genderKey)
+        const persistedNote = answers.activityNotes?.[activityId]
+        return persistedNote ? { ...created, note: persistedNote } : created
       })
     })
-  }, [selectedActivities, activityMetaOverrides])
+  }, [selectedActivities, activityMetaOverrides, genderKey])
 
   const updateActivity = (index: number, updates: Partial<ActivitySetting>) => {
     setActivitySettings((prev) =>
@@ -543,6 +591,18 @@ export default function ProcedureSetupStep() {
   }
 
   const handleContinue = () => {
+    if (!validation.allValid) {
+      setShowErrors(true)
+      // Scroll to first invalid
+      const firstInvalid = activitySettings.find((a) => (validation.byId[a.id] || []).length > 0)
+      if (firstInvalid) {
+        const el = activityRefs.current[firstInvalid.id]
+        if (el && typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }
+      return
+    }
     nextStep()
     router.push('/procedures/2')
   }
@@ -607,6 +667,28 @@ export default function ProcedureSetupStep() {
     updateActivity(idx, { time: time24, allDay: false, timePeriod: period })
   }
 
+  // Validation helpers
+  type ActivityIssue = 'missingRepeat' | 'weeklyNoDays' | 'monthlyNoDays' | 'missingTime'
+  const getIssues = (a: ActivitySetting): ActivityIssue[] => {
+    const issues: ActivityIssue[] = []
+    if (!a.repeat) issues.push('missingRepeat')
+    if (a.repeat === 'Weekly' && (!a.weekdays || a.weekdays.length === 0)) issues.push('weeklyNoDays')
+    if (a.repeat === 'Monthly' && (!a.monthlyDays || a.monthlyDays.length === 0)) issues.push('monthlyNoDays')
+    if (!a.allDay && !a.time) issues.push('missingTime')
+    return issues
+  }
+
+  const validation = useMemo(() => {
+    const byId: Record<string, ActivityIssue[]> = {}
+    let allValid = true
+    for (const a of activitySettings) {
+      const issues = getIssues(a)
+      byId[a.id] = issues
+      if (issues.length) allValid = false
+    }
+    return { byId, allValid }
+  }, [activitySettings])
+
   return (
     <div className="min-h-screen bg-background text-text-primary">
       {/* Scrollable content (hide scrollbar) */}
@@ -638,8 +720,15 @@ export default function ProcedureSetupStep() {
             const isWeekly = activity.repeat === 'Weekly'
             const isMonthly = activity.repeat === 'Monthly'
 
+            const issues = validation.byId[activity.id] || []
             return (
-              <div key={activity.id} className="mb-8">
+              <div
+                key={activity.id}
+                className="mb-8"
+                ref={(el) => {
+                  activityRefs.current[activity.id] = el
+                }}
+              >
               {/* Header pill */}
               <div
                 className="flex items-center gap-3 rounded-[100px] px-3 py-2 shadow-sm"
@@ -662,13 +751,22 @@ export default function ProcedureSetupStep() {
 
               {/* Note */}
               <div className="mt-4">
-                <div className="px-1 text-[14px] font-bold text-text-primary">Note</div>
+                <div className="flex items-center justify-between px-1">
+                  <div className="text-[14px] font-bold text-text-primary">Note</div>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedNotes((prev) => ({ ...prev, [activity.id]: !prev[activity.id] }))}
+                    className="text-[12px] font-semibold text-text-secondary hover:text-text-primary"
+                  >
+                    {expandedNotes[activity.id] ? 'Collapse' : 'Expand'}
+                  </button>
+                </div>
                 <div className="mt-2 rounded-[8px] border border-border-subtle bg-surface">
-                  <textarea
+                  <AutoGrowTextarea
                     value={activity.note}
                     onChange={(e) => updateActivity(index, { note: e.target.value })}
                     placeholder="Type the note here.."
-                    className="h-[120px] w-full resize-none rounded-[8px] bg-transparent px-4 py-3 text-[15px] text-text-primary placeholder:text-text-secondary focus:outline-none"
+                    expanded={!!expandedNotes[activity.id]}
                   />
                 </div>
               </div>
@@ -692,6 +790,9 @@ export default function ProcedureSetupStep() {
                     </button>
                   ))}
                 </div>
+                {showErrors && issues.includes('missingRepeat') && (
+                  <div className="mt-2 px-1 text-[12px] font-semibold text-red-500">Choose Daily, Weekly or Monthly</div>
+                )}
                 {/* Monthly summary & picker (moved up under Repeat) */}
                 {activity.repeat === 'Monthly' && (
                   <div className="mt-3">
@@ -714,6 +815,9 @@ export default function ProcedureSetupStep() {
                       </span>
                     </button>
                   </div>
+                )}
+                {showErrors && issues.includes('monthlyNoDays') && (
+                  <div className="mt-2 px-1 text-[12px] font-semibold text-red-500">Select at least one day of month</div>
                 )}
 
                 {/* Weekly extra: On these days (weekday multi-select, no Everyday toggle) */}
@@ -762,6 +866,9 @@ export default function ProcedureSetupStep() {
                     </div>
                   </div>
                 )}
+                {showErrors && issues.includes('weeklyNoDays') && (
+                  <div className="mt-2 px-1 text-[12px] font-semibold text-red-500">Pick at least one weekday</div>
+                )}
               </div>
 
               {/* Do It At (also for Monthly) */}
@@ -800,6 +907,9 @@ export default function ProcedureSetupStep() {
                       </span>
                     </button>
                   </div>
+                  {showErrors && issues.includes('missingTime') && (
+                    <div className="mt-2 px-1 text-[12px] font-semibold text-red-500">Pick a time or set All day</div>
+                  )}
 
                   <div className="mt-3 flex gap-2">
                     {periodOptions.map((period) => (
@@ -937,7 +1047,12 @@ export default function ProcedureSetupStep() {
           <button
             type="button"
             onClick={handleContinue}
-            className="w-full rounded-[11px] bg-[#A385E9] py-[14px] text-center text-[13px] font-semibold text-white shadow-md"
+            aria-disabled={!validation.allValid}
+            className={`w-full rounded-[11px] py-[14px] text-center text-[13px] font-semibold shadow-md transition-colors ${
+              validation.allValid
+                ? 'bg-[#A385E9] text-white'
+                : 'bg-[#D9DCEF] text-[#A0A5C0]'
+            }`}
           >
             Next
           </button>

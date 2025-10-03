@@ -14,7 +14,6 @@ export default function WelcomeStep() {
 
 The information and recommendations provided by the Beauty Mirror app are for informational and educational purposes only. This app is not intended to be a substitute for professional medical advice, diagnosis, or treatment.`}
       buttonText="Let's Go"
-      raiseByVh={25}
     >
       <div></div>
     </OnboardingStep>

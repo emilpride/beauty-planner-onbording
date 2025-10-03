@@ -119,11 +119,11 @@ export default function AIResultsStep() {
   }, [paused, questionIndex])
 
   const getAnalysisMessage = () => {
-    if (progress < 20) return 'Analyzing facial geometry...'
-    if (progress < 40) return 'Assessing skin tone and texture...'
-    if (progress < 60) return 'Identifying hair type and condition...'
-    if (progress < 80) return 'Cross-referencing with lifestyle data...'
-    if (progress < 100) return 'Generating personalized recommendations...'
+    if (progress < 20) return 'Analyzing selected procedures...'
+    if (progress < 40) return 'Building your personalized calendar and schedule...'
+    if (progress < 60) return 'Setting priorities and reminders...'
+    if (progress < 80) return 'Estimating expected impact and timeline...'
+    if (progress < 100) return 'Finalizing recommendations and your plan...'
     return 'Your personalized plan is ready!'
   }
 
@@ -139,9 +139,9 @@ export default function AIResultsStep() {
       {/* Analysis block - centered in viewport */}
       <div className="flex-1 flex flex-col items-center justify-center p-8">
         <div className="w-full max-w-sm mx-auto flex flex-col items-center">
-          <h1 className="text-3xl font-bold text-text-primary mb-4">AI Analysis in Progress</h1>
+          <h1 className="text-3xl font-bold text-text-primary mb-4">Analyzing your answers</h1>
           <p className="text-text-secondary mb-8 text-center">
-            Our AI is working its magic to create your unique beauty and wellness plan.
+            We’re preparing your personalized plan: reviewing procedures, building your calendar, and estimating impact.
           </p>
 
           <div className="w-full">

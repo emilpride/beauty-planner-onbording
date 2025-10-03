@@ -47,7 +47,7 @@ export default function CongratulationsFinalStep() {
   }, [])
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-purple-50 to-pink-50 flex flex-col items-center justify-center p-6">
+    <div className="w-full min-h-screen bg-gradient-to-b from-purple-50 to-pink-50 dark:from-[#0F0E16] dark:to-[#161427] flex flex-col items-center justify-center p-6">
       {/* Confetti Animation */}
       {isClient && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -67,7 +67,7 @@ export default function CongratulationsFinalStep() {
       )}
 
       {/* Main Content */}
-      <div className="relative z-10 text-center max-w-md mx-auto">
+  <div className="relative z-10 text-center max-w-md mx-auto">
         {/* Success Icon */}
         <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
           <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -76,17 +76,17 @@ export default function CongratulationsFinalStep() {
         </div>
 
         {/* Congratulations Text */}
-        <h1 className="text-3xl font-bold text-text-primary mb-4">
+        <h1 className="text-3xl font-bold text-text-primary dark:text-[#E8E6F5] mb-4">
           Congratulations! 🎉
         </h1>
         
-        <p className="text-lg text-gray-600 mb-8">
+        <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
           You've successfully completed your beauty assessment and created your personalized routine!
         </p>
 
         {/* Unlocked Benefits */}
-        <div className="bg-surface rounded-2xl p-6 shadow-lg mb-6">
-          <h2 className="text-xl font-bold text-text-primary mb-4">
+        <div className="bg-surface dark:bg-[#1B1930] rounded-2xl p-6 shadow-lg mb-6">
+          <h2 className="text-xl font-bold text-text-primary dark:text-[#E8E6F5] mb-4">
             🎁 You've Unlocked:
           </h2>
           
@@ -96,8 +96,8 @@ export default function CongratulationsFinalStep() {
                 key={index}
                 className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-500 ${
                   visibleBenefits.includes(index)
-                    ? 'bg-green-50 border-l-4 border-green-500 opacity-100 transform translate-x-0'
-                    : 'bg-gray-50 opacity-0 transform -translate-x-4'
+                    ? 'bg-green-50 dark:bg-[#10231A] border-l-4 border-green-500 opacity-100 transform translate-x-0'
+                    : 'bg-gray-50 dark:bg-[#15142A] opacity-0 transform -translate-x-4'
                 }`}
               >
                 <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -105,27 +105,27 @@ export default function CongratulationsFinalStep() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <span className="text-gray-700 font-medium">{benefit}</span>
+                <span className="text-gray-700 dark:text-gray-200 font-medium">{benefit}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Call to Action */}
-        <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-6 text-white">
+        <div className="bg-gradient-to-r from-purple-500 to-pink-500 dark:from-[#6B54C7] dark:to-[#E04CB3] rounded-2xl p-6 text-white">
           <h3 className="text-xl font-bold mb-2">Ready to Start Your Journey?</h3>
-          <p className="text-purple-100 mb-4">
+          <p className="text-purple-100 dark:text-[#F1E8FF] mb-4">
             Your personalized beauty routine is waiting for you!
           </p>
-          <button className="bg-surface text-purple-600 font-bold py-3 px-8 rounded-xl hover:bg-purple-50 transition-colors">
+          <button className="bg-surface dark:bg-[#EDEBFF] text-purple-600 font-bold py-3 px-8 rounded-xl hover:bg-purple-50 transition-colors">
             Access Your Routine
           </button>
         </div>
 
         {/* Assistant Message */}
         {answers.assistant && (
-          <div className="mt-6 p-4 bg-blue-50 rounded-xl">
-            <p className="text-sm text-blue-800">
+          <div className="mt-6 p-4 bg-blue-50 dark:bg-[#0E1D33] rounded-xl">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
               💬 Your AI assistant is ready to guide you through your personalized routine!
             </p>
           </div>

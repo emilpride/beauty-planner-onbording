@@ -246,12 +246,15 @@ export default function ContractAgreementStep() {
           </div>
 
           {/* Signature */}
-          <div className="px-4 pt-2 pb-2 flex-1 flex flex-col min-h-0">
+          <div className="px-4 pt-2 pb-2 flex-none flex flex-col">
             <p className="text-sm font-semibold text-text-secondary mb-2 flex-shrink-0">
               Sign using your finger:
             </p>
-            <div className="rounded-lg border border-border-subtle bg-surface-muted p-3 flex-1 flex flex-col">
-              <div className="relative w-full flex-1" ref={containerRef}>
+            <div className="rounded-lg border border-border-subtle bg-surface-muted p-3 flex-none flex flex-col">
+              <div
+                className="relative w-full h-[28vh] sm:h-[24vh] md:h-[22vh]" 
+                ref={containerRef}
+              >
                 <canvas
                   ref={canvasRef}
                   className="absolute inset-0 w-full h-full rounded-md cursor-crosshair"

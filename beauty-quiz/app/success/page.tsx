@@ -79,7 +79,7 @@ const confettiDots = [
 ]
 
 export default function SuccessPage() {
-  const { answers, resetQuiz } = useQuizStore()
+  const { answers } = useQuizStore()
   const router = useRouter()
 
   useEffect(() => {
@@ -92,51 +92,47 @@ export default function SuccessPage() {
     return null
   }
 
-  const handleRestart = () => {
-    resetQuiz()
-    router.push('/')
-  }
+  // No extra actions on this screen; simple confirmation only
 
   return (
     <div className="relative min-h-screen overflow-hidden">
       <AnimatedBackground />
       <div className="relative z-10 min-h-screen px-4 py-10 flex justify-center">
-        <div className="w-full max-w-[430px] space-y-6">
-          <SuccessCard onPrimary={handleRestart} />
-          <HomeIndicator />
+        <div className="w-full max-w-[430px]">
+          <SuccessCard />
         </div>
       </div>
     </div>
   )
 }
 
-function SuccessCard({ onPrimary }: { onPrimary: () => void }) {
+function SuccessCard() {
   return (
-    <div className="relative overflow-hidden rounded-[20px] bg-white shadow-[0_24px_60px_rgba(92,70,136,0.12)]">
+    <div className="relative overflow-hidden rounded-[20px] bg-white dark:bg-[#171621] shadow-[0_24px_60px_rgba(92,70,136,0.12)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
       <ConfettiLayer />
       <div className="relative flex flex-col items-center px-6 pt-12 pb-10">
         <div className="relative mb-8 flex h-28 w-28 items-center justify-center">
-          <span className="absolute inset-0 rounded-full bg-[#DCD0FF]" />
-          <span className="absolute inset-[12%] rounded-full bg-[#BBA2F4]" />
+          <span className="absolute inset-0 rounded-full bg-[#DCD0FF] dark:bg-[#3C2D6B]" />
+          <span className="absolute inset-[12%] rounded-full bg-[#BBA2F4] dark:bg-[#5C4688]" />
           <CrownIcon className="relative h-16 w-16 text-white" />
         </div>
 
         <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-3xl font-extrabold text-[#5C4688]">Congratulations!</h1>
-          <p className="text-base font-medium text-[#7F84A9]">Welcome to the Premium experience!</p>
+          <h1 className="text-3xl font-extrabold text-[#5C4688] dark:text-[#E8E6F5]">Congratulations!</h1>
+          <p className="text-base font-medium text-[#7F84A9] dark:text-[#B5B8D2]">Welcome to the Premium experience!</p>
         </div>
 
-        <div className="my-6 h-px w-full bg-[#EAEAEA]/90" />
+        <div className="my-6 h-px w-full bg-[#EAEAEA]/90 dark:bg-white/10" />
 
         <div className="flex w-full flex-col items-center gap-4 text-center">
-          <h2 className="text-lg font-bold text-[#5C4688]">Benefits Unlocked:</h2>
+          <h2 className="text-lg font-bold text-[#5C4688] dark:text-[#E8E6F5]">Benefits Unlocked:</h2>
           <ul className="w-full space-y-3">
             {benefitItems.map((item) => (
               <li key={item.id} className="flex items-start gap-3 text-left">
                 <CheckIcon />
-                <p className="text-base font-medium text-[#2F2C45]">
+                <p className="text-base font-medium text-[#2F2C45] dark:text-[#D6D9F0]">
                   {item.chunks.map((chunk, index) => (
-                    <span key={index} className={chunk.accent ? 'text-[#7C5CCB]' : undefined}>
+                    <span key={index} className={chunk.accent ? 'text-[#7C5CCB] dark:text-[#B59CFF]' : undefined}>
                       {chunk.text}
                     </span>
                   ))}
@@ -146,47 +142,39 @@ function SuccessCard({ onPrimary }: { onPrimary: () => void }) {
           </ul>
         </div>
 
-        <div className="my-6 h-px w-full bg-[#EAEAEA]/90" />
+        <div className="my-6 h-px w-full bg-[#EAEAEA]/90 dark:bg-white/10" />
 
-        <p className="text-sm leading-relaxed text-[#8C8FA8]">
+        <p className="text-sm leading-relaxed text-[#8C8FA8] dark:text-[#A2A6C7]">
           You've successfully upgraded and unlocked the full Beauty Mirror experience. Enjoy your exclusive benefits!
         </p>
 
         <div className="mt-6 w-full space-y-3">
           <button
             type="button"
-            className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[#DCD0FF] bg-[#F4EBFF] px-4 py-3 font-semibold text-[#5C4688] transition hover:bg-[#E6DAFE]"
+            className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[#DCD0FF] dark:border-[#3C2D6B] bg-[#F4EBFF] dark:bg-[#221F33] px-4 py-3 font-semibold text-[#5C4688] dark:text-[#D8D6F0] transition hover:bg-[#E6DAFE] dark:hover:bg-[#2A2740]"
           >
             <AppleIcon />
             Continue in Apple App Store
           </button>
           <button
             type="button"
-            className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[#CDEBDD] bg-[#E6F9F0] px-4 py-3 font-semibold text-[#2BAE70] transition hover:bg-[#D3F1E3]"
+            className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[#CDEBDD] dark:border-[#275D45] bg-[#E6F9F0] dark:bg-[#0F1C18] px-4 py-3 font-semibold text-[#2BAE70] dark:text-[#9DDCBF] transition hover:bg-[#D3F1E3] dark:hover:bg-[#12231E]"
           >
             <GooglePlayIcon />
             Continue in Google Play
           </button>
           <button
             type="button"
-            className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[#D6D6F2] bg-[#F2F2FF] px-4 py-3 font-semibold text-[#5C4688] transition hover:bg-[#E4E4FF]"
+            className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[#D6D6F2] dark:border-[#3A3A59] bg-[#F2F2FF] dark:bg-[#1A1A28] px-4 py-3 font-semibold text-[#5C4688] dark:text-[#D6D6F2] transition hover:bg-[#E4E4FF] dark:hover:bg-[#222235]"
           >
             <GlobeIcon />
             Continue in Web version
           </button>
         </div>
 
-        <p className="mt-4 text-xs text-[#8C8FA8] text-center">
+        <p className="mt-4 text-xs text-[#8C8FA8] dark:text-[#A2A6C7] text-center">
           Use Beauty Mirror simultaneously on iOS, Android, and Web — your progress stays in sync everywhere.
         </p>
-
-        <button
-          type="button"
-          onClick={onPrimary}
-          className="mt-6 inline-flex h-10 items-center justify-center rounded-xl border border-[#E0E0F5] px-4 text-xs font-semibold uppercase tracking-[0.28em] text-[#8A82C0]"
-        >
-          Reset Quiz
-        </button>
       </div>
     </div>
   )
@@ -208,17 +196,13 @@ function ConfettiLayer() {
     </div>
   )
 }
-function HomeIndicator() {
-  return (
-    <div className="flex justify-center pb-2">
-      <div className="h-1.5 w-32 rounded-full bg-[#35383F]" />
-    </div>
-  )
-}
+// HomeIndicator removed
+
+// CalendarIcon removed (no plan recap)
 
 function CheckIcon() {
   return (
-    <svg className="mt-1 h-5 w-5 text-[#7C5CCB]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="mt-1 h-5 w-5 text-[#7C5CCB] dark:text-[#B59CFF]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 10l4 4 10-10" />
     </svg>
   )

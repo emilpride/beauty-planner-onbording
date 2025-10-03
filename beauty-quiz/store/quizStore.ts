@@ -92,6 +92,7 @@ export interface QuizAnswers {
   // Post-quiz screens
   selectedActivities: string[]
   activityMetaOverrides: Record<string, ActivityMetaOverridePersisted>
+  activityNotes: Record<string, string>
   dailyReminders: boolean
   activityReminders: boolean
   contractSignature: string
@@ -159,6 +160,7 @@ const initialAnswers: QuizAnswers = {
   bodyImageSkipped: false,
   selectedActivities: [],
   activityMetaOverrides: {},
+  activityNotes: {},
   dailyReminders: false,
   activityReminders: false,
   contractSignature: '',

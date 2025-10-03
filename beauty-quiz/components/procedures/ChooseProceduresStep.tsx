@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { PROCEDURES_ICON_CATALOG, getProceduresIconById, getProceduresIconCategories, type ProceduresIconEntry } from './proceduresIconCatalog'
 import { getIconById } from './iconCatalog'
 import { getActivityMeta } from './activityMeta'
+import { getDefaultNote, type GenderKey } from './defaultActivityNotes'
 
 const extractColorFromClass = (colorClass: string): string => {
   if (colorClass.startsWith('#')) {
@@ -93,7 +94,8 @@ const ActivityIcon = ({
 
 const createPresetActivity = (
   activityId: string,
-  overrides: Partial<ActivityCard> = {}
+  overrides: Partial<ActivityCard> = {},
+  gender: GenderKey = 'unknown'
 ): ActivityCard => {
   const meta = getActivityMeta(activityId)
 
@@ -104,55 +106,67 @@ const createPresetActivity = (
     color: overrides.color || meta.primary,
     bgColor: overrides.bgColor || meta.surface,
     aiRecommended: overrides.aiRecommended ?? false,
-    note: overrides.note,
+    note: overrides.note ?? getDefaultNote(activityId, gender),
   }
 }
-
-const initialActivities: ActivityCollection = {
+const buildInitialActivities = (gender: GenderKey): ActivityCollection => ({
   skin: [
-    createPresetActivity('cleanse-hydrate', { aiRecommended: true }),
-    createPresetActivity('deep-hydration'),
-    createPresetActivity('exfoliate', { aiRecommended: true }),
-    createPresetActivity('face-massage'),
-    createPresetActivity('lip-eye-care', { aiRecommended: true }),
-    createPresetActivity('spf-protection'),
+    createPresetActivity('cleanse-hydrate', { aiRecommended: true }, gender),
+    createPresetActivity('deep-hydration', {}, gender),
+    createPresetActivity('exfoliate', { aiRecommended: true }, gender),
+    createPresetActivity('face-massage', {}, gender),
+    createPresetActivity('lip-eye-care', { aiRecommended: true }, gender),
+    createPresetActivity('spf-protection', {}, gender),
   ],
   hair: [
-    createPresetActivity('wash-care'),
-    createPresetActivity('deep-nourishment', { aiRecommended: true }),
-    createPresetActivity('scalp-detox'),
-    createPresetActivity('heat-protection', { aiRecommended: true }),
-    createPresetActivity('scalp-massage'),
-    createPresetActivity('trim-split-ends', { aiRecommended: true }),
-    createPresetActivity('post-color-care'),
+    createPresetActivity('wash-care', {}, gender),
+    createPresetActivity('deep-nourishment', { aiRecommended: true }, gender),
+    createPresetActivity('scalp-detox', {}, gender),
+    createPresetActivity('heat-protection', { aiRecommended: true }, gender),
+    createPresetActivity('scalp-massage', {}, gender),
+    createPresetActivity('trim-split-ends', { aiRecommended: true }, gender),
+    createPresetActivity('post-color-care', {}, gender),
+    ...(gender === 'male'
+      ? [
+          createPresetActivity('beard-shave-care', { aiRecommended: true }, gender),
+          createPresetActivity('hair-loss-support', {}, gender),
+        ]
+      : []),
+    ...(gender === 'female'
+      ? [
+          createPresetActivity('leave-in-care', {}, gender),
+          createPresetActivity('night-care-routine', { aiRecommended: true }, gender),
+        ]
+      : []),
   ],
   physical: [
-    createPresetActivity('morning-stretch', { aiRecommended: true }),
-    createPresetActivity('cardio-boost'),
-    createPresetActivity('strength-training', { aiRecommended: true }),
-    createPresetActivity('yoga-flexibility'),
-    createPresetActivity('dance-it-out', { aiRecommended: true }),
-    createPresetActivity('swimming-time'),
-    createPresetActivity('cycling', { aiRecommended: true }),
-    createPresetActivity('posture-fix'),
-    createPresetActivity('evening-stretch', { aiRecommended: true }),
+    createPresetActivity('morning-stretch', { aiRecommended: true }, gender),
+    createPresetActivity('cardio-boost', {}, gender),
+    createPresetActivity('strength-training', { aiRecommended: true }, gender),
+    createPresetActivity('yoga-flexibility', {}, gender),
+    createPresetActivity('dance-it-out', { aiRecommended: true }, gender),
+    createPresetActivity('swimming-time', {}, gender),
+    createPresetActivity('cycling', { aiRecommended: true }, gender),
+    createPresetActivity('posture-fix', {}, gender),
+    createPresetActivity('evening-stretch', { aiRecommended: true }, gender),
   ],
   mental: [
-    createPresetActivity('mindful-meditation', { aiRecommended: true }),
-    createPresetActivity('breathing-exercises'),
-    createPresetActivity('gratitude-exercises', { aiRecommended: true }),
-    createPresetActivity('mood-check-in'),
-    createPresetActivity('learn-grow', { aiRecommended: true }),
-    createPresetActivity('social-media-detox'),
-    createPresetActivity('positive-affirmations', { aiRecommended: true }),
-    createPresetActivity('talk-it-out'),
-    createPresetActivity('stress-relief', { aiRecommended: true }),
+    createPresetActivity('mindful-meditation', { aiRecommended: true }, gender),
+    createPresetActivity('breathing-exercises', {}, gender),
+    createPresetActivity('gratitude-exercises', { aiRecommended: true }, gender),
+    createPresetActivity('mood-check-in', {}, gender),
+    createPresetActivity('learn-grow', { aiRecommended: true }, gender),
+    createPresetActivity('social-media-detox', {}, gender),
+    createPresetActivity('positive-affirmations', { aiRecommended: true }, gender),
+    createPresetActivity('talk-it-out', {}, gender),
+    createPresetActivity('stress-relief', { aiRecommended: true }, gender),
   ],
-}
+})
 
 export default function ChooseProceduresStep() {
   const router = useRouter()
   const { setAnswer, answers } = useQuizStore()
+  const genderKey: GenderKey = answers.gender === 1 ? 'male' : answers.gender === 2 ? 'female' : 'unknown'
   const [selectedActivities, setSelectedActivities] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false)
@@ -163,7 +177,25 @@ export default function ChooseProceduresStep() {
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [iconSearchQuery, setIconSearchQuery] = useState('')
-  const [activities, setActivities] = useState(initialActivities)
+  const [activities, setActivities] = useState<ActivityCollection>(() => buildInitialActivities(genderKey))
+  useEffect(() => {
+    // If gender changes within the session, rebuild defaults but keep any custom additions
+    setActivities((prev) => {
+      const rebuilt = buildInitialActivities(genderKey)
+      // Merge in any extra categories/items previously added by user
+      const merged: ActivityCollection = { ...rebuilt }
+      for (const [key, list] of Object.entries(prev)) {
+        if (!(key in merged)) merged[key] = []
+        // Append items that are not part of the rebuilt list (custom-*)
+        const existingIds = new Set(merged[key].map((a) => a.id))
+        for (const item of list) {
+          if (!existingIds.has(item.id)) merged[key].push(item)
+        }
+      }
+      return merged
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers.gender])
   
 
   const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] = useState(false)
@@ -326,6 +358,40 @@ export default function ChooseProceduresStep() {
   }
 
   const handleNext = () => {
+    // Pre-fill default notes for selected activities into overrides (non-destructive)
+    const genderKey: GenderKey = answers.gender === 1 ? 'male' : answers.gender === 2 ? 'female' : 'unknown'
+    const existingOverrides = answers.activityMetaOverrides || {}
+    const nextOverrides = { ...existingOverrides }
+    for (const id of selectedActivities) {
+      const meta = getActivityMeta(id)
+      if (!nextOverrides[id]) {
+        nextOverrides[id] = {
+          name: meta.name,
+          iconId: meta.iconId,
+          primary: meta.primary,
+          surface: meta.surface,
+        }
+      }
+      // Attach default note as a synthetic field on the override via a parallel map in session state if needed.
+      // Since overrides schema doesn't include 'note', we rely on ProcedureSetupStep to compute note again.
+    }
+    setAnswer('activityMetaOverrides', nextOverrides)
+    // Save default notes snapshot for selected items
+    const notes: Record<string, string> = {}
+    // Build a quick lookup for all activities by id to capture custom notes
+    const allActivityMap = new Map<string, ActivityCard>()
+    for (const list of Object.values(activities)) {
+      for (const a of list) allActivityMap.set(a.id, a)
+    }
+    for (const id of selectedActivities) {
+      const a = allActivityMap.get(id)
+      if (a && a.note) {
+        notes[id] = a.note
+      } else {
+        notes[id] = getDefaultNote(id, genderKey)
+      }
+    }
+    setAnswer('activityNotes', { ...(answers.activityNotes || {}), ...notes })
     setAnswer('selectedActivities', selectedActivities)
     router.push('/procedures/1')
   }
