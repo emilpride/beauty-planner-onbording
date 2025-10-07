@@ -4,6 +4,7 @@
 import { useQuizStore } from '@/store/quizStore'
 import { useRouter } from 'next/navigation'
 import ProgressBar from './ui/ProgressBar'
+import BurgerMenu from '@/components/ui/BurgerMenu'
 
 const progressSections = [
   { name: 'General', steps: 9 },     // 0-8
@@ -46,7 +47,7 @@ export default function OnboardingAppbar({ onBackAnimation }: OnboardingAppbarPr
 
   return (
     <header className="absolute top-0 left-0 right-0 z-30 p-4 max-w-lg mx-auto">
-      <div className="flex items-center space-x-4">
+  <div className="flex items-center space-x-4">
         <button
           onClick={() => {
             if (onBackAnimation) {
@@ -77,6 +78,7 @@ export default function OnboardingAppbar({ onBackAnimation }: OnboardingAppbarPr
         <div className="flex-1">
           <ProgressBar sections={progressSections} currentStep={currentStep} />
         </div>
+        <BurgerMenu inline />
       </div>
     </header>
   )

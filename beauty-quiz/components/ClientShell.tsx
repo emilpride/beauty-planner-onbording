@@ -1,13 +1,14 @@
 'use client'
 
 import { ReactNode } from 'react'
-import ThemeToggle from '@/components/theme/ThemeToggle'
+import BurgerMenu from '@/components/ui/BurgerMenu'
 
 // Client-only shell rendered within RootLayout to mount global client UI (theme toggle)
 export default function ClientShell({ children }: { children: ReactNode }) {
   return (
     <>
-      <ThemeToggle />
+      {/* Global hamburger menu (also used inline inside quiz app bar) */}
+      <BurgerMenu />
       {children}
     </>
   )
