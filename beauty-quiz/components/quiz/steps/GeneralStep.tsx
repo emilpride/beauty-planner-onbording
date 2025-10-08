@@ -142,6 +142,48 @@ export default function GeneralStep() {
       condition={isFormValid()}
     >
       <div className="space-y-3 py-1">
+        {/* Gender selection tabs (styled) - moved to top */}
+        <div>
+          <label className="block text-sm font-medium text-text-secondary mb-1">
+            Gender
+          </label>
+          <div
+            role="tablist"
+            aria-label="Select your gender"
+            className="w-full rounded-xl border border-gray-300 bg-white p-1"
+          >
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={answers.gender === 1}
+                aria-pressed={answers.gender === 1}
+                onClick={() => setAnswer('gender', 1)}
+                className={`relative w-full rounded-xl py-3 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary flex items-center justify-center gap-2 active:scale-[0.98]
+                  ${answers.gender === 1
+                    ? 'text-white bg-gradient-to-r from-[#53E5FF] to-[#8A60FF]'
+                    : 'bg-transparent text-text-primary hover:bg-white/60 dark:hover:bg-white/5'}`}
+              >
+                <span aria-hidden className="text-base leading-none">♂</span>
+                <span>Male</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={answers.gender === 2}
+                aria-pressed={answers.gender === 2}
+                onClick={() => setAnswer('gender', 2)}
+                className={`relative w-full rounded-xl py-3 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary flex items-center justify-center gap-2 active:scale-[0.98]
+                  ${answers.gender === 2
+                    ? 'text-white bg-gradient-to-r from-[#FF99CC] to-[#8A60FF]'
+                    : 'bg-transparent text-text-primary hover:bg-white/60 dark:hover:bg-white/5'}`}
+              >
+                <span aria-hidden className="text-base leading-none">♀</span>
+                <span>Female</span>
+              </button>
+            </div>
+          </div>
+        </div>
         <div>
           <label className="block text-sm font-medium text-text-secondary mb-1">
             Name
@@ -220,80 +262,83 @@ export default function GeneralStep() {
           </div>
         )}
 
-        <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1">
-            Height
-          </label>
-          <button
-            type="button"
-            onClick={() => setHeightPickerOpen(true)}
-            className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-white ${
-              errors.height ? 'border-red-500' : 'border-gray-300'
-            }`}
-          >
-            <span className={`text-left ${answers.height ? 'text-text-primary' : 'text-gray-400'}`}>
-              {answers.height ? (() => {
-                const cm = parseInt(answers.height, 10)
-                const totalInches = cm / 2.54
-                const feet = Math.floor(totalInches / 12)
-                const inches = Math.round(totalInches % 12)
-                return `${feet}'${inches} ft (${cm} cm)`
-              })() : 'Select your height'}
-            </span>
-            <svg
-              className="h-5 w-5 text-primary"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.7}
-              aria-hidden="true"
-            >
-              <path d="M12 3v18" strokeLinecap="round" />
-              <path d="M8 7l4-4 4 4" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M8 17l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M6 6h-1M6 9h-2M6 12h-1.5M6 15h-2M6 18h-1" strokeLinecap="round" />
-            </svg>
-          </button>
-          {errors.height && (
-            <p className="mt-1 text-xs text-red-600">{errors.height}</p>
-          )}
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1">
-            Weight
-          </label>
-          <button
-            type="button"
-            onClick={() => setWeightPickerOpen(true)}
-            className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-white ${
-              errors.weight ? 'border-red-500' : 'border-gray-300'
-            }`}
-          >
-            <span className={`text-left ${answers.weight ? 'text-text-primary' : 'text-gray-400'}`}>
-              {answers.weight ? (() => {
-                const kg = parseInt(answers.weight, 10)
-                const lb = Math.round(kg * 2.20462)
-                return `${lb} lb (${kg} kg)`
-              })() : 'Select your weight'}
-            </span>
-            <svg
-              className="h-5 w-5 text-primary"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.7}
-              aria-hidden="true"
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1">
+              Height
+            </label>
+            <button
+              type="button"
+              onClick={() => setHeightPickerOpen(true)}
+              className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-white ${
+                errors.height ? 'border-red-500' : 'border-gray-300'
+              }`}
             >
-              <rect x="4" y="4" width="16" height="16" rx="4" />
-              <path d="M8 9a4 4 0 0 1 8 0" />
-              <path d="M12 9v3" strokeLinecap="round" />
-              <circle cx="12" cy="12" r="0.75" fill="currentColor" stroke="none" />
-            </svg>
-          </button>
-          {errors.weight && (
-            <p className="mt-1 text-xs text-red-600">{errors.weight}</p>
-          )}
+              <span className={`text-left ${answers.height ? 'text-text-primary' : 'text-gray-400'}`}>
+                {answers.height ? (() => {
+                  const cm = parseInt(answers.height, 10)
+                  const totalInches = cm / 2.54
+                  const feet = Math.floor(totalInches / 12)
+                  const inches = Math.round(totalInches % 12)
+                  return `${feet}'${inches} ft (${cm} cm)`
+                })() : 'Select your height'}
+              </span>
+              <svg
+                className="h-5 w-5 text-primary"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.7}
+                aria-hidden="true"
+              >
+                <path d="M12 3v18" strokeLinecap="round" />
+                <path d="M8 7l4-4 4 4" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M8 17l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M6 6h-1M6 9h-2M6 12h-1.5M6 15h-2M6 18h-1" strokeLinecap="round" />
+              </svg>
+            </button>
+            {errors.height && (
+              <p className="mt-1 text-xs text-red-600">{errors.height}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1">
+              Weight
+            </label>
+            <button
+              type="button"
+              onClick={() => setWeightPickerOpen(true)}
+              className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-white ${
+                errors.weight ? 'border-red-500' : 'border-gray-300'
+              }`}
+            >
+              <span className={`text-left ${answers.weight ? 'text-text-primary' : 'text-gray-400'}`}>
+                {answers.weight ? (() => {
+                  const kg = parseInt(answers.weight, 10)
+                  const lb = Math.round(kg * 2.20462)
+                  return `${lb} lb (${kg} kg)`
+                })() : 'Select your weight'}
+              </span>
+              <svg
+                className="h-5 w-5 text-primary"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.7}
+                aria-hidden="true"
+              >
+                <rect x="4" y="4" width="16" height="16" rx="4" />
+                <path d="M8 9a4 4 0 0 1 8 0" />
+                <path d="M12 9v3" strokeLinecap="round" />
+                <circle cx="12" cy="12" r="0.75" fill="currentColor" stroke="none" />
+              </svg>
+            </button>
+            {errors.weight && (
+              <p className="mt-1 text-xs text-red-600">{errors.weight}</p>
+            )}
+          </div>
         </div>
         
         <div>

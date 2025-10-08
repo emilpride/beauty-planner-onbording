@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
-import { motion, animate, useReducedMotion } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { motion, animate, useReducedMotion, useMotionValue, useTransform } from 'framer-motion'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 
 export default function StatisticStep() {
@@ -9,24 +9,35 @@ export default function StatisticStep() {
   const TARGET = 87
   const [percentage, setPercentage] = useState(prefersReducedMotion ? TARGET : 0)
   const [showChart, setShowChart] = useState(prefersReducedMotion)
+  const [celebrate, setCelebrate] = useState(prefersReducedMotion)
+
+  // Motion value for smooth ring + number sync
+  const progress = useMotionValue(prefersReducedMotion ? TARGET : 0)
 
   useEffect(() => {
     if (prefersReducedMotion) return
-    const controls = animate(0, TARGET, {
-      duration: 1.2,
+    // Smoothly animate to TARGET without overshoot
+    const controls = animate(progress, TARGET, {
+      duration: 1.1,
       ease: 'easeOut',
-      onUpdate: (v) => setPercentage(Math.round(v)),
-      onComplete: () => setShowChart(true),
     })
-    return () => controls.stop()
-  }, [prefersReducedMotion])
+    const unsub = progress.on('change', (v) => setPercentage(Math.round(v)))
+    controls.then(() => {
+      setShowChart(true)
+      setCelebrate(true)
+    })
+    return () => {
+      controls.stop?.()
+      unsub()
+    }
+  }, [prefersReducedMotion, progress])
 
   // SVG ring geometry
   const size = 192 // tailwind w-48 h-48
   const stroke = 12
   const radius = (size - stroke) / 2
   const circumference = 2 * Math.PI * radius
-  const dashOffset = circumference * (1 - percentage / 100)
+  const dashOffsetMV = useTransform(progress, (v) => circumference * (1 - v / 100))
 
   return (
     <OnboardingStep
@@ -59,20 +70,36 @@ export default function StatisticStep() {
               strokeLinecap="round"
               fill="none"
               strokeDasharray={circumference}
-              strokeDashoffset={dashOffset}
+              strokeDashoffset={dashOffsetMV as unknown as number}
               initial={false}
               transition={{ duration: 0.2 }}
             />
           </svg>
+
+          {/* Completion pulse */}
+          {!prefersReducedMotion && celebrate && (
+            <motion.div
+              className="absolute inset-[-8px] rounded-full border-2 border-primary/30"
+              initial={{ opacity: 0, scale: 1 }}
+              animate={{ opacity: [0.5, 0.2, 0], scale: [1, 1.08, 1] }}
+              transition={{ duration: 0.8, times: [0, 0.7, 1] }}
+            />
+          )}
 
           {/* Center content (keep upright; no rotation) */}
           <div className="absolute inset-0 flex items-center justify-center flex-col">
             <motion.div
               className="text-6xl font-bold text-primary leading-none"
               key={percentage}
-              initial={prefersReducedMotion ? false : { scale: 1.05, opacity: 0 }}
-              animate={prefersReducedMotion ? {} : { scale: 1, opacity: 1 }}
-              transition={{ duration: 0.2 }}
+              initial={prefersReducedMotion ? false : { scale: 1.02, opacity: 0 }}
+              animate={
+                prefersReducedMotion
+                  ? {}
+                  : celebrate
+                  ? { scale: [1, 1.08, 1], opacity: 1 }
+                  : { scale: 1, opacity: 1 }
+              }
+              transition={{ duration: celebrate ? 0.35 : 0.2, ease: 'easeOut' }}
             >
               {percentage}%
             </motion.div>
@@ -112,7 +139,7 @@ export default function StatisticStep() {
                     className="flex items-center space-x-3"
                     initial={prefersReducedMotion ? false : { opacity: 0, x: -20 }}
                     animate={prefersReducedMotion ? {} : { opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 + index * 0.15, duration: 0.4 }}
+                    transition={{ delay: 0.2 + index * 0.12, duration: 0.4 }}
                   >
                     <div className="w-16 text-sm text-text-secondary font-medium">
                       {item.day}
@@ -122,7 +149,14 @@ export default function StatisticStep() {
                         className={`h-full bg-gradient-to-r ${item.color} rounded-full`}
                         initial={prefersReducedMotion ? false : { width: 0 }}
                         animate={{ width: `${item.percentage}%` }}
-                        transition={{ delay: 0.25 + index * 0.15, duration: 0.6, ease: 'easeOut' }}
+                        transition={{
+                          delay: 0.25 + index * 0.12,
+                          type: prefersReducedMotion ? 'tween' : 'spring',
+                          stiffness: 140,
+                          damping: 18,
+                          mass: 0.6,
+                          duration: prefersReducedMotion ? 0.5 : undefined,
+                        }}
                       />
                     </div>
                     <div className="w-12 text-sm text-text-primary font-semibold text-right">

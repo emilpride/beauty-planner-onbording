@@ -37,6 +37,8 @@ export default function AssistantSelectionPage() {
   const startQuiz = () => {
     setIsLoading(true)
     setAnswer('assistant', selectedAssistant)
+    // Auto-assign gender based on assistant selection (1=Max -> male, 2=Ellie -> female)
+    setAnswer('gender', selectedAssistant === 1 ? 1 : 2)
     router.push('/assistant-welcome')
   }
 

@@ -4,12 +4,9 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { useQuizStore } from '@/store/quizStore'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
-import { useSearchParams } from 'next/navigation'
 
 export default function PhotoUploadStep() {
   const { answers, setAnswer } = useQuizStore()
-  const searchParams = useSearchParams()
-  const assistant = searchParams.get('assistant') || 'ellie'
 
   const handleUpload = async (
     file: File, 
@@ -55,7 +52,7 @@ export default function PhotoUploadStep() {
   };
 
   const getIllustrationImage = (type: 'face' | 'hair' | 'body') => {
-    const gender = assistant === 'max' ? 'female' : 'male';
+    const gender = answers.gender === 2 ? 'female' : 'male';
     return `/images/on_boarding_images/${type}_${gender}.png`;
   }
 

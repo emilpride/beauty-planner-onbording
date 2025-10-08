@@ -174,11 +174,12 @@ export const useQuizStore = create<QuizStore>()(
   persist(
     (set, get) => ({
       answers: initialAnswers,
-      currentStep: 0,
-          totalSteps: 38, // Increased after splitting photo upload into 3 screens
+    currentStep: 0,
+      totalSteps: 37, // Reduced by 1 after removing Gender step
       isTransitioning: false,
       
       hydrate: () => {
+        // No-op; persist will rehydrate automatically when skipHydration=false
         set((state) => state)
       },
 
@@ -242,7 +243,7 @@ export const useQuizStore = create<QuizStore>()(
     }),
     {
       name: 'beauty-quiz-storage-v2', // New version to avoid conflicts with old structure
-      skipHydration: true,
+      skipHydration: false,
       partialize: (state) => ({
         answers: state.answers,
         currentStep: state.currentStep,

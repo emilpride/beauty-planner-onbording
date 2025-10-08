@@ -13,6 +13,7 @@ export default function AssistantWelcomePage() {
   const [webmSupported, setWebmSupported] = useState<boolean | null>(null)
   const { theme } = useTheme()
   const [effectiveTheme, setEffectiveTheme] = useState<ThemeVariant | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     hydrate()
@@ -78,6 +79,7 @@ export default function AssistantWelcomePage() {
     : `/animations/${isDark ? 'ellie-welcome-dark' : 'ellie-welcome-light'}.webm`
 
   const handleContinue = () => {
+    setIsLoading(true)
     router.push('/quiz/0')
   }
 
@@ -167,7 +169,7 @@ export default function AssistantWelcomePage() {
                   I'm here to help you find your true beauty through the perfect balance of self‑care, mental well‑being, and physical health.
                 </p>
                 <div className="mt-4 sm:mt-5 flex flex-col items-center gap-2 sm:gap-3 relative z-10">
-                  <button onClick={handleContinue} className="btn-primary px-8">Let's Go</button>
+                  <button onClick={handleContinue} disabled={isLoading} className="btn-primary px-8 disabled:opacity-50 disabled:cursor-not-allowed">{isLoading ? 'Loading...' : "Let's Go"}</button>
                   <button onClick={() => router.push('/assistant-selection')} className="text-sm font-medium text-neutral-700 hover:text-neutral-900 dark:text-white/70 dark:hover:text-white">Change assistant</button>
                 </div>
               </div>
@@ -187,7 +189,7 @@ export default function AssistantWelcomePage() {
                 {/* Title removed on desktop as requested */}
                 <p className="mt-0 text-base text-neutral-700 dark:text-white/75 leading-relaxed">I'm here to help you find your true beauty through the perfect balance of self‑care, mental well‑being, and physical health.</p>
                 <div className="mt-5 flex flex-col items-center gap-3">
-                  <button onClick={handleContinue} className="btn-primary px-10">Let's Go</button>
+                  <button onClick={handleContinue} disabled={isLoading} className="btn-primary px-10 disabled:opacity-50 disabled:cursor-not-allowed">{isLoading ? 'Loading...' : "Let's Go"}</button>
                   <button onClick={() => router.push('/assistant-selection')} className="text-sm font-medium text-neutral-700 hover:text-neutral-900 dark:text-white/70 dark:hover:text-white">Change assistant</button>
                 </div>
               </div>

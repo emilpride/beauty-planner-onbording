@@ -10,6 +10,11 @@ const goals = [
   { text: 'Boost Productivity', image: '/icons/misc/goal_img_2.png' },
   { text: 'Achieve Personal Goals', image: '/icons/misc/goal_img_3.png' },
   { text: 'Manage Stress & Anxiety', image: '/icons/misc/goal_img_4.png' },
+  // Added extra options to nicely fill the grid without scroll
+  { text: 'Increase Longevity', image: '/icons/goals/longevity.png' },
+  { text: 'Reduce Biological Age', image: '/icons/goals/reduce biological age.png' },
+  { text: 'Improve Wellness Score', image: '/icons/goals/impruve wellness score.png' },
+  { text: 'Reduce Procrastination', image: '/icons/goals/Reduce Procrastination.png' },
 ]
 
 export default function GoalStep() {
@@ -27,15 +32,18 @@ export default function GoalStep() {
       title="What Do You Want To Achieve With Beauty Mirror?"
       subtitle="Your aspirations guide our efforts to support and empower you on your journey. Select all that apply."
       condition={answers.goals.length > 0}
+      fillContent
+      compact
     >
-      <div className="grid grid-cols-2 gap-2 px-2 pb-2">
+  {/* Fill available vertical space under the header and above the footer without scrolling, slightly more compact */}
+  <div className="grid grid-cols-2 grid-rows-4 auto-rows-fr h-full gap-[6px] px-2 pb-2">
         {goals.map((goal, index) => {
           const isSelected = answers.goals.includes(goal.text)
           return (
             <motion.button
               key={goal.text}
               onClick={() => handleToggleGoal(goal.text)}
-              className={`relative p-3 py-4 rounded-lg flex flex-col items-center gap-2 border-2 text-center transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 ${
+              className={`relative px-3 py-3 rounded-lg h-full flex flex-col items-center justify-center gap-1.5 border-2 text-center transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 ${
                 isSelected
                   ? 'border-primary bg-primary/10 shadow-md text-primary'
                   : 'border-border-subtle/60 bg-surface-muted hover:border-primary/40 hover:bg-surface hover:text-text-primary'
@@ -56,10 +64,10 @@ export default function GoalStep() {
               }}
             >
               <div className={`transition-all duration-200 ${isSelected ? 'scale-110' : ''}`}>
-                <Image src={goal.image} alt={goal.text} width={36} height={36} className="flex-shrink-0" />
+                <Image src={encodeURI(goal.image)} alt={goal.text} width={32} height={32} className="flex-shrink-0" />
               </div>
               <span 
-                className={`text-xs font-semibold leading-tight transition-all duration-200 ${
+                className={`text-[11px] sm:text-xs font-semibold leading-tight transition-all duration-200 ${
                   isSelected ? 'text-primary' : 'text-text-secondary'
                 }`}
               >

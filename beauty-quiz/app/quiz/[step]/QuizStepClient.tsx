@@ -9,7 +9,6 @@ import CircularProgressAnimation from '@/components/animations/CircularProgressA
 import AnimatedBackground from '@/components/AnimatedBackground'
 
 // Import all step components (we will create these next)
-import GenderStep from '@/components/quiz/steps/GenderStep'
 import GoalStep from '@/components/quiz/steps/GoalStep'
 import CongratulationsStep from '@/components/quiz/steps/CongratulationsStep'
 import ExcitedStep from '@/components/quiz/steps/ExcitedStep'
@@ -52,51 +51,50 @@ import ChoosePlanStep from '@/components/post-quiz/ChoosePlanStep'
 import PricingStep from '@/components/post-quiz/PricingStep'
 
 const stepComponents: { [key: number]: React.ComponentType } = {
-  0: GenderStep,
-  1: GoalStep,
-  2: PersonalityInsightStep, // NEW: After goals - personality analysis
-  3: CongratulationsStep,
-  4: ExcitedStep,
-  5: StatisticStep,
-  6: PrivacyStep,
-  7: GeneralStep,
-  8: LifestyleStep,
-  9: SleepStep,
-  10: SleepRhythmInsightStep,
-  11: WakeUpStep,
-  12: EndDayStep,
-  13: StressStep,
-  14: StressCopingInsightStep, // NEW: After stress – coping insight (no character)
-  15: WorkEnvironmentStep,
-  16: SkinTypeStep,
-  17: SkinProblemsStep,
-  18: SkinGlowInsightStep,
-  19: HairTypeStep,
-  20: HairProblemsStep,
-  21: PhysicalActivitiesStep,
-  22: DietStep,
-  23: MomentumInsightStep,
-  24: MomentumCheckStep, // After activities - momentum check
-  25: MoodStep,
-  26: EnergyLevelStep,
-  27: ProcrastinationStep,
-  28: FocusStep,
-  29: OrganizationInfluenceStep,
-  30: AnalysisIntroStep,
-  31: PhotoUploadFaceStep,
-  32: PhotoUploadHairStep,
-  33: PhotoUploadBodyStep,
-  34: AIResultsStep,
-  35: CurrentConditionAnalysisStep,
-  36: ChoosePlanStep,
-  37: PricingStep,
+  0: GoalStep,
+  1: PersonalityInsightStep, // After goals - personality analysis
+  2: CongratulationsStep,
+  3: ExcitedStep,
+  4: StatisticStep,
+  5: PrivacyStep,
+  6: GeneralStep,
+  7: LifestyleStep,
+  8: SleepStep,
+  9: SleepRhythmInsightStep,
+  10: WakeUpStep,
+  11: EndDayStep,
+  12: StressStep,
+  13: StressCopingInsightStep, // After stress – coping insight (no character)
+  14: WorkEnvironmentStep,
+  15: SkinTypeStep,
+  16: SkinProblemsStep,
+  17: SkinGlowInsightStep,
+  18: HairTypeStep,
+  19: HairProblemsStep,
+  20: PhysicalActivitiesStep,
+  21: DietStep,
+  22: MomentumInsightStep,
+  23: MomentumCheckStep, // After activities - momentum check
+  24: MoodStep,
+  25: EnergyLevelStep,
+  26: ProcrastinationStep,
+  27: FocusStep,
+  28: OrganizationInfluenceStep,
+  29: AnalysisIntroStep,
+  30: PhotoUploadFaceStep,
+  31: PhotoUploadHairStep,
+  32: PhotoUploadBodyStep,
+  33: AIResultsStep,
+  34: CurrentConditionAnalysisStep,
+  35: ChoosePlanStep,
+  36: PricingStep,
 }
 // Card heights from Flutter design
 const cardHeights = [
-  0.42, 0.42, 0.8, 0.4, 0.44, 0.45, 0.43, 0.82, 0.48, 0.6,
+  0.42, 0.8, 0.4, 0.44, 0.45, 0.43, 0.82, 0.48, 0.6,
   0.6, 0.55, 0.55, 0.5, 0.8, 0.5, 0.5, 0.5, 0.58, 0.6, 0.6,
   0.8, 0.6, 0.6, 0.6, 0.8, 0.6, 0.6, 0.6, 0.6, 0.6,
-  0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6
+  0.6, 0.6, 0.6, 0.6, 0.6, 0.6
 ];
 
 interface QuizStepClientProps {
@@ -211,45 +209,44 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   const getImageForStep = (step: number, assistant: 'max' | 'ellie') => {
     // Map step numbers to actual existing image files
     const stepToImageMap: { [key: number]: string | null } = {
-  // Steps with specific character images based on actual available files
-  0: 'onboarding_img_Select_your_gender',  // GenderStep - "Select Your Gender"
-  1: 'onboarding_img_What_do_you_want_to_achieve ',  // GoalStep - "What Do You Want To Achieve" (note the space)
-  2: null,  // PersonalityInsightStep (insight - no character)
-  3: 'onboarding_img_Congratulations_on_taking_the_first_step',  // CongratulationsStep - "Congratulations on taking the first step"
-  4: 'onboarding_img_Were excited to create something_just_for_you',  // ExcitedStep - "We're excited to create something just for you"
-  5: null,  // StatisticStep (no character)
-  6: 'onboarding_img_We_care_about_your_privacy',  // PrivacyStep - "We care about your privacy"
-  7: null,  // GeneralStep (no character)
-  8: 'onboarding_img_Whats_the_rhythm_of_your_life',  // LifestyleStep - "What's the rhythm of your life"
-  9: 'onboarding_img_How_long_do_you_usually_sleep',  // SleepStep - "How long do you usually sleep"
-  10: null,  // SleepRhythmInsightStep (insight - no character)
-  11: 'onboarding_img_usually_wake_up',  // WakeUpStep - "usually wake up"
-  12: 'onboarding_img_usually_end_your_day',  // EndDayStep - "usually end your day"
-  13: 'onboarding_img_get_stressed',  // StressStep - "get stressed"
-  14: null,  // StressCopingInsightStep (insight - no character)
-  15: 'onboarding_img_work_environment',  // WorkEnvironmentStep - "work environment"
-  16: 'onboarding_img_skin_type',  // SkinTypeStep - "skin type"
-  17: 'onboarding_img_Skin_problems',  // SkinProblemsStep - "Skin problems"
-  18: null,  // SkinGlowInsightStep (insight - no character)
-  19: 'onboarding_img_hair_type',  // HairTypeStep - "hair type"
-  20: 'onboarding_img_Hair_problems',  // HairProblemsStep - "Hair problems"
-  21: 'onboarding_img_physical_activities',  // PhysicalActivitiesStep - "physical activities"
-  22: 'onboarding_img_diet',  // DietStep - "diet"
-  23: null,  // MomentumInsightStep (insight - no character)
-  24: null,  // MomentumCheckStep (insight - no character)
-  25: 'onboarding_img_mood',  // MoodStep - "mood"
-  26: 'onboarding_img_energy',  // EnergyLevelStep - "energy"
-  27: 'onboarding_img_procrastinate',  // ProcrastinationStep - "procrastinate"
-  28: 'onboarding_img_hard_to_focus',  // FocusStep - "hard to focus"
-  29: 'onboarding_img_become_organized',  // OrganizationInfluenceStep - "become organized"
-  30: 'onboarding_img_analyze_your_face',  // AnalysisIntroStep - "analyze your face"
-  31: null,  // PhotoUploadFaceStep - no character
-  32: null,  // PhotoUploadHairStep - no character
-  33: null,  // PhotoUploadBodyStep - no character
-  34: null,  // AIResultsStep - no character/image on top
-  35: null,  // CurrentConditionAnalysisStep (no character)
-  36: null,  // ChoosePlanStep (no character)
-  37: null,  // PricingStep (no character)
+  // Steps with specific character images based on actual available files (Gender step removed, indices shifted)
+  0: null,  // GoalStep - no character (fill answers to bottom)
+  1: null,  // PersonalityInsightStep (insight - no character)
+  2: 'onboarding_img_Congratulations_on_taking_the_first_step',  // CongratulationsStep
+  3: 'onboarding_img_Were excited to create something_just_for_you',  // ExcitedStep
+  4: null,  // StatisticStep (no character)
+  5: 'onboarding_img_We_care_about_your_privacy',  // PrivacyStep
+  6: null,  // GeneralStep (no character)
+  7: 'onboarding_img_Whats_the_rhythm_of_your_life',  // LifestyleStep
+  8: 'onboarding_img_How_long_do_you_usually_sleep',  // SleepStep
+  9: null,  // SleepRhythmInsightStep (insight - no character)
+  10: 'onboarding_img_usually_wake_up',  // WakeUpStep
+  11: 'onboarding_img_usually_end_your_day',  // EndDayStep
+  12: 'onboarding_img_get_stressed',  // StressStep
+  13: null,  // StressCopingInsightStep (insight - no character)
+  14: 'onboarding_img_work_environment',  // WorkEnvironmentStep
+  15: 'onboarding_img_skin_type',  // SkinTypeStep
+  16: 'onboarding_img_Skin_problems',  // SkinProblemsStep
+  17: null,  // SkinGlowInsightStep (insight - no character)
+  18: 'onboarding_img_hair_type',  // HairTypeStep
+  19: 'onboarding_img_Hair_problems',  // HairProblemsStep
+  20: 'onboarding_img_physical_activities',  // PhysicalActivitiesStep
+  21: 'onboarding_img_diet',  // DietStep
+  22: null,  // MomentumInsightStep (insight - no character)
+  23: null,  // MomentumCheckStep (insight - no character)
+  24: 'onboarding_img_mood',  // MoodStep
+  25: 'onboarding_img_energy',  // EnergyLevelStep
+  26: 'onboarding_img_procrastinate',  // ProcrastinationStep
+  27: 'onboarding_img_hard_to_focus',  // FocusStep
+  28: 'onboarding_img_become_organized',  // OrganizationInfluenceStep
+  29: 'onboarding_img_analyze_your_face',  // AnalysisIntroStep
+  30: null,  // PhotoUploadFaceStep - no character
+  31: null,  // PhotoUploadHairStep - no character
+  32: null,  // PhotoUploadBodyStep - no character
+  33: null,  // AIResultsStep - no character/image on top
+  34: null,  // CurrentConditionAnalysisStep (no character)
+  35: null,  // ChoosePlanStep (no character)
+  36: null,  // PricingStep (no character)
 };
 
     const imageName = stepToImageMap[step];
@@ -262,27 +259,27 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
     if (assistant === 'max') {
       // Special handling for files with different naming conventions
       if (imageName === 'onboarding_img_What_do_you_want_to_achieve ') {
-        return `/images/on_boarding_images/${imageName}_max.png`;
+        return encodeURI(`/images/on_boarding_images/${imageName}_max.png`);
       } else if (imageName === 'onboarding_img_Were excited to create something_just_for_you') {
-        return `/images/on_boarding_images/onboarding_img_Were excited to create something_just_for_you_max.png`;
+        return encodeURI(`/images/on_boarding_images/onboarding_img_Were excited to create something_just_for_you_max.png`);
       } else if (imageName === 'onboarding_img_Congratulations_on_taking_the_first_step') {
         return encodeURI(`/images/on_boarding_images/onboarding_img_Congratulations_on_taking_the_first_step_max.png`);
       } else {
-        return `/images/on_boarding_images/${imageName}_max.png`;
+        return encodeURI(`/images/on_boarding_images/${imageName}_max.png`);
       }
     } else {
       // Special handling for files with different naming conventions
       if (imageName === 'onboarding_img_What_do_you_want_to_achieve ') {
-        return `/images/on_boarding_images/onboarding_img_What_do_you_want_to_achieve_ellie.png`;
+        return encodeURI(`/images/on_boarding_images/onboarding_img_What_do_you_want_to_achieve_ellie.png`);
       } else if (imageName === 'onboarding_img_Were excited to create something_just_for_you') {
-        return `/images/on_boarding_images/onboarding_img_Were_excited_to_create_something_just_for_you_ellie.png`;
+        return encodeURI(`/images/on_boarding_images/onboarding_img_Were_excited_to_create_something_just_for_you_ellie.png`);
       } else if (imageName === 'onboarding_img_Congratulations_on_taking_the_first_step') {
         return encodeURI(`/images/on_boarding_images/onboarding_img_Congratulations_on_taking_the_first_step_and_Let’s_Create_Your_Schedule_ellie.png`);
       } else if (imageName === 'onboarding_img_Whats_the_rhythm_of_your_life') {
         // Ellie uses a combined artwork for lifestyle + procrastination
-        return `/images/on_boarding_images/onboarding_img_Whats_the_rhythm_of_your_life_and_Do_you_often_procrastinate_ellie.png`;
+        return encodeURI(`/images/on_boarding_images/onboarding_img_Whats_the_rhythm_of_your_life_and_Do_you_often_procrastinate_ellie.png`);
       } else {
-        return `/images/on_boarding_images/${imageName}_ellie.png`;
+        return encodeURI(`/images/on_boarding_images/${imageName}_ellie.png`);
       }
     }
   };
@@ -291,7 +288,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
 
   // Step 25 (PhotoUploadStep) doesn't need assistant character
 
-  const isFullScreen = stepNumber >= 35; // Post-quiz screens start from CurrentConditionAnalysis (35)
+  const isFullScreen = stepNumber >= 34; // Post-quiz screens start from CurrentConditionAnalysis (now index 34)
   const isAutoTransitionScreen = false; // AI Analysis Intro was removed
 
   // Fallback: ensure content is shown after a reasonable delay if measurement fails
@@ -420,10 +417,10 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
                   // Use dynamic viewport height to avoid mobile browser UI jumps
                   height: '40dvh',
                   pointerEvents: 'none',
-                  ...(assistantName === 'max' && [15, 16, 17, 18, 19, 20].includes(stepNumber)
+                  ...(assistantName === 'max' && [14, 15, 16, 17, 18, 19].includes(stepNumber)
                     ? {
                         alignItems: 'flex-end',
-                        paddingBottom: stepNumber === 19 ? '40px' : stepNumber === 20 ? '30px' : '20px'
+                        paddingBottom: stepNumber === 18 ? '40px' : stepNumber === 19 ? '30px' : '20px'
                       }
                     : {})
                 }}
@@ -437,9 +434,9 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
                     pointerEvents: 'auto',
                     transitionDelay: characterEntered ? '120ms' : '0ms',
 
-                    ...(assistantName === 'max' && [15, 16, 17, 18, 19, 20].includes(stepNumber)
+                    ...(assistantName === 'max' && [14, 15, 16, 17, 18, 19].includes(stepNumber)
                       ? {
-                          marginBottom: stepNumber === 19 ? '20px' : '10px'
+                          marginBottom: stepNumber === 18 ? '20px' : '10px'
                         }
                       : {})
                   }}
@@ -458,7 +455,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
             )}
 
             <div
-              className={`${!isFullScreen ? 'absolute left-0 right-0' : ''} z-20 transition-[opacity,transform] duration-500 ease-out ${
+              className={`${!isFullScreen ? 'absolute left-0 right-0' : ''} z-40 transition-[opacity,transform] duration-500 ease-out pointer-events-auto ${
                 cardEntered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
               }`}
               style={{
@@ -471,16 +468,23 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
               }}
             >
               <div
-                className={`bg-white shadow-2xl ${isFullScreen ? 'min-h-[100dvh]' : 'rounded-3xl overflow-hidden'}`}
+                className={`bg-white shadow-2xl ${isFullScreen ? 'min-h-[100dvh]' : 'rounded-3xl overflow-hidden'} relative z-40`}
                 style={
                   isFullScreen
                     ? {}
-                    : {
-                        // Let card auto-size up to the remaining viewport space
-                        maxHeight: 'calc(100svh - var(--card-top, 12dvh))',
-                        // Slightly overlap to visually "glue" card to character bottom
-                        marginTop: imageUrl ? '-16px' : '0px'
-                      }
+                    : (
+                        stepNumber === 0
+                          ? {
+                              // On GoalStep only: make the card fill the area so the grid reaches the footer neatly
+                              height: 'calc(100svh - var(--card-top, 12dvh))',
+                              marginTop: imageUrl ? '-16px' : '0px'
+                            }
+                          : {
+                              // Other steps keep original behavior to avoid visual changes
+                              maxHeight: 'calc(100svh - var(--card-top, 12dvh))',
+                              marginTop: imageUrl ? '-16px' : '0px'
+                            }
+                      )
                 }
               >
                 {/* Inner flex column; height is auto, OnboardingStep will handle scroll caps */}
