@@ -122,7 +122,7 @@ interface QuizStore {
 }
 
 const initialAnswers: QuizAnswers = {
-  assistant: 0, // 0 means "not selected"
+  assistant: 0, // 0 means "not selected", 1 = Max, 2 = Ellie
   gender: 0,
   goals: [],
   name: '',
