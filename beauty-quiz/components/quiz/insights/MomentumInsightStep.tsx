@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
 
@@ -53,17 +53,46 @@ export default function MomentumInsightStep() {
       buttonText="Let's keep going"
       condition
     >
+
       <div className="space-y-6 text-left">
-        <div className="relative overflow-hidden rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft">
+        {/* Animated Energy Pulse Background */}
+        <div className="relative overflow-hidden rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft min-h-[180px]">
+          {/* Multiple animated pulse rings */}
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-primary/30 via-primary/10 to-secondary-50 blur-3xl"
+              style={{ width: 260 + i*60, height: 260 + i*60, zIndex: 0, opacity: 0.5 - i*0.15 }}
+              animate={{ scale: [1, 1.18 + i*0.08, 1], opacity: [0.4 - i*0.1, 0.7 - i*0.2, 0.4 - i*0.1] }}
+              transition={{ duration: 2.5 + i, repeat: Infinity, delay: i * 0.5, ease: 'easeInOut' }}
+            />
+          ))}
+          {/* Subtle rotating blurred ring */}
           <motion.div
-            className="absolute -right-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-gradient-to-br from-primary/30 via-primary/10 to-secondary-50 blur-3xl"
-            animate={{ rotate: [0, 12, -8, 0], opacity: [0.25, 0.45, 0.25] }}
-            transition={{ repeat: Infinity, duration: 14, ease: 'easeInOut' }}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary/20"
+            style={{ width: 180, height: 180, zIndex: 1, opacity: 0.25 }}
+            animate={{ rotate: [0, 360] }}
+            transition={{ repeat: Infinity, duration: 18, ease: 'linear' }}
           />
-          <div className="relative space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary">Routine sync</p>
-            <h3 className="text-lg font-semibold text-text-primary">{summary.headline}</h3>
-            <p className="text-sm leading-relaxed text-text-secondary">{summary.blurb}</p>
+          <div className="relative space-y-3 z-10">
+            <motion.p
+              className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+            >Routine sync</motion.p>
+            <motion.h3
+              className="text-lg font-semibold text-text-primary"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35, duration: 0.6 }}
+            >{summary.headline}</motion.h3>
+            <motion.p
+              className="text-sm leading-relaxed text-text-secondary"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+            >{summary.blurb}</motion.p>
           </div>
         </div>
 
@@ -71,11 +100,28 @@ export default function MomentumInsightStep() {
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary">Selected activities</p>
             <div className="flex flex-wrap gap-2 text-xs text-text-primary/80">
-              {(answers.physicalActivities || []).slice(0, 6).map((activity) => (
-                <span key={activity} className="rounded-full bg-primary/10 px-3 py-1">
-                  {activity.replace(/_/g, ' ')}
-                </span>
-              )) || <span>No activities yet</span>}
+              <AnimatePresence>
+                {(answers.physicalActivities || []).slice(0, 6).map((activity, idx) => (
+                  <motion.span
+                    key={activity}
+                    className="rounded-full bg-primary/10 px-3 py-1"
+                    initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.8 }}
+                    transition={{ delay: 0.2 + idx * 0.08, duration: 0.4, type: 'spring', stiffness: 180 }}
+                  >
+                    {activity.replace(/_/g, ' ')}
+                  </motion.span>
+                ))}
+              </AnimatePresence>
+              {(!answers.physicalActivities || answers.physicalActivities.length === 0) && (
+                <motion.span
+                  className="rounded-full bg-primary/10 px-3 py-1"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3, duration: 0.4 }}
+                >No activities yet</motion.span>
+              )}
               {answers.physicalActivities && answers.physicalActivities.length > 6 && (
                 <span className="rounded-full bg-primary/10 px-3 py-1">+{answers.physicalActivities.length - 6}</span>
               )}
@@ -84,13 +130,29 @@ export default function MomentumInsightStep() {
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary">Diet focus</p>
             <div className="flex flex-wrap gap-2 text-xs text-text-primary/80">
-              {(answers.diet || []).length
-                ? answers.diet.slice(0, 6).map((item) => (
-                    <span key={item} className="rounded-full bg-primary/10 px-3 py-1">
-                      {item.replace(/_/g, ' ')}
-                    </span>
-                  ))
-                : <span>No diet choices yet</span>}
+              <AnimatePresence>
+                {(answers.diet || []).length
+                  ? answers.diet.slice(0, 6).map((item, idx) => (
+                      <motion.span
+                        key={item}
+                        className="rounded-full bg-primary/10 px-3 py-1"
+                        initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.8 }}
+                        transition={{ delay: 0.2 + idx * 0.08, duration: 0.4, type: 'spring', stiffness: 180 }}
+                      >
+                        {item.replace(/_/g, ' ')}
+                      </motion.span>
+                    ))
+                  : (
+                    <motion.span
+                      className="rounded-full bg-primary/10 px-3 py-1"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3, duration: 0.4 }}
+                    >No diet choices yet</motion.span>
+                  )}
+              </AnimatePresence>
               {answers.diet && answers.diet.length > 6 && (
                 <span className="rounded-full bg-primary/10 px-3 py-1">+{answers.diet.length - 6}</span>
               )}
@@ -98,10 +160,20 @@ export default function MomentumInsightStep() {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-5 shadow-soft">
+        <motion.div
+          className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-5 shadow-soft"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7, duration: 0.7, type: 'spring', stiffness: 120 }}
+        >
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary">Mood today</p>
-          <p className="mt-2 text-sm leading-relaxed text-text-secondary">{moodMessage}</p>
-        </div>
+          <motion.p
+            className="mt-2 text-sm leading-relaxed text-text-secondary"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9, duration: 0.5 }}
+          >{moodMessage}</motion.p>
+        </motion.div>
       </div>
     </OnboardingStep>
   )

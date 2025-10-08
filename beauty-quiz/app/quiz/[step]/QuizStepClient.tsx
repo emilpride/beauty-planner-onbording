@@ -434,11 +434,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
                     pointerEvents: 'auto',
                     transitionDelay: characterEntered ? '120ms' : '0ms',
 
-                    ...(assistantName === 'max' && [14, 15, 16, 17, 18, 19].includes(stepNumber)
-                      ? {
-                          marginBottom: stepNumber === 18 ? '20px' : '10px'
-                        }
-                      : {})
+                    // Removed marginBottom for Max on steps 14-19 to fix extra space
                   }}
                 >
                   <Image
