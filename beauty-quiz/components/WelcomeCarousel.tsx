@@ -8,7 +8,7 @@ const welcomeSlides = [
   {
     id: 1,
     image: '/images/on_boarding_images/welcome_img_1.png',
-    title: "Beauty is not just about your routine—it's also about mental and physical well-being",
+    title: "Beauty is more than routine. It's your mind and body too.",
     showSignIn: true
   },
   {
@@ -34,6 +34,18 @@ export default function WelcomeCarousel() {
   const [touchStart, setTouchStart] = useState(0)
   const [touchEnd, setTouchEnd] = useState(0)
   const router = useRouter()
+  const [webmSupported, setWebmSupported] = useState<boolean | null>(null)
+
+  // Detect WebM support on client to decide whether to render the video or fallback image
+  useEffect(() => {
+    try {
+      const v = document.createElement('video')
+      const result = typeof v.canPlayType === 'function' ? (v.canPlayType('video/webm; codecs="vp9, vorbis"') || v.canPlayType('video/webm')) : ''
+      setWebmSupported(result === 'probably' || result === 'maybe')
+    } catch (_) {
+      setWebmSupported(false)
+    }
+  }, [])
 
   const nextSlide = () => {
     if (isTransitioning) return
@@ -103,16 +115,29 @@ export default function WelcomeCarousel() {
         >
           {welcomeSlides.map((slide, index) => (
             <div key={slide.id} className="w-full flex-shrink-0 flex flex-col items-center px-6 pt-3">
-              {/* Image */}
+              {/* Media (Video for slide 1 with WebM support, otherwise image) */}
               <div className="w-full max-w-sm">
                 <div className="relative w-full h-[55vh] sm:h-[55vh] md:h-[55vh] max-h-[520px] rounded-[40px] sm:rounded-[44px] md:rounded-[48px] overflow-hidden">
-                  <Image
-                    src={slide.image}
-                    alt={`Welcome slide ${slide.id}`}
-                    fill
-                    className="object-cover transition-opacity duration-300"
-                    priority={index === 0}
-                  />
+                  {slide.id === 1 && webmSupported ? (
+                    <video
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      className="absolute inset-0 h-full w-full object-cover"
+                      poster="/images/on_boarding_images/welcome_img_1.png"
+                    >
+                      <source src="/animations/welcome.webm" type="video/webm" />
+                    </video>
+                  ) : (
+                    <Image
+                      src={slide.image}
+                      alt={`Welcome slide ${slide.id}`}
+                      fill
+                      className="object-cover transition-opacity duration-300"
+                      priority={index === 0}
+                    />
+                  )}
                 </div>
               </div>
 

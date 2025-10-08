@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "preview": "npx --yes serve -s out -l 5000",
+    "clean": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true})}catch(e){}; try{require('fs').rmSync('out',{recursive:true,force:true})}catch(e){}\"",
     "lint": "next lint"
   },
   "dependencies": {

@@ -1,4 +1,4 @@
-import QuizStepClient from './QuizStepClient'
+import ClientOnly from './ClientOnly'
 
 // Generate static params for all quiz steps and post-quiz screens
 export async function generateStaticParams() {
@@ -18,5 +18,5 @@ export default async function QuizStepPage({ params }: QuizStepPageProps) {
   const { step } = await params
   const stepNumber = parseInt(step)
   
-  return <QuizStepClient stepNumber={stepNumber} />
+  return <ClientOnly stepNumber={stepNumber} />
 }
