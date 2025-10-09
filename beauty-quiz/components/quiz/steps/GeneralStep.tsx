@@ -292,10 +292,7 @@ export default function GeneralStep() {
                 strokeWidth={1.7}
                 aria-hidden="true"
               >
-                <path d="M12 3v18" strokeLinecap="round" />
-                <path d="M8 7l4-4 4 4" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M8 17l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M6 6h-1M6 9h-2M6 12h-1.5M6 15h-2M6 18h-1" strokeLinecap="round" />
+                <path d="M12 3v18M9 6l3-3 3 3M9 18l3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
             {errors.height && (
@@ -340,55 +337,36 @@ export default function GeneralStep() {
             )}
           </div>
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1">
-            Ethnic Group (Optional)
-          </label>
-          <select
-            value={answers.ethnicGroup}
-            onChange={(e) => setAnswer('ethnicGroup', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-white"
-          >
-            <option value="">Select your ethnic group</option>
-            <option value="European American">European American</option>
-            <option value="Asian American">Asian American</option>
-            <option value="European">European</option>
-            <option value="Asian">Asian</option>
-            <option value="Hispanic / Latino">Hispanic / Latino</option>
-            <option value="Middle Eastern / North African">Middle Eastern / North African</option>
-            <option value="Native American / Indigenous">Native American / Indigenous</option>
-            <option value="Pacific Islander">Pacific Islander</option>
-            <option value="Mixed / Other">Mixed / Other</option>
-            <option value="Prefer not to say">Prefer not to say</option>
-          </select>
-        </div>
       </div>
 
       {heightPickerOpen && (
-        <div className="fixed inset-0 z-[101] bg-white rounded-3xl overflow-hidden">
-          <HeightPicker
-            value={answers.height ? parseInt(answers.height) : 177}
-            gender={answers.gender}
-            onConfirm={(height) => {
-              handleInputChange('height', height.toString())
-              setHeightPickerOpen(false)
-            }}
-            onCancel={() => setHeightPickerOpen(false)}
-          />
+        <div className="fixed inset-0 z-[101] bg-black/40 flex items-center justify-center">
+          <div className="w-full h-full md:w-full md:max-w-md md:rounded-3xl md:overflow-hidden">
+            <HeightPicker
+              value={answers.height ? parseInt(answers.height) : 177}
+              gender={answers.gender}
+              onConfirm={(height) => {
+                handleInputChange('height', height.toString())
+                setHeightPickerOpen(false)
+              }}
+              onCancel={() => setHeightPickerOpen(false)}
+            />
+          </div>
         </div>
       )}
 
       {weightPickerOpen && (
-        <div className="fixed inset-0 z-[101] bg-white rounded-3xl overflow-hidden">
-          <WeightPicker
-            valueKg={answers.weight ? parseInt(answers.weight, 10) : 80}
-            onConfirm={(kg) => {
-              handleInputChange('weight', String(kg))
-              setWeightPickerOpen(false)
-            }}
-            onCancel={() => setWeightPickerOpen(false)}
-          />
+        <div className="fixed inset-0 z-[101] bg-black/40 flex items-center justify-center">
+          <div className="w-full h-full md:w-full md:max-w-md md:rounded-3xl md:overflow-hidden">
+            <WeightPicker
+              valueKg={answers.weight ? parseInt(answers.weight, 10) : 80}
+              onConfirm={(kg) => {
+                handleInputChange('weight', String(kg))
+                setWeightPickerOpen(false)
+              }}
+              onCancel={() => setWeightPickerOpen(false)}
+            />
+          </div>
         </div>
       )}
     </OnboardingStep>

@@ -172,7 +172,7 @@ export default function WeightPicker({ valueKg = 80, onConfirm, onCancel }: Weig
         >
           Cancel
         </button>
-        <h2 className="text-lg font-medium text-gray-900">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           What's your weight?
         </h2>
         <button 
@@ -265,15 +265,13 @@ export default function WeightPicker({ valueKg = 80, onConfirm, onCancel }: Weig
         </svg>
 
         {/* Weight Display */}
-  <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-center">
-          <div className="text-5xl font-extrabold text-text-primary mb-1 tracking-tight">
-            {pounds}
-            <span className="text-2xl text-text-secondary ml-2">lb</span>
-          </div>
-          <div className="text-xl text-text-secondary">
-            ({kg} kg)
-          </div>
-        </div>
+  <div className="absolute left-1/2 transform -translate-x-1/2 text-center" style={{ bottom: '2.5rem' }}>
+    <div className="flex items-end justify-center gap-3">
+      <span className="text-5xl font-extrabold text-text-primary tracking-tight" style={{ lineHeight: 1 }}>{pounds}</span>
+      <span className="text-2xl text-text-secondary mb-1">lb</span>
+      <span className="text-lg text-text-secondary mb-1">({kg} kg)</span>
+    </div>
+  </div>
       </div>
     </div>
   )

@@ -10,19 +10,22 @@ type HeightPickerProps = {
   onCancel?: () => void
 }
 
-export default function HeightPicker({ value = 177, gender, onConfirm, onCancel }: HeightPickerProps) {
-  const clamp = (v: number) => Math.max(0, Math.min(250, Math.round(v)))
+// Constants for the ruler
+const MIN_HEIGHT = 100 // cm
+const MAX_HEIGHT = 250 // cm
+const RULER_RANGE = MAX_HEIGHT - MIN_HEIGHT
+
+export default function HeightPicker({ value = 170, gender, onConfirm, onCancel }: HeightPickerProps) {
+  const clamp = (v: number) => Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, Math.round(v)))
   const [height, setHeight] = useState(clamp(value))
   const stageRef = useRef<HTMLDivElement | null>(null)
   const [stageH, setStageH] = useState(0)
-  const baseSilhouette: number = 320 // px, image natural height used for scaling
-  const minScale = 0.05 // allow very small heights near 0
+  const baseSilhouetteH = 320 // px, image natural height
 
-  // Derived UI values
-  const lineBottom = useMemo(() => (stageH * height) / 250, [stageH, height])
-  const desiredScale = useMemo(() => {
-    return Math.max(minScale, lineBottom / baseSilhouette)
-  }, [lineBottom, baseSilhouette])
+  // --- Derived values for positioning --- //
+  const heightRatio = (height - MIN_HEIGHT) / RULER_RANGE
+  const lineBottom = stageH * heightRatio
+  const silhouetteScale = Math.max(0.1, lineBottom / baseSilhouetteH)
 
   useLayoutEffect(() => {
     const measure = () => setStageH(stageRef.current?.clientHeight ?? 0)
@@ -31,122 +34,90 @@ export default function HeightPicker({ value = 177, gender, onConfirm, onCancel 
     return () => window.removeEventListener('resize', measure)
   }, [])
 
-  // Keep local height synced if parent value changes
   useEffect(() => {
     setHeight(clamp(value))
   }, [value])
 
-  // Drag logic
-  const draggingRef = useRef(false)
-  const startDrag = (clientY: number) => {
-    updateFromPointer(clientY)
-    draggingRef.current = true
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', endDrag)
-  }
-  const onMove = (e: PointerEvent) => updateFromPointer(e.clientY)
-  const endDrag = () => {
-    draggingRef.current = false
-    window.removeEventListener('pointermove', onMove)
-    window.removeEventListener('pointerup', endDrag)
-  }
-  const updateFromPointer = (clientY: number) => {
+  // --- Drag Logic --- //
+  const isDragging = useRef(false)
+  const animationFrame = useRef<number>()
+
+  const updateHeightFromPointer = (clientY: number) => {
     if (!stageRef.current) return
     const rect = stageRef.current.getBoundingClientRect()
-    let yFromTop = clientY - rect.top
-    yFromTop = Math.max(0, Math.min(rect.height, yFromTop))
-    const yFromBottom = rect.height - yFromTop
-    // Map line position (from bottom) directly to cm 0..250
-    const h = Math.round((yFromBottom / rect.height) * 250)
-    setHeight(h)
+    const y = Math.max(0, Math.min(rect.height, clientY - rect.top))
+    const newHeight = MIN_HEIGHT + ((rect.height - y) / rect.height) * RULER_RANGE
+    setHeight(clamp(newHeight))
+  }
+
+  const onPointerMove = (e: PointerEvent) => {
+    if (!isDragging.current) return
+    // Use rAF to prevent jank and improve performance
+    if (animationFrame.current) cancelAnimationFrame(animationFrame.current)
+    animationFrame.current = requestAnimationFrame(() => {
+      updateHeightFromPointer(e.clientY)
+    })
+  }
+
+  const onPointerUp = () => {
+    isDragging.current = false
+    window.removeEventListener('pointermove', onPointerMove)
+    window.removeEventListener('pointerup', onPointerUp)
+    if (animationFrame.current) cancelAnimationFrame(animationFrame.current)
+  }
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    isDragging.current = true
+    updateHeightFromPointer(e.clientY)
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
   }
 
   const getCharacterImage = () => {
-    if (gender === 2) return '/images/on_boarding_images/bmi_female_2.png'
-    return '/images/on_boarding_images/bmi_male_2.png'
+    return gender === 2
+      ? '/images/on_boarding_images/bmi_female_2.png'
+      : '/images/on_boarding_images/bmi_male_2.png'
   }
 
-  // Positions
-  const knobTop = Math.max(0, stageH - lineBottom - 10) // center 20px knob
-
-  const onKnobKeyDown = (e: React.KeyboardEvent) => {
-    const step = e.shiftKey ? 5 : 1
-    if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setHeight((h) => Math.min(250, h + step))
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setHeight((h) => Math.max(0, h - step))
-    }
-  }
-
-  // Helpers for labels
   const cmToFeetInches = (cm: number) => {
     const totalInches = cm / 2.54
     const feet = Math.floor(totalInches / 12)
     const inches = Math.round(totalInches % 12)
-    return `${feet}'${inches}`
+    return { feet, inches, label: `${feet}'${inches}"` }
   }
 
+  const feetInches = cmToFeetInches(height)
   return (
-    <div className="w-full h-full bg-white flex flex-col">
+    <div className="w-full h-full bg-background flex flex-col select-none touch-none">
       {/* Header */}
-  <div className="flex items-center justify-between p-3 border-b border-gray-200">
-        <button onClick={onCancel} className="text-gray-500 hover:text-gray-700">Cancel</button>
-        <h2 className="text-base font-semibold text-text-primary">How tall are you?</h2>
-        <button onClick={() => onConfirm(height)} className="text-primary font-semibold">Done</button>
-      </div>
+      <header className="flex items-center justify-between p-4 border-b border-border-subtle bg-surface/80 backdrop-blur-sm z-10">
+        <button onClick={onCancel} className="text-sm text-text-secondary hover:text-text-primary transition-colors">Cancel</button>
+        <h2 className="text-base font-semibold text-text-primary">Your Height</h2>
+        <button onClick={() => onConfirm(height)} className="text-sm text-primary font-bold transition-transform active:scale-95">Done</button>
+      </header>
 
       {/* Stage */}
-      <div ref={stageRef} className="relative flex-1 min-h-0 overflow-hidden">
-        {/* Left ruler: ticks only (no numeric labels) */}
-        <div className="absolute left-0 top-0 bottom-0 w-12 touch-none" onPointerDown={(e) => startDrag(e.clientY)}>
-          {/* ticks every 10cm with minor grid via gradient */}
-          <div
-            className="absolute inset-0"
-            style={{ background: 'repeating-linear-gradient(to bottom, #e5e7eb 0 1px, transparent 1px 9px)' }}
-          />
+      <div ref={stageRef} className="relative flex-1 min-h-0 overflow-hidden" onPointerDown={onPointerDown}>
+        {/* Ruler Marks */}
+        <Ruler stageH={stageH} cmToFeetInches={cmToFeetInches} />
+
+        {/* Main horizontal line and value display */}
+        <div className="absolute left-0 right-0 z-[2] pointer-events-none" style={{ bottom: lineBottom }}>
+          {/* Line */}
+          <div className="h-0.5 bg-gradient-to-r from-primary to-purple-500" />
+          {/* Value Bubble */}
+          <div className="absolute right-4 -top-7 flex items-baseline gap-2">
+            <span className="text-4xl font-bold text-text-primary">{feetInches.label}</span>
+            <span className="text-sm font-medium text-text-secondary relative" style={{ top: '-0.5em' }}>ft/in</span>
+          </div>
+          <div className="absolute right-4 top-6 text-lg font-medium text-text-secondary">
+            {height} cm
+          </div>
         </div>
 
-        {/* Drag knob */}
-        <button
-          type="button"
-          aria-label="Adjust height"
-          className="absolute left-10 z-30 h-5 w-5 -translate-x-1/2 rounded-full bg-primary shadow cursor-grab active:cursor-grabbing ring-2 ring-white"
-          style={{ top: knobTop }}
-          onPointerDown={(e) => startDrag(e.clientY)}
-          onKeyDown={onKnobKeyDown}
-        />
-
-        {/* Horizontal dotted line (thicker) */}
-        <div
-          className="absolute left-12 right-24 z-20 cursor-grab active:cursor-grabbing"
-          style={{ bottom: lineBottom }}
-        >
-          <div className="h-3 border-t-2 border-dotted border-primary/70" />
-        </div>
-
-        {/* Fat invisible hit area for the line to improve touchability */}
-        <div
-          className="absolute left-0 right-0 h-8 -translate-y-1/2 z-20"
-          style={{ bottom: lineBottom }}
-          onPointerDown={(e) => startDrag(e.clientY)}
-        />
-
-        {/* Value bubble on right */}
-        <div
-          className="absolute right-4 z-30 rounded-2xl bg-primary text-white text-sm font-semibold px-3 py-1 shadow"
-          style={{ bottom: lineBottom - 16 }}
-        >
-          {cmToFeetInches(height)} ft <span className="text-white/80 text-[11px]">({height} cm)</span>
-        </div>
-
-        {/* Silhouette centered */}
-        <div className="absolute inset-x-0 bottom-0 flex items-end justify-center">
-          <div
-            className="transition-transform duration-200 ease-out"
-            style={{ transform: `scale(${desiredScale})`, transformOrigin: 'bottom center' }}
-          >
+        {/* Silhouette */}
+        <div className="absolute inset-x-0 bottom-0 flex items-end justify-center pointer-events-none z-[1]">
+          <div style={{ transform: `scale(${silhouetteScale})`, transformOrigin: 'bottom center' }}>
             <img
               src={getCharacterImage()}
               alt="Character silhouette"
@@ -157,4 +128,31 @@ export default function HeightPicker({ value = 177, gender, onConfirm, onCancel 
       </div>
     </div>
   )
+}
+
+// --- Ruler Component --- //
+const Ruler = ({ stageH, cmToFeetInches }: { stageH: number, cmToFeetInches: (cm: number) => { feet: number, inches: number, label: string } }) => {
+  if (!stageH) return null
+
+  const marks = useMemo(() => {
+    const numMarks = RULER_RANGE / 5 + 1 // A mark every 5cm
+    return Array.from({ length: numMarks }, (_, i) => {
+      const h = MIN_HEIGHT + i * 5
+      const isMajor = h % 10 === 0
+      const y = stageH * ((h - MIN_HEIGHT) / RULER_RANGE)
+
+      return (
+        <div key={h} className="absolute left-4 right-0 text-right" style={{ bottom: y }}>
+          <div className="flex items-center justify-end gap-3">
+            {isMajor && (
+              <span className="text-xs font-medium text-text-secondary w-14">{cmToFeetInches(h).label}</span>
+            )}
+            <div className={`h-px ${isMajor ? 'w-6 bg-border-subtle' : 'w-4 bg-border-subtle'}`} />
+          </div>
+        </div>
+      )
+    })
+  }, [stageH, cmToFeetInches])
+
+  return <div className="absolute inset-y-0 left-0 w-24 pointer-events-none">{marks}</div>
 }
