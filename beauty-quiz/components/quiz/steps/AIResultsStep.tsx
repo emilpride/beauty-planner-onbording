@@ -87,7 +87,7 @@ export default function AIResultsStep() {
           setTimeout(() => {
             nextStep()
             // Go directly to CurrentConditionAnalysis page
-            router.push('/quiz/35')
+            router.push('/quiz/34')
           }, 600)
           return 100
         }

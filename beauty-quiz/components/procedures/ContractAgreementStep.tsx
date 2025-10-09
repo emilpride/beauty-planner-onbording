@@ -258,13 +258,20 @@ export default function ContractAgreementStep() {
                 <canvas
                   ref={canvasRef}
                   className="absolute inset-0 w-full h-full rounded-md cursor-crosshair"
-                  onPointerDown={(e) => {
-                    if (canvasRef.current) canvasRef.current.style.touchAction = 'none'
-                    startDrawing(e)
+                  style={{ touchAction: 'none' }}
+                  onPointerDown={e => {
+                    if (canvasRef.current) canvasRef.current.style.touchAction = 'none';
+                    startDrawing(e);
                   }}
-                  onPointerMove={draw}
-                  onPointerUp={stopDrawing}
-                  onPointerCancel={stopDrawing}
+                  onPointerMove={e => {
+                    draw(e);
+                  }}
+                  onPointerUp={e => {
+                    stopDrawing(e);
+                  }}
+                  onPointerCancel={e => {
+                    stopDrawing(e);
+                  }}
                 />
               </div>
               <div className="mt-3 flex items-center justify-between flex-shrink-0">
