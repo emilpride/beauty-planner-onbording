@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
@@ -95,7 +95,20 @@ export default function SleepRhythmInsightStep() {
   const stroke = 10
   const radius = (size - stroke) / 2
   const circumference = 2 * Math.PI * radius
-  const dashOffset = circumference * (1 - (visual as any).score / 100)
+  // For animated radial progress
+  const [progress, setProgress] = useState(0)
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setProgress((visual as any).score)
+      return
+    }
+    setProgress(0)
+    const timeout = setTimeout(() => {
+      setProgress((visual as any).score)
+    }, 250)
+    return () => clearTimeout(timeout)
+  }, [visual, prefersReducedMotion])
+  const dashOffset = circumference * (1 - progress / 100)
 
   return (
     <OnboardingStep
@@ -104,8 +117,18 @@ export default function SleepRhythmInsightStep() {
       buttonText="Let's keep going"
       condition
     >
-      <div className="space-y-6 text-left">
-        <div className="relative overflow-hidden rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft">
+      <motion.div
+        className="space-y-6 text-left"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+      >
+        <motion.div
+          className="relative overflow-hidden rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
+        >
           <motion.div
             className={`absolute -right-20 -top-24 h-72 w-72 rounded-full blur-3xl bg-gradient-to-br ${visual.accent}`}
             animate={prefersReducedMotion ? undefined : { opacity: [0.35, 0.55, 0.35], scale: [0.9, 1.05, 0.9] }}
@@ -115,7 +138,7 @@ export default function SleepRhythmInsightStep() {
             className="flex w-full items-center justify-between"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
+            transition={{ duration: 0.4, delay: 0.2, ease: 'easeOut' }}
           >
             <div className="max-w-xs space-y-3">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-text-secondary">Sleep Insights</p>
@@ -158,9 +181,9 @@ export default function SleepRhythmInsightStep() {
                   strokeLinecap="round"
                   fill="none"
                   strokeDasharray={circumference}
-                  strokeDashoffset={dashOffset}
-                  initial={false}
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
+                  initial={{ strokeDashoffset: circumference }}
+                  animate={{ strokeDashoffset: dashOffset }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 1.1, ease: 'easeInOut' }}
                 />
               </svg>
               {/* Center content */}
@@ -173,9 +196,14 @@ export default function SleepRhythmInsightStep() {
               </div>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
 
-        <div className="grid gap-3 rounded-3xl border border-border-subtle/60 bg-surface/95 p-4 shadow-soft sm:grid-cols-2">
+        <motion.div
+          className="grid gap-3 rounded-3xl border border-border-subtle/60 bg-surface/95 p-4 shadow-soft sm:grid-cols-2"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.25, ease: 'easeOut' }}
+        >
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">Bedtime window</p>
             <p className="text-sm font-semibold text-text-primary">{answers.endDayTime || 'Not set'} {answers.timeFormat === '24h' ? '' : answers.timeFormat}</p>
@@ -184,10 +212,15 @@ export default function SleepRhythmInsightStep() {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">Wake window</p>
             <p className="text-sm font-semibold text-text-primary">{answers.wakeUpTime || 'Not set'} {answers.timeFormat === '24h' ? '' : answers.timeFormat}</p>
           </div>
-        </div>
+        </motion.div>
 
         {/* Actionable tips tailored to rhythm */}
-        <div className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-4 shadow-soft">
+        <motion.div
+          className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-4 shadow-soft"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.35, ease: 'easeOut' }}
+        >
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary mb-2">Quick Tips</p>
           <ul className="space-y-2">
             {(visual as any).tips.slice(0, 3).map((tip: string, i: number) => (
@@ -196,15 +229,15 @@ export default function SleepRhythmInsightStep() {
                 className="flex items-start gap-2"
                 initial={prefersReducedMotion ? false : { opacity: 0, x: -10 }}
                 animate={prefersReducedMotion ? {} : { opacity: 1, x: 0 }}
-                transition={{ delay: 0.05 * i, duration: 0.25 }}
+                transition={{ delay: 0.45 + 0.07 * i, duration: 0.25 }}
               >
                 <span className="mt-[2px] inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px]">✓</span>
                 <span className="text-sm text-text-primary leading-relaxed">{tip}</span>
               </motion.li>
             ))}
           </ul>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </OnboardingStep>
   )
 }
