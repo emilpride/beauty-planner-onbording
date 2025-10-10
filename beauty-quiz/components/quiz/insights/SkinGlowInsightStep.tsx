@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
-import { useQuizStore } from '@/store/quizStore'
+import { useQuizStore, ProblemItem } from '@/store/quizStore'
 
 const skinTypeLabels: Record<string, string> = {
   dry: 'Dry',
@@ -52,15 +52,15 @@ const getSkinTone = (type: string) => {
   }
 }
 
-const getPriorityList = (skinProblems: string[]) => {
+const getPriorityList = (skinProblems: ProblemItem[]) => {
   if (!skinProblems || skinProblems.length === 0) {
     return ['Keep hydration steady', 'Lock SPF habit', 'Pulse weekly glow boosters']
   }
   const priorities: string[] = []
-  if (skinProblems.includes('acne')) priorities.push('Stagger actives & calming layers')
-  if (skinProblems.includes('pigmentation')) priorities.push('Introduce brightening combos')
-  if (skinProblems.includes('sensitised')) priorities.push('Rebuild barrier with cushion layers')
-  if (skinProblems.includes('dullness')) priorities.push('Add enzyme polish + hydration')
+  if (skinProblems.some(p => p.isActive && p.title === 'acne')) priorities.push('Stagger actives & calming layers')
+  if (skinProblems.some(p => p.isActive && p.title === 'pigmentation')) priorities.push('Introduce brightening combos')
+  if (skinProblems.some(p => p.isActive && p.title === 'sensitised')) priorities.push('Rebuild barrier with cushion layers')
+  if (skinProblems.some(p => p.isActive && p.title === 'dullness')) priorities.push('Add enzyme polish + hydration')
   if (priorities.length < 3) priorities.push('Weekly check-ins to track progress')
   return priorities.slice(0, 3)
 }
@@ -68,10 +68,10 @@ const getPriorityList = (skinProblems: string[]) => {
 export default function SkinGlowInsightStep() {
   const { answers } = useQuizStore()
 
-  const tone = useMemo(() => getSkinTone(answers.skinType), [answers.skinType])
+  const tone = useMemo(() => getSkinTone(answers.SkinType), [answers.SkinType])
   const priorities = useMemo(
-    () => getPriorityList(answers.skinProblems || []),
-    [answers.skinProblems],
+    () => getPriorityList(answers.SkinProblems || []),
+    [answers.SkinProblems],
   )
 
   // Mount flag to trigger CSS transitions (ring/bar fills)
@@ -80,9 +80,9 @@ export default function SkinGlowInsightStep() {
 
   // Compute a simple Glow score and 3 compact metrics for a balanced, informative UI
   const { score, metrics } = useMemo(() => {
-    const probs = answers.skinProblems || []
+    const probs = answers.SkinProblems || []
     let base = 72
-    switch (answers.skinType) {
+    switch (answers.SkinType) {
       case 'normal': base = 82; break
       case 'combination': base = 76; break
       case 'oily': base = 70; break
@@ -90,26 +90,26 @@ export default function SkinGlowInsightStep() {
       default: base = 74; break
     }
     const penalties = (
-      (probs.includes('acne') ? 8 : 0) +
-      (probs.includes('pigmentation') ? 6 : 0) +
-      (probs.includes('sensitised') ? 10 : 0) +
-      (probs.includes('dullness') ? 5 : 0)
+      (probs.some(p => p.isActive && p.title === 'acne') ? 8 : 0) +
+      (probs.some(p => p.isActive && p.title === 'pigmentation') ? 6 : 0) +
+      (probs.some(p => p.isActive && p.title === 'sensitised') ? 10 : 0) +
+      (probs.some(p => p.isActive && p.title === 'dullness') ? 5 : 0)
     )
     const finalScore = Math.max(30, Math.min(92, base - penalties))
 
     // Metrics: Hydration, Balance (oil), Calmness (sensitivity)
     let hydration = 70, balance = 70, calm = 70
-    if (answers.skinType === 'dry') hydration -= 12
-    if (answers.skinType === 'oily') balance -= 10
-    if (probs.includes('sensitised')) calm -= 18
-    if (probs.includes('dullness')) hydration -= 6
-    if (probs.includes('acne')) balance -= 12
+    if (answers.SkinType === 'dry') hydration -= 12
+    if (answers.SkinType === 'oily') balance -= 10
+    if (probs.some(p => p.isActive && p.title === 'sensitised')) calm -= 18
+    if (probs.some(p => p.isActive && p.title === 'dullness')) hydration -= 6
+    if (probs.some(p => p.isActive && p.title === 'acne')) balance -= 12
     hydration = Math.max(20, Math.min(95, hydration))
     balance = Math.max(20, Math.min(95, balance))
     calm = Math.max(20, Math.min(95, calm))
 
     return { score: finalScore, metrics: { hydration, balance, calm } }
-  }, [answers.skinType, answers.skinProblems])
+  }, [answers.SkinType, answers.SkinProblems])
 
   return (
     <OnboardingStep title="Skin care matters" subtitle="Personalized guidance from AI — right after the quiz" buttonText="Continue" centerContent>

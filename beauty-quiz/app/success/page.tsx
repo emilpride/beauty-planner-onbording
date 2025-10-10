@@ -83,12 +83,12 @@ export default function SuccessPage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (!answers.paymentCompleted) {
+    if (!answers.PaymentCompleted) {
       router.push('/payment')
     }
-  }, [answers.paymentCompleted, router])
+  }, [answers.PaymentCompleted, router])
 
-  if (!answers.paymentCompleted) {
+  if (!answers.PaymentCompleted) {
     return null
   }
 

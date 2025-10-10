@@ -8,7 +8,12 @@ import FrequencyModal from '@/components/quiz/FrequencyModal'
 import CustomActivitiesModal from '@/components/quiz/CustomActivitiesModal'
 
 const activities = [
-  "Gym Workouts", "Pilates", "Cycling", "Martial Arts", "Dance", "Other"
+  { id: "gym-workouts", title: "Gym Workouts" },
+  { id: "pilates", title: "Pilates" },
+  { id: "cycling", title: "Cycling" },
+  { id: "martial-arts", title: "Martial Arts" },
+  { id: "dance", title: "Dance" },
+  { id: "other", title: "Other" }
 ]
 
 interface CustomActivity {
@@ -26,8 +31,8 @@ export default function PhysicalActivitiesStep() {
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)
   const [customActivities, setCustomActivities] = useState<CustomActivity[]>([])
 
-  const getFrequencyText = (activity: string) => {
-    const activityData = answers.activityFrequency.find(a => a.id === activity)
+  const getFrequencyText = (activityId: string) => {
+    const activityData = answers.ActivityFrequency?.find(a => a.id === activityId)
     if (!activityData) return 'Not set'
     
     const { frequency, period } = activityData
@@ -38,11 +43,11 @@ export default function PhysicalActivitiesStep() {
     return `Every ${frequency} ${periodText}${frequency > 1 ? 's' : ''}`
   }
 
-  const handleActivityClick = (activity: string) => {
-    if (activity === 'Other') {
+  const handleActivityClick = (activityId: string) => {
+    if (activityId === 'other') {
       setIsCustomModalOpen(true)
     } else {
-      setSelectedActivity(activity)
+      setSelectedActivity(activityId)
       setIsModalOpen(true)
     }
   }
@@ -56,8 +61,8 @@ export default function PhysicalActivitiesStep() {
       period
     }
 
-    const existingIndex = answers.activityFrequency.findIndex(a => a.id === selectedActivity)
-    let newFrequencies = [...answers.activityFrequency]
+    const existingIndex = answers.ActivityFrequency?.findIndex(a => a.id === selectedActivity) ?? -1
+    let newFrequencies = [...(answers.ActivityFrequency || [])]
     
     if (existingIndex >= 0) {
       newFrequencies[existingIndex] = newFrequency
@@ -65,28 +70,39 @@ export default function PhysicalActivitiesStep() {
       newFrequencies.push(newFrequency)
     }
 
-    setAnswer('activityFrequency', newFrequencies)
+    setAnswer('ActivityFrequency', newFrequencies)
+
+    // Also update PhysicalActivities to mark as active
+    const newActivities = answers.PhysicalActivities.map(a => 
+      a.id === selectedActivity ? { ...a, isActive: true } : a
+    )
+    setAnswer('PhysicalActivities', newActivities)
   }
 
   const handleCustomActivitiesConfirm = (activities: CustomActivity[]) => {
     setCustomActivities(activities)
     
 
-    const existingFrequencies = answers.activityFrequency.filter(a => !a.id.startsWith('custom_'))
+    const existingFrequencies = answers.ActivityFrequency?.filter(a => !a.id.startsWith('custom_')) || []
     const customFrequencies = activities.map(activity => ({
       id: activity.id,
       frequency: activity.frequency,
       period: activity.period
     }))
     
-    setAnswer('activityFrequency', [...existingFrequencies, ...customFrequencies])
+    setAnswer('ActivityFrequency', [...existingFrequencies, ...customFrequencies])
+
+    // Also update PhysicalActivities for custom ones
+    const customActivityObjects = activities.map(activity => ({ id: activity.id, title: activity.name, isActive: true }))
+    const existingNonCustom = answers.PhysicalActivities.filter(a => !a.id.startsWith('custom_'))
+    setAnswer('PhysicalActivities', [...existingNonCustom, ...customActivityObjects])
   }
 
-  const isActivitySelected = (activity: string) => {
-    if (activity === 'Other') {
+  const isActivitySelected = (activityId: string) => {
+    if (activityId === 'other') {
       return customActivities.length > 0
     }
-    return answers.activityFrequency.some(a => a.id === activity)
+    return answers.PhysicalActivities?.some(a => a.id === activityId && a.isActive) ?? false
   }
 
   const getCustomActivitiesText = () => {
@@ -106,13 +122,14 @@ export default function PhysicalActivitiesStep() {
       <OnboardingStep
         title="How Often Do You Engage In These Activities?"
         subtitle="Select activities and set their frequency."
-        condition={answers.activityFrequency.length > 0}
+        condition={answers.PhysicalActivities?.some(a => a.isActive) ?? false}
         skip
         skipText={"I don't exercise"}
         onSkip={() => {
           // Clear any selected activities/frequencies and move forward
-          setAnswer('activityFrequency', [])
-          setAnswer('physicalActivities', [])
+          setAnswer('ActivityFrequency', [])
+          const newActivities = answers.PhysicalActivities.map(a => ({ ...a, isActive: false }))
+          setAnswer('PhysicalActivities', newActivities)
           const nextIndex = currentStep + 1
           router.push(`/quiz/${nextIndex}`)
           nextStep()
@@ -121,20 +138,20 @@ export default function PhysicalActivitiesStep() {
         <div className="space-y-2 py-1">
           {activities.map((activity) => (
             <div
-              key={activity}
-              onClick={() => handleActivityClick(activity)}
+              key={activity.id}
+              onClick={() => handleActivityClick(activity.id)}
               className={`p-4 border-2 rounded-xl flex items-center justify-between cursor-pointer transition-all duration-200 ${
-                isActivitySelected(activity)
+                isActivitySelected(activity.id)
                   ? 'border-primary bg-primary bg-opacity-10'
                   : 'border-border-subtle/60 hover:border-primary/40'
               }`}
             >
               <div className="flex flex-col">
-                <span className="text-lg font-semibold text-text-primary">{activity}</span>
+                <span className="text-lg font-semibold text-text-primary">{activity.title}</span>
                 <span className={`text-sm ${
-                  isActivitySelected(activity) ? 'text-primary' : 'text-text-secondary'
+                  isActivitySelected(activity.id) ? 'text-primary' : 'text-text-secondary'
                 }`}>
-                  {activity === 'Other' ? getCustomActivitiesText() : getFrequencyText(activity)}
+                  {activity.id === 'other' ? getCustomActivitiesText() : getFrequencyText(activity.id)}
                 </span>
               </div>
               <svg
@@ -155,8 +172,8 @@ export default function PhysicalActivitiesStep() {
         onClose={() => setIsModalOpen(false)}
         onConfirm={handleFrequencyConfirm}
         activityName={selectedActivity || ''}
-        currentFrequency={answers.activityFrequency.find(a => a.id === selectedActivity)?.frequency || 1}
-        currentPeriod={answers.activityFrequency.find(a => a.id === selectedActivity)?.period || 'week'}
+        currentFrequency={answers.ActivityFrequency?.find(a => a.id === selectedActivity)?.frequency || 1}
+        currentPeriod={answers.ActivityFrequency?.find(a => a.id === selectedActivity)?.period || 'week'}
       />
 
       <CustomActivitiesModal

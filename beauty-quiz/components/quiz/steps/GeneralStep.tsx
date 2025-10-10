@@ -28,25 +28,25 @@ export default function GeneralStep() {
 
   // Compute age from birthDate
   const computedAge = useMemo(() => {
-    if (!answers.birthDate) return null
+    if (!answers.BirthDate) return null
     const today = new Date()
-    const [y, m, d] = answers.birthDate.split('-').map((v) => parseInt(v, 10))
+    const [y, m, d] = answers.BirthDate.split('-').map((v) => parseInt(v, 10))
     if (!y || !m || !d) return null
     let age = today.getFullYear() - y
     const mDiff = today.getMonth() + 1 - m
     const dDiff = today.getDate() - d
     if (mDiff < 0 || (mDiff === 0 && dDiff < 0)) age--
     return age
-  }, [answers.birthDate])
+  }, [answers.BirthDate])
 
   const isFormValid = () => {
     return (
-      answers.name.trim() !== '' &&
+      answers.Name.trim() !== '' &&
       computedAge !== null &&
       computedAge >= 13 &&
       computedAge <= 100 &&
-      answers.height.trim() !== '' &&
-      answers.weight.trim() !== ''
+      answers.Height.trim() !== '' &&
+      answers.Weight.trim() !== ''
     )
   }
 
@@ -90,7 +90,7 @@ export default function GeneralStep() {
 
   const handleInputChange = (field: keyof typeof answers, value: any) => {
     setAnswer(field, value)
-    if (field === 'birthDate') {
+    if (field === 'BirthDate') {
       // Also update derived age for backward compatibility
       const [y, m, d] = String(value).split('-').map((v) => parseInt(v, 10))
       if (y && m && d) {
@@ -99,9 +99,9 @@ export default function GeneralStep() {
         const mDiff = today.getMonth() + 1 - m
         const dDiff = today.getDate() - d
         if (mDiff < 0 || (mDiff === 0 && dDiff < 0)) age--
-        setAnswer('age', isFinite(age) ? age : null)
+        setAnswer('Age', isFinite(age) ? age : null)
       } else {
-        setAnswer('age', null)
+        setAnswer('Age', null)
       }
     }
     validateField(field, value)
@@ -131,9 +131,9 @@ export default function GeneralStep() {
 
   // Enforce metric units for simplified UI
   useEffect(() => {
-    if (answers.heightUnit !== 'cm') setAnswer('heightUnit', 'cm')
-    if (answers.weightUnit !== 'kg') setAnswer('weightUnit', 'kg')
-  }, [answers.heightUnit, answers.weightUnit, setAnswer])
+    if (answers.HeightUnit !== 'cm') setAnswer('HeightUnit', 'cm')   
+    if (answers.WeightUnit !== 'kg') setAnswer('WeightUnit', 'kg')   
+  }, [answers.HeightUnit, answers.WeightUnit, setAnswer])
 
   return (
     <OnboardingStep
@@ -156,11 +156,11 @@ export default function GeneralStep() {
               <button
                 type="button"
                 role="tab"
-                aria-selected={answers.gender === 1}
-                aria-pressed={answers.gender === 1}
-                onClick={() => setAnswer('gender', 1)}
+                aria-selected={answers.Gender === 1}
+                aria-pressed={answers.Gender === 1}
+                onClick={() => setAnswer('Gender', 1)}
                 className={`relative w-full rounded-xl py-3 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary flex items-center justify-center gap-2 active:scale-[0.98]
-                  ${answers.gender === 1
+                  ${answers.Gender === 1
                     ? 'text-white bg-gradient-to-r from-[#53E5FF] to-[#8A60FF]'
                     : 'bg-transparent text-text-primary hover:bg-white/60 dark:hover:bg-white/5'}`}
               >
@@ -170,11 +170,11 @@ export default function GeneralStep() {
               <button
                 type="button"
                 role="tab"
-                aria-selected={answers.gender === 2}
-                aria-pressed={answers.gender === 2}
-                onClick={() => setAnswer('gender', 2)}
+                aria-selected={answers.Gender === 2}
+                aria-pressed={answers.Gender === 2}
+                onClick={() => setAnswer('Gender', 2)}
                 className={`relative w-full rounded-xl py-3 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary flex items-center justify-center gap-2 active:scale-[0.98]
-                  ${answers.gender === 2
+                  ${answers.Gender === 2
                     ? 'text-white bg-gradient-to-r from-[#FF99CC] to-[#8A60FF]'
                     : 'bg-transparent text-text-primary hover:bg-white/60 dark:hover:bg-white/5'}`}
               >
@@ -190,8 +190,8 @@ export default function GeneralStep() {
           </label>
           <input
             type="text"
-            value={answers.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
+            value={answers.Name}
+            onChange={(e) => handleInputChange('Name', e.target.value)}
             className={`w-full px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary placeholder-gray-400 ${
               errors.name ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -211,8 +211,8 @@ export default function GeneralStep() {
             aria-haspopup="dialog"
             aria-expanded={calendarOpen}
           >
-            <span className={`text-left ${answers.birthDate ? 'text-text-primary' : 'text-gray-400'}`}>
-              {answers.birthDate ? new Date(answers.birthDate).toLocaleDateString() : 'Select your birth date'}
+            <span className={`text-left ${answers.BirthDate ? 'text-text-primary' : 'text-gray-400'}`}>
+              {answers.BirthDate ? new Date(answers.BirthDate).toLocaleDateString() : 'Select your birth date'}
             </span>
             <svg
               className="h-5 w-5 text-primary"
@@ -244,7 +244,7 @@ export default function GeneralStep() {
               className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl animate-in zoom-in-95 duration-300"
             >
               <DatePicker
-                value={answers.birthDate ? new Date(answers.birthDate) : null}
+                value={answers.BirthDate ? new Date(answers.BirthDate) : null}
                 min={new Date(new Date().getFullYear() - 100, new Date().getMonth(), new Date().getDate())}
                 max={new Date(new Date().getFullYear() - 13, new Date().getMonth(), new Date().getDate())}
                 onCancel={handleCloseCalendar}
@@ -254,7 +254,7 @@ export default function GeneralStep() {
                   const m = d.getMonth() + 1
                   const day = d.getDate()
                   const ymd = `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-                  handleInputChange('birthDate', ymd)
+                  handleInputChange('BirthDate', ymd)
                   handleCloseCalendar()
                 }}
               />
@@ -275,9 +275,9 @@ export default function GeneralStep() {
                 errors.height ? 'border-red-500' : 'border-gray-300'
               }`}
             >
-              <span className={`text-left ${answers.height ? 'text-text-primary' : 'text-gray-400'}`}>
-                {answers.height ? (() => {
-                  const cm = parseInt(answers.height, 10)
+              <span className={`text-left ${answers.Height ? 'text-text-primary' : 'text-gray-400'}`}>
+                {answers.Height ? (() => {
+                  const cm = parseInt(answers.Height, 10)
                   const totalInches = cm / 2.54
                   const feet = Math.floor(totalInches / 12)
                   const inches = Math.round(totalInches % 12)
@@ -311,9 +311,9 @@ export default function GeneralStep() {
                 errors.weight ? 'border-red-500' : 'border-gray-300'
               }`}
             >
-              <span className={`text-left ${answers.weight ? 'text-text-primary' : 'text-gray-400'}`}>
-                {answers.weight ? (() => {
-                  const kg = parseInt(answers.weight, 10)
+              <span className={`text-left ${answers.Weight ? 'text-text-primary' : 'text-gray-400'}`}>
+                {answers.Weight ? (() => {
+                  const kg = parseInt(answers.Weight, 10)
                   const lb = Math.round(kg * 2.20462)
                   return `${lb} lb (${kg} kg)`
                 })() : 'Select your weight'}
@@ -343,10 +343,10 @@ export default function GeneralStep() {
         <div className="fixed inset-0 z-[101] bg-black/40 flex items-center justify-center">
           <div className="w-full h-full md:w-full md:max-w-md md:rounded-3xl md:overflow-hidden">
             <HeightPicker
-              value={answers.height ? parseInt(answers.height) : 177}
-              gender={answers.gender}
+              value={answers.Height ? parseInt(answers.Height) : 177}
+              gender={answers.Gender}
               onConfirm={(height) => {
-                handleInputChange('height', height.toString())
+                handleInputChange('Height', height.toString())
                 setHeightPickerOpen(false)
               }}
               onCancel={() => setHeightPickerOpen(false)}
@@ -359,9 +359,9 @@ export default function GeneralStep() {
         <div className="fixed inset-0 z-[101] bg-black/40 flex items-center justify-center">
           <div className="w-full h-full md:w-full md:max-w-md md:rounded-3xl md:overflow-hidden">
             <WeightPicker
-              valueKg={answers.weight ? parseInt(answers.weight, 10) : 80}
+              valueKg={answers.Weight ? parseInt(answers.Weight, 10) : 80}
               onConfirm={(kg) => {
-                handleInputChange('weight', String(kg))
+                handleInputChange('Weight', String(kg))
                 setWeightPickerOpen(false)
               }}
               onCancel={() => setWeightPickerOpen(false)}

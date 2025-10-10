@@ -20,7 +20,7 @@ export default function StressStep() {
   const handleOptionSelect = (optionId: string) => {
     if (hasTransitioned.current) return
     
-    setAnswer('stressLevel', optionId as any)
+    setAnswer('Stress', optionId as any)
     hasTransitioned.current = true
     
 
@@ -32,7 +32,7 @@ export default function StressStep() {
 
   useEffect(() => {
 
-    setAnswer('stressLevel', '')
+    setAnswer('Stress', '')
     hasTransitioned.current = false
     
     return () => {
@@ -52,7 +52,7 @@ export default function StressStep() {
             key={option.id}
             onClick={() => handleOptionSelect(option.id)}
             className={`w-full p-3 border-2 rounded-lg text-left transition-all duration-300 ${
-              answers.stressLevel === option.id
+              answers.Stress === option.id
                 ? 'border-primary bg-surface shadow-soft'
                 : 'border-border-subtle/60 bg-surface-muted hover:border-primary/40 hover:bg-surface hover:text-text-primary'
             }`}
@@ -61,7 +61,7 @@ export default function StressStep() {
               <div>
                 <p className="text-base font-semibold text-text-primary">{option.label}</p>
               </div>
-              {answers.stressLevel === option.id && (
+              {answers.Stress === option.id && (
                 <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />

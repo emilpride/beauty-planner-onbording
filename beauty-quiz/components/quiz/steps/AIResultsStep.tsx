@@ -7,10 +7,13 @@ import Image from 'next/image'
 import { motion, useMotionValue } from 'framer-motion'
 
 export default function AIResultsStep() {
+  const { answers: storeAnswers, setAnalysis } = useQuizStore()
+  const [runningNetwork, setRunningNetwork] = useState(false)
+  const [networkError, setNetworkError] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
   const [paused, setPaused] = useState(false)
   const [questionIndex, setQuestionIndex] = useState(-1) // -1 means no question
-  const [answers, setAnswers] = useState<Array<'yes' | 'no'>>([])
+  const [qaAnswers, setQaAnswers] = useState<Array<'yes' | 'no'>>([])
   const router = useRouter()
   const { nextStep, currentStep } = useQuizStore()
   const timerRef = useRef<NodeJS.Timeout | null>(null)
@@ -72,12 +75,12 @@ export default function AIResultsStep() {
         const next = Math.min(prev + 1, 100)
 
         // If next crosses a stop and we have remaining questions, pause
-        const nextStop = questionStops[answers.length] // next expected stop index
-        if (!paused && answers.length < questionStops.length && next >= nextStop) {
+      const nextStop = questionStops[qaAnswers.length] // next expected stop index
+        if (!paused && qaAnswers.length < questionStops.length && next >= nextStop) {
           // Pause exactly at the stop
           clearIntervalSafe()
           setPaused(true)
-          setQuestionIndex(answers.length)
+          setQuestionIndex(qaAnswers.length)
           return nextStop
         }
 
@@ -118,6 +121,52 @@ export default function AIResultsStep() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paused, questionIndex])
 
+  // When progress reaches 100% (the timer finishes), run the server analysis
+  useEffect(() => {
+    let mounted = true
+    if (progress >= 100 && !runningNetwork && !networkError) {
+      ;(async () => {
+        setRunningNetwork(true)
+        setNetworkError(null)
+        try {
+          const payload = { userId: storeAnswers.Id, sessionId: storeAnswers.sessionId, events: storeAnswers.events, answers: storeAnswers, photoUrls: { face: storeAnswers.FaceImageUrl, hair: storeAnswers.HairImageUrl, body: storeAnswers.BodyImageUrl } }
+          const resp = await fetch(process.env.NEXT_PUBLIC_ANALYZE_FN_URL!, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+          const json = await resp.json()
+          if (!mounted) return
+          if (json?.analysis) {
+            setAnalysis(json.analysis)
+            // small delay for UX then navigate to results
+            setTimeout(() => {
+              nextStep()
+              router.push('/quiz/34')
+            }, 300)
+          } else {
+            setNetworkError(json?.error || 'Unknown response from analysis')
+          }
+        } catch (e: any) {
+          if (!mounted) return
+          setNetworkError(e?.message || 'Failed to run analysis')
+        } finally {
+          if (!mounted) return
+          setRunningNetwork(false)
+        }
+      })()
+    }
+    return () => { mounted = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progress])
+
+  const retryNetwork = async () => {
+    // Reset progress and network state, restart the timer and let the effect trigger the network call
+    setNetworkError(null)
+    setProgress(0)
+    setQaAnswers([])
+    setPaused(false)
+    clearIntervalSafe()
+    // Small delay before restarting to allow UI to settle
+    setTimeout(() => startTimer(), 120)
+  }
+
   const getAnalysisMessage = () => {
     if (progress < 20) return 'Analyzing selected procedures...'
     if (progress < 40) return 'Building your personalized calendar and schedule...'
@@ -128,7 +177,7 @@ export default function AIResultsStep() {
   }
 
   const answerQuestion = (ans: 'yes' | 'no') => {
-    setAnswers((prev) => [...prev, ans])
+    setQaAnswers((prev) => [...prev, ans])
     setPaused(false)
     setQuestionIndex(-1)
     // Resume timer; the effect above will restart it
@@ -152,7 +201,23 @@ export default function AIResultsStep() {
               />
             </div>
             <p className="text-center font-semibold text-primary text-lg mb-4">{progress}%</p>
-            <p className="text-center text-text-secondary h-10">{getAnalysisMessage()}</p>
+              <p className="text-center text-text-secondary h-10">{getAnalysisMessage()}</p>
+              {networkError && (
+                <div className="mt-4 mx-auto max-w-xs text-center">
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 p-4">
+                    <p className="text-sm font-semibold text-rose-700 mb-2">Network error</p>
+                    <p className="text-xs text-rose-600 mb-3">{networkError}</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <button onClick={() => retryNetwork()} className="rounded-md bg-primary px-3 py-1 text-sm font-semibold text-white">Retry</button>
+                      <button onClick={() => {
+                        // Let user skip retry and proceed (optional): navigate to results to let them try later
+                        nextStep()
+                        router.push('/quiz/34')
+                      }} className="rounded-md border border-border-subtle px-3 py-1 text-sm">Skip</button>
+                    </div>
+                  </div>
+                </div>
+              )}
           </div>
         </div>
       </div>

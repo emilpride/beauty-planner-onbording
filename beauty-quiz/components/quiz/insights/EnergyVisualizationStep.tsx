@@ -51,8 +51,8 @@ export default function EnergyVisualizationStep() {
   const { answers } = useQuizStore()
   
   const energyProfile = useMemo(() => 
-    getEnergyLevel(answers.sleepHours, answers.energyLevel || 3), 
-    [answers.sleepHours, answers.energyLevel]
+    getEnergyLevel(answers.SleepDuration, answers.EnergyLevel || 3), 
+    [answers.SleepDuration, answers.EnergyLevel]
   )
 
   const pulseVariants = {
@@ -141,7 +141,7 @@ export default function EnergyVisualizationStep() {
                   animate={{ scale: [1, 1.1, 1] }}
                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  {answers.energyLevel || '?'}
+                  {answers.EnergyLevel || '?'}
                 </motion.div>
               </motion.div>
             </div>
@@ -156,7 +156,7 @@ export default function EnergyVisualizationStep() {
               transition={{ delay: 0.3, duration: 0.6 }}
             >
               <div className="text-2xl font-bold text-primary mb-1">
-                {answers.sleepHours || '?'}
+                {answers.SleepDuration || '?'}
               </div>
               <div className="text-sm text-text-secondary">Hours Sleep</div>
             </motion.div>
@@ -168,7 +168,7 @@ export default function EnergyVisualizationStep() {
               transition={{ delay: 0.5, duration: 0.6 }}
             >
               <div className="text-2xl font-bold text-primary mb-1">
-                {answers.energyLevel || '?'}/5
+                {answers.EnergyLevel || '?'}/5
               </div>
               <div className="text-sm text-text-secondary">Energy Level</div>
             </motion.div>

@@ -6,8 +6,15 @@ import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
 const problems = [
-  "Hair Loss", "Dandruff", "Dryness", "Split Ends",
-  "Frizz", "Oiliness", "Lack of Volume"
+  { id: "hair-loss", title: "Hair Loss" },
+  { id: "dandruff", title: "Dandruff" },
+  { id: "dryness", title: "Dryness" },
+  { id: "split-ends", title: "Split Ends" },
+  { id: "frizz", title: "Frizz" },
+  { id: "oiliness", title: "Oiliness" },
+  { id: "lack-volume", title: "Lack of Volume" },
+  { id: "no_problems", title: "No problems" },
+  { id: "ai_analyze", title: "Let AI Analyze" }
 ]
 
 export default function HairProblemsStep() {
@@ -15,34 +22,24 @@ export default function HairProblemsStep() {
   const router = useRouter()
   const hasTransitioned = useRef(false)
 
-  const handleToggleProblem = (problem: string) => {
-    const newProblems = answers.hairProblems.includes(problem)
-      ? answers.hairProblems.filter((p) => p !== problem)
-      : [...answers.hairProblems, problem]
-    setAnswer('hairProblems', newProblems)
-  }
-
-  const handleOptionSelect = (option: string) => {
-    if (hasTransitioned.current) return
-    
-    if (option === 'no_problems') {
-      setAnswer('hairProblems', ['no_problems'])
-    } else if (option === 'ai_analyze') {
-      setAnswer('hairProblems', ['ai_analyze'])
+  const handleToggleProblem = (problemId: string) => {
+    if (problemId === 'no_problems' || problemId === 'ai_analyze') {
+      const newProblems = answers.HairProblems.map(p => ({ ...p, isActive: p.id === problemId }))
+      setAnswer('HairProblems', newProblems)
+    } else {
+      const newProblems = answers.HairProblems.map(p => 
+        p.id === problemId ? { ...p, isActive: !p.isActive } : 
+        (p.id === 'no_problems' || p.id === 'ai_analyze') ? { ...p, isActive: false } : p
+      )
+      setAnswer('HairProblems', newProblems)
     }
-    
-    hasTransitioned.current = true
-    
-
-    setTransitioning(true)
-    nextStep()
-    router.push(`/quiz/${currentStep + 1}`)
   }
 
   const handleSkip = () => {
     if (hasTransitioned.current) return
     
-    setAnswer('hairProblems', [])
+    const newProblems = answers.HairProblems.map(p => ({ ...p, isActive: false }))
+    setAnswer('HairProblems', newProblems)
     hasTransitioned.current = true
     
 
@@ -64,49 +61,28 @@ export default function HairProblemsStep() {
     <OnboardingStep
       title="Do you have any of these hair problems?"
       subtitle="Select all that apply."
-      condition={answers.hairProblems.length > 0}
+      condition={answers.HairProblems?.some(p => p.isActive) ?? false}
       skip={true}
       skipText="Skip"
       onSkip={handleSkip}
     >
       <div className="flex flex-wrap gap-2 py-1">
-        {problems.map((problem) => (
-          <button
-            key={problem}
-            onClick={() => handleToggleProblem(problem)}
-            className={`px-4 py-2 border-2 rounded-full text-center transition-all duration-200 font-medium ${
-              answers.hairProblems.includes(problem)
-                ? 'border-primary bg-primary bg-opacity-10 text-primary'
-                : 'border-border-subtle/60 bg-surface/80 hover:border-primary/40 text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            {problem}
-          </button>
-        ))}
-        
-        {}
-        <button
-          onClick={() => handleOptionSelect('no_problems')}
-          className={`px-4 py-2 border-2 rounded-full text-center transition-all duration-200 font-medium ${
-            answers.hairProblems.includes('no_problems')
-              ? 'border-primary bg-primary bg-opacity-10 text-primary'
-              : 'border-border-subtle/60 bg-surface/80 hover:border-primary/40 text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          No problems
-        </button>
-
-        {}
-        <button
-          onClick={() => handleOptionSelect('ai_analyze')}
-          className={`px-4 py-2 border-2 rounded-full text-center transition-all duration-200 font-medium ${
-            answers.hairProblems.includes('ai_analyze')
-              ? 'border-primary bg-primary bg-opacity-10 text-primary'
-              : 'border-border-subtle/60 hover:border-primary/40 text-purple-500'
-          }`}
-        >
-          Let AI Analyze
-        </button>
+        {problems.map((problem) => {
+          const isSelected = answers.HairProblems.find(p => p.id === problem.id)?.isActive || false
+          return (
+            <button
+              key={problem.id}
+              onClick={() => handleToggleProblem(problem.id)}
+              className={`px-4 py-2 border-2 rounded-full text-center transition-all duration-200 font-medium ${
+                isSelected
+                  ? 'border-primary bg-primary bg-opacity-10 text-primary'
+                  : 'border-border-subtle/60 bg-surface/80 hover:border-primary/40 text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              {problem.title}
+            </button>
+          )
+        })}
       </div>
     </OnboardingStep>
   )

@@ -4,21 +4,30 @@ import Image from 'next/image'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
 import { useState } from 'react'
+import imageCompression from 'browser-image-compression'
+import { storage } from '@/lib/firebase'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import dynamic from 'next/dynamic'
 
 const CameraCapture = dynamic(() => import('@/components/CameraCapture'), { ssr: false })
 
 export default function PhotoUploadFaceStep() {
   const { answers, setAnswer } = useQuizStore()
-  const genderStr = answers.gender === 2 ? 'female' : 'male'
+  const genderStr = answers.Gender === 2 ? 'female' : 'male'
   const [showCamera, setShowCamera] = useState(false)
 
   const handleUpload = async (file: File) => {
     try {
-      await new Promise((r) => setTimeout(r, 800))
-      const previewUrl = URL.createObjectURL(file)
-      setAnswer('faceImageUrl', previewUrl)
-      setAnswer('faceImageSkipped', false)
+      // Compress and upload
+      const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true, initialQuality: 0.8 }
+  const compressed = await imageCompression(file, options)
+  const uid = (answers?.Id) ? answers.Id : 'anonymous'
+  const path = `user-uploads/${uid}/face/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`
+      const sRef = storageRef(storage, path)
+      const uploaded = await uploadBytes(sRef, compressed)
+      const downloadUrl = await getDownloadURL(uploaded.ref)
+      setAnswer('FaceImageUrl', downloadUrl)
+      setAnswer('FaceImageSkipped', false)
     } catch (e) {
       console.error('Error uploading face image', e)
     }
@@ -39,10 +48,26 @@ export default function PhotoUploadFaceStep() {
     setShowCamera(true)
   }
 
-  const handleCameraCapture = (blobUrl: string, _blob: Blob) => {
-    setAnswer('faceImageUrl', blobUrl)
-    setAnswer('faceImageSkipped', false)
-    setShowCamera(false)
+  const handleCameraCapture = async (blobUrl: string, blob: Blob) => {
+    try {
+      const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true, initialQuality: 0.8 }
+      const fileLike = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' })
+  const compressed = await imageCompression(fileLike, options)
+  const uid = (answers?.Id) ? answers.Id : 'anonymous'
+  const path = `user-uploads/${uid}/face/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`
+      const sRef = storageRef(storage, path)
+      const uploaded = await uploadBytes(sRef, compressed)
+      const downloadUrl = await getDownloadURL(uploaded.ref)
+      setAnswer('FaceImageUrl', downloadUrl)
+      setAnswer('FaceImageSkipped', false)
+    } catch (e) {
+      console.error('Error uploading captured face image', e)
+      // fallback to blobUrl preview
+      setAnswer('FaceImageUrl', blobUrl)
+      setAnswer('FaceImageSkipped', false)
+    } finally {
+      setShowCamera(false)
+    }
   }
 
   const handleCameraCancel = () => {
@@ -50,19 +75,19 @@ export default function PhotoUploadFaceStep() {
   }
 
   const toggleSkip = () => {
-    const skipped = answers.faceImageSkipped
+    const skipped = answers.FaceImageSkipped
     if (skipped) {
-      setAnswer('faceImageSkipped', false)
+      setAnswer('FaceImageSkipped', false)
     } else {
-      setAnswer('faceImageUrl', '')
-      setAnswer('faceImageSkipped', true)
+      setAnswer('FaceImageUrl', '')
+      setAnswer('FaceImageSkipped', true)
     }
   }
 
-  const isComplete = Boolean(answers.faceImageUrl) || answers.faceImageSkipped
+  const isComplete = Boolean(answers.FaceImageUrl) || answers.FaceImageSkipped
   const title = 'Upload a clear photo of your face'
   const subtitle = 'Why we ask: It helps personalize guidance for your skin tone, texture, and sensitivity. We use it only to tailor your plan.'
-  const imageUrl = answers.faceImageUrl
+  const imageUrl = answers.FaceImageUrl
 
   return (
     <>
@@ -91,7 +116,7 @@ export default function PhotoUploadFaceStep() {
                 <div className="relative w-full h-full">
                   <Image src={imageUrl} alt="Face preview" fill className="object-cover rounded-xl" />
                   <button
-                    onClick={() => setAnswer('faceImageUrl', '')}
+                    onClick={() => setAnswer('FaceImageUrl', '')}
                     className="absolute top-2 right-2 bg-white/80 rounded-full p-1.5 text-black hover:bg-white shadow"
                     title="Change photo"
                   >
@@ -100,7 +125,7 @@ export default function PhotoUploadFaceStep() {
                     </svg>
                   </button>
                 </div>
-              ) : answers.faceImageSkipped ? (
+              ) : answers.FaceImageSkipped ? (
                 <button
                   onClick={toggleSkip}
                   className="w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"

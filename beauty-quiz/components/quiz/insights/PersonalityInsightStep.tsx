@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
-import { useQuizStore } from '@/store/quizStore'
+import { useQuizStore, GoalItem } from '@/store/quizStore'
 
 const personalityTypes = {
   'beauty-focused': {
@@ -36,18 +36,18 @@ const personalityTypes = {
   }
 }
 
-const getPersonalityType = (goals: string[], lifestyle: string) => {
-  const goalCount = goals?.length || 0
+const getPersonalityType = (goals: GoalItem[], lifestyle: string) => {
+  const goalCount = goals?.filter(g => g.isActive).length || 0
   
-  if (goals?.some(goal => goal.toLowerCase().includes('skin') || goal.toLowerCase().includes('beauty'))) {
+  if (goals?.some(goal => goal.isActive && goal.title.toLowerCase().includes('skin') || goal.title.toLowerCase().includes('beauty'))) {
     return personalityTypes['beauty-focused']
   }
   
-  if (goals?.some(goal => goal.toLowerCase().includes('health') || goal.toLowerCase().includes('fitness'))) {
+  if (goals?.some(goal => goal.isActive && goal.title.toLowerCase().includes('health') || goal.title.toLowerCase().includes('fitness'))) {
     return personalityTypes['health-focused']
   }
   
-  if (goals?.some(goal => goal.toLowerCase().includes('energy') || goal.toLowerCase().includes('performance'))) {
+  if (goals?.some(goal => goal.isActive && goal.title.toLowerCase().includes('energy') || goal.title.toLowerCase().includes('performance'))) {
     return personalityTypes['performance-focused']
   }
   
@@ -58,8 +58,8 @@ export default function PersonalityInsightStep() {
   const { answers } = useQuizStore()
   
   const personality = useMemo(() => 
-    getPersonalityType(answers.goals, answers.lifestyle), 
-    [answers.goals, answers.lifestyle]
+    getPersonalityType(answers.Goals, answers.LifeStyle), 
+    [answers.Goals, answers.LifeStyle]
   )
 
   return (
@@ -179,9 +179,9 @@ export default function PersonalityInsightStep() {
         >
           <h4 className="text-lg font-semibold text-text-primary mb-4">Your Selected Goals</h4>
           <div className="grid gap-3 sm:grid-cols-2">
-            {(answers.goals || []).map((goal, index) => (
+            {(answers.Goals || []).map((goal, index) => (
               <motion.div
-                key={goal}
+                key={goal.id}
                 className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/10"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -199,7 +199,7 @@ export default function PersonalityInsightStep() {
                     delay: index * 0.2
                   }}
                 />
-                <span className="text-sm font-medium text-text-primary">{goal}</span>
+                <span className="text-sm font-medium text-text-primary">{goal.title}</span>
               </motion.div>
             ))}
           </div>

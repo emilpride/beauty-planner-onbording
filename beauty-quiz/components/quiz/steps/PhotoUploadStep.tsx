@@ -8,6 +8,22 @@ import OnboardingStep from '@/components/quiz/OnboardingStep'
 export default function PhotoUploadStep() {
   const { answers, setAnswer } = useQuizStore()
 
+  const getImageUrlKey = (type: 'face' | 'hair' | 'body') => {
+    switch (type) {
+      case 'face': return 'FaceImageUrl'
+      case 'hair': return 'HairImageUrl'
+      case 'body': return 'BodyImageUrl'
+    }
+  }
+
+  const getImageSkippedKey = (type: 'face' | 'hair' | 'body') => {
+    switch (type) {
+      case 'face': return 'FaceImageSkipped'
+      case 'hair': return 'HairImageSkipped'
+      case 'body': return 'BodyImageSkipped'
+    }
+  }
+
   const handleUpload = async (
     file: File, 
     type: 'face' | 'hair' | 'body',
@@ -16,7 +32,7 @@ export default function PhotoUploadStep() {
       // Fake upload for demonstration
       await new Promise(resolve => setTimeout(resolve, 1500));
       const previewUrl = URL.createObjectURL(file);
-      setAnswer(`${type}ImageUrl`, previewUrl);
+      setAnswer(getImageUrlKey(type), previewUrl);
     } catch (error) {
       console.error(`Error uploading ${type} image:`, error);
     }
@@ -42,29 +58,29 @@ export default function PhotoUploadStep() {
   }
 
   const handleToggleSkip = (type: 'face' | 'hair' | 'body') => {
-    const isCurrentlySkipped = answers[`${type}ImageSkipped`];
+    const isCurrentlySkipped = answers[getImageSkippedKey(type)];
     if (isCurrentlySkipped) {
-      setAnswer(`${type}ImageSkipped`, false);
+      setAnswer(getImageSkippedKey(type), false);
     } else {
-      setAnswer(`${type}ImageUrl`, '');
-      setAnswer(`${type}ImageSkipped`, true);
+      setAnswer(getImageUrlKey(type), '');
+      setAnswer(getImageSkippedKey(type), true);
     }
   };
 
   const getIllustrationImage = (type: 'face' | 'hair' | 'body') => {
-    const gender = answers.gender === 2 ? 'female' : 'male';
+    const gender = answers.Gender === 2 ? 'female' : 'male';
     return `/images/on_boarding_images/${type}_${gender}.png`;
   }
 
   const isComplete = (type: 'face' | 'hair' | 'body') => {
-    return !!answers[`${type}ImageUrl`] || answers[`${type}ImageSkipped`];
+    return !!answers[getImageUrlKey(type)] || answers[getImageSkippedKey(type)];
   };
 
   const canProceed = isComplete('face') && isComplete('hair') && isComplete('body');
 
   const renderUploadBox = (type: 'face' | 'hair' | 'body', label: string) => {
-    const imageUrl = answers[`${type}ImageUrl`];
-    const isSkipped = answers[`${type}ImageSkipped`];
+    const imageUrl = answers[getImageUrlKey(type)];
+    const isSkipped = answers[getImageSkippedKey(type)];
 
     return (
       <div className="flex items-center space-x-4">
@@ -91,7 +107,7 @@ export default function PhotoUploadStep() {
                 className="object-cover rounded-xl"
               />
                <button 
-                onClick={() => setAnswer(`${type}ImageUrl`, '')}
+                onClick={() => setAnswer(getImageUrlKey(type), '')}
                 className="absolute top-2 right-2 bg-white bg-opacity-70 rounded-full p-1.5 text-black hover:bg-opacity-100 transition-all duration-200"
                 title="Change photo"
               >

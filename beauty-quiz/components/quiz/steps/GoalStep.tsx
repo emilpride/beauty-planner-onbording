@@ -6,43 +6,43 @@ import { useQuizStore } from '@/store/quizStore'
 import Image from 'next/image'
 
 const goals = [
-  { text: 'Build Healthy Activities', image: '/icons/misc/goal_img_1.png' },
-  { text: 'Boost Productivity', image: '/icons/misc/goal_img_2.png' },
-  { text: 'Achieve Personal Goals', image: '/icons/misc/goal_img_3.png' },
-  { text: 'Manage Stress & Anxiety', image: '/icons/misc/goal_img_4.png' },
+  { id: 'healthy-activities', text: 'Build Healthy Activities', image: '/icons/misc/goal_img_1.png' },
+  { id: 'boost-productivity', text: 'Boost Productivity', image: '/icons/misc/goal_img_2.png' },
+  { id: 'personal-goals', text: 'Achieve Personal Goals', image: '/icons/misc/goal_img_3.png' },
+  { id: 'manage-stress', text: 'Manage Stress & Anxiety', image: '/icons/misc/goal_img_4.png' },
   // Added extra options to nicely fill the grid without scroll
-  { text: 'Increase Longevity', image: '/icons/goals/longevity.png' },
-  { text: 'Reduce Biological Age', image: '/icons/goals/reduce biological age.png' },
-  { text: 'Improve Wellness Score', image: '/icons/goals/impruve wellness score.png' },
-  { text: 'Reduce Procrastination', image: '/icons/goals/Reduce Procrastination.png' },
+  { id: 'increase-longevity', text: 'Increase Longevity', image: '/icons/goals/longevity.png' },
+  { id: 'reduce-biological-age', text: 'Reduce Biological Age', image: '/icons/goals/reduce biological age.png' },
+  { id: 'improve-wellness-score', text: 'Improve Wellness Score', image: '/icons/goals/impruve wellness score.png' },
+  { id: 'reduce-procrastination', text: 'Reduce Procrastination', image: '/icons/goals/Reduce Procrastination.png' },
 ]
 
 export default function GoalStep() {
   const { answers, setAnswer } = useQuizStore()
 
-  const handleToggleGoal = (goal: string) => {
-    const newGoals = answers.goals.includes(goal)
-      ? answers.goals.filter((g) => g !== goal)
-      : [...answers.goals, goal]
-    setAnswer('goals', newGoals)
+  const handleToggleGoal = (goalId: string) => {
+    const newGoals = answers.Goals.map(g => 
+      g.id === goalId ? { ...g, isActive: !g.isActive } : g
+    )
+    setAnswer('Goals', newGoals)
   }
 
   return (
     <OnboardingStep
       title="What Do You Want To Achieve With Beauty Mirror?"
       subtitle="Your aspirations guide our efforts to support and empower you on your journey. Select all that apply."
-      condition={answers.goals.length > 0}
+      condition={answers.Goals?.some(g => g.isActive) ?? false}
       fillContent
       compact
     >
   {/* Fill available vertical space under the header and above the footer without scrolling, slightly more compact */}
   <div className="grid grid-cols-2 grid-rows-4 auto-rows-fr h-full gap-[6px] px-2 pb-2">
         {goals.map((goal, index) => {
-          const isSelected = answers.goals.includes(goal.text)
+          const isSelected = answers.Goals.find(g => g.id === goal.id)?.isActive || false
           return (
             <motion.button
               key={goal.text}
-              onClick={() => handleToggleGoal(goal.text)}
+              onClick={() => handleToggleGoal(goal.id)}
               className={`relative px-3 py-3 rounded-lg h-full flex flex-col items-center justify-center gap-1.5 border-2 text-center transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 ${
                 isSelected
                   ? 'border-primary bg-primary/10 shadow-md text-primary'

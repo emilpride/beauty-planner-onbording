@@ -166,7 +166,7 @@ const buildInitialActivities = (gender: GenderKey): ActivityCollection => ({
 export default function ChooseProceduresStep() {
   const router = useRouter()
   const { setAnswer, answers } = useQuizStore()
-  const genderKey: GenderKey = answers.gender === 1 ? 'male' : answers.gender === 2 ? 'female' : 'unknown'
+  const genderKey: GenderKey = answers.Gender === 1 ? 'male' : answers.Gender === 2 ? 'female' : 'unknown'
   const [selectedActivities, setSelectedActivities] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false)
@@ -195,7 +195,7 @@ export default function ChooseProceduresStep() {
       return merged
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answers.gender])
+  }, [answers.Gender])
   
 
   const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] = useState(false)
@@ -342,11 +342,11 @@ export default function ChooseProceduresStep() {
   const activeIconColor = isCreateCategoryModalOpen ? (newCategory.color || 'rgb(var(--color-primary))') : (newActivity.color || 'rgb(var(--color-primary))')
 
   useEffect(() => {
-    const stored = answers.selectedActivities
+    const stored = answers.SelectedActivities
     if (Array.isArray(stored)) {
       setSelectedActivities(stored)
     }
-  }, [answers.selectedActivities])
+  }, [answers.SelectedActivities])
 
 
   const handleActivityToggle = (activityId: string) => {
@@ -359,8 +359,8 @@ export default function ChooseProceduresStep() {
 
   const handleNext = () => {
     // Pre-fill default notes for selected activities into overrides (non-destructive)
-    const genderKey: GenderKey = answers.gender === 1 ? 'male' : answers.gender === 2 ? 'female' : 'unknown'
-    const existingOverrides = answers.activityMetaOverrides || {}
+    const genderKey: GenderKey = answers.Gender === 1 ? 'male' : answers.Gender === 2 ? 'female' : 'unknown'
+    const existingOverrides = answers.ActivityMetaOverrides || {}
     const nextOverrides = { ...existingOverrides }
     for (const id of selectedActivities) {
       const meta = getActivityMeta(id)
@@ -375,7 +375,7 @@ export default function ChooseProceduresStep() {
       // Attach default note as a synthetic field on the override via a parallel map in session state if needed.
       // Since overrides schema doesn't include 'note', we rely on ProcedureSetupStep to compute note again.
     }
-    setAnswer('activityMetaOverrides', nextOverrides)
+    setAnswer('ActivityMetaOverrides', nextOverrides)
     // Save default notes snapshot for selected items
     const notes: Record<string, string> = {}
     // Build a quick lookup for all activities by id to capture custom notes
@@ -391,8 +391,8 @@ export default function ChooseProceduresStep() {
         notes[id] = getDefaultNote(id, genderKey)
       }
     }
-    setAnswer('activityNotes', { ...(answers.activityNotes || {}), ...notes })
-    setAnswer('selectedActivities', selectedActivities)
+    setAnswer('ActivityNotes', { ...(answers.ActivityNotes || {}), ...notes })
+    setAnswer('SelectedActivities', selectedActivities)
     router.push('/procedures/1')
   }
 
@@ -490,8 +490,8 @@ export default function ChooseProceduresStep() {
       return newState
     })
 
-    setAnswer('activityMetaOverrides', {
-      ...(answers.activityMetaOverrides || {}),
+    setAnswer('ActivityMetaOverrides', {
+      ...(answers.ActivityMetaOverrides || {}),
       [newActivityData.id]: {
         name: newActivityData.name,
         iconId: newActivityData.iconId,

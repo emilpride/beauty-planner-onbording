@@ -6,15 +6,21 @@ import { Sparkles, Sun, Moon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { useQuizStore } from '@/store/quizStore'
+import { logQuizStart, logThemeSelected } from '@/lib/quizEvents'
 
 export default function ThemeSelectionPage() {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
   const [activeTheme, setActiveTheme] = useState<ThemeVariant>(theme)
-
+  const { sessionId, setAnswer } = useQuizStore()
   useEffect(() => {
     setActiveTheme(theme)
   }, [theme])
+
+
+  // Флаг, чтобы не логировать старт квиза повторно
+  const [quizStarted, setQuizStarted] = useState(false)
 
   const isDark = activeTheme === 'dark'
 
@@ -26,10 +32,18 @@ export default function ThemeSelectionPage() {
 
   const toggle = () => handleSelect(isDark ? 'light' : 'dark')
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     try {
       sessionStorage.setItem('themeSelected', '1')
     } catch {}
+    if (!quizStarted) {
+      await logQuizStart(sessionId)
+      setQuizStarted(true)
+      // Set quizStartTime
+      setAnswer('quizStartTime', new Date().toISOString())
+    }
+    await logThemeSelected(sessionId, activeTheme)
+    setAnswer('theme', activeTheme)
     router.push('/welcome')
   }
 

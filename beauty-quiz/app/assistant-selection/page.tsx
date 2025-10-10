@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuizStore } from '@/store/quizStore'
+import { logAssistantSelected } from '@/lib/quizEvents'
 import Image from 'next/image'
 import AnimatedBackground from '@/components/AnimatedBackground'
 
@@ -117,7 +118,7 @@ export default function AssistantSelectionPage() {
     setIsLoading(true)
     setAnswer('assistant', selectedAssistant)
     // Auto-assign gender based on assistant selection (1=Max -> male, 2=Ellie -> female, 3=Dave -> male)
-    setAnswer('gender', selectedAssistant === 2 ? 2 : 1)
+    setAnswer('Gender', selectedAssistant === 2 ? 2 : 1)
     router.push('/assistant-welcome')
   }
 

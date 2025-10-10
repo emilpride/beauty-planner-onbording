@@ -28,16 +28,14 @@ export default function EnergyLevelStep() {
     const clientY = e.clientY ?? (e as any).touches?.[0]?.clientY
     const level = getLevelFromY(clientY)
     setCurrentLevel(level)
-    setAnswer('energyLevel', level)
+    setAnswer('EnergyLevel', level)
     window.addEventListener('pointermove', handlePointerMove)
     window.addEventListener('pointerup', handlePointerUp)
   }
   const handlePointerMove = (e: PointerEvent) => {
-    if (!isDragging) return
-    const clientY = e.clientY
-    const level = getLevelFromY(clientY)
+    const level = getLevelFromY(e.clientY)
     setCurrentLevel(level)
-    setAnswer('energyLevel', level)
+    setAnswer('EnergyLevel', level)
   }
   const handlePointerUp = (e: PointerEvent) => {
     setIsDragging(false)
@@ -51,7 +49,7 @@ export default function EnergyLevelStep() {
     const clientY = e.touches[0].clientY
     const level = getLevelFromY(clientY)
     setCurrentLevel(level)
-    setAnswer('energyLevel', level)
+    setAnswer('EnergyLevel', level)
     window.addEventListener('touchmove', handleTouchMove)
     window.addEventListener('touchend', handleTouchEnd)
   }
@@ -60,7 +58,7 @@ export default function EnergyLevelStep() {
     const clientY = e.touches[0].clientY
     const level = getLevelFromY(clientY)
     setCurrentLevel(level)
-    setAnswer('energyLevel', level)
+    setAnswer('EnergyLevel', level)
   }
   const handleTouchEnd = (e: TouchEvent) => {
     setIsDragging(false)
@@ -79,13 +77,13 @@ export default function EnergyLevelStep() {
   const [currentLevel, setCurrentLevel] = useState<1 | 2 | 3 | 4 | 5>(1)
 
   useEffect(() => {
-    setAnswer('energyLevel', 1)
+    setAnswer('EnergyLevel', 1)
     setCurrentLevel(1)
   }, [setAnswer])
 
   const handleLevelClick = (level: 1 | 2 | 3 | 4 | 5) => {
     setCurrentLevel(level)
-    setAnswer('energyLevel', level)
+    setAnswer('EnergyLevel', level)
   }
 
   const getBatteryColor = (level: number) => {
@@ -102,7 +100,7 @@ export default function EnergyLevelStep() {
     <OnboardingStep
       title="How's Your Daily Energy Level?"
       subtitle="Tap the battery to set your energy level."
-      condition={answers.energyLevel > 0}
+      condition={(answers.EnergyLevel || 0) > 0}
     >
       <div className="flex justify-center py-4">
         <div className="space-y-4">

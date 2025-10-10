@@ -1,14 +1,11 @@
 {
   "projects": {
-    "default": "beauty-planner-26cc0"
+    "default": "beauty-planner-26cc0",
+    "default ": "beauty-planner-26cc0"
   },
   "targets": {
     "beauty-planner-26cc0": {
-      "hosting": {
-        "quiz": [
-          "quiz-beautymirror-app"
-        ]
-      }
+      "hosting": {}
     }
   },
   "etags": {}

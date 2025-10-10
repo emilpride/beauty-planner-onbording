@@ -141,7 +141,7 @@ export default function RecommendedCare({ baseScores }: { baseScores: BaseScores
   const { answers } = useQuizStore()
 
   const recommendedCare = useMemo<CareReco[]>(() => {
-    const selected = Array.isArray(answers.selectedActivities) ? answers.selectedActivities : []
+    const selected = Array.isArray(answers.SelectedActivities) ? answers.SelectedActivities : []
     const picks: string[] = [...selected]
 
     const categoryPriority = (
@@ -179,7 +179,7 @@ export default function RecommendedCare({ baseScores }: { baseScores: BaseScores
         category,
       }
     })
-  }, [answers.selectedActivities, baseScores.skin, baseScores.hair, baseScores.physic, baseScores.mental])
+  }, [answers.SelectedActivities, baseScores.skin, baseScores.hair, baseScores.physic, baseScores.mental])
 
   // Group by category for clearer structure
   const grouped = useMemo(() => {

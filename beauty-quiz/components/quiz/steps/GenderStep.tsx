@@ -21,7 +21,7 @@ export default function GenderStep({ onExitAnimation, onBackAnimation }: GenderS
     <OnboardingStep
       title="Select Your Gender"
       subtitle="Let us know a bit about you!"
-      condition={answers.gender !== 0}
+      condition={answers.Gender !== 0}
       onExitAnimation={onExitAnimation}
       onBackAnimation={onBackAnimation}
     >
@@ -29,7 +29,7 @@ export default function GenderStep({ onExitAnimation, onBackAnimation }: GenderS
         {options.map((option) => (
           <div
             key={option.id}
-            onClick={() => setAnswer('gender', option.id as 1 | 2)}
+            onClick={() => setAnswer('Gender', option.id as 1 | 2)}
             className="flex flex-col items-center cursor-pointer group"
           >
             <div
@@ -37,7 +37,7 @@ export default function GenderStep({ onExitAnimation, onBackAnimation }: GenderS
                 w-32 h-32 rounded-full overflow-hidden 
                 border-4 transition-all duration-200 p-1
                 ${
-                  answers.gender === option.id
+                  answers.Gender === option.id
                     ? option.id === 1 ? 'border-blue-400' : 'border-pink-400'
                     : 'border-transparent'
                 }

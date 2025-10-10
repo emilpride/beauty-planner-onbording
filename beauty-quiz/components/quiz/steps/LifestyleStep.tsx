@@ -19,7 +19,7 @@ export default function LifestyleStep() {
   const handleOptionSelect = (optionId: string) => {
     if (hasTransitioned.current) return
 
-    setAnswer('lifestyle', optionId as 'sedentary' | 'active' | 'sports')
+    setAnswer('LifeStyle', optionId as 'sedentary' | 'active' | 'sports')
     hasTransitioned.current = true
     setTransitioning(true)
     nextStep()
@@ -27,7 +27,7 @@ export default function LifestyleStep() {
   }
 
   useEffect(() => {
-    setAnswer('lifestyle', '')
+    setAnswer('LifeStyle', '')
     hasTransitioned.current = false
 
     return () => {
@@ -43,7 +43,7 @@ export default function LifestyleStep() {
     >
       <div className="space-y-2 py-1">
         {options.map((option) => {
-          const isSelected = answers.lifestyle === option.id
+          const isSelected = answers.LifeStyle === option.id
           return (
             <button
               key={option.id}

@@ -20,7 +20,7 @@ export default function FocusStep() {
   const handleOptionSelect = (optionId: string) => {
     if (hasTransitioned.current) return
 
-    setAnswer('focus', optionId as any)
+    setAnswer('Focus', optionId as any)
     hasTransitioned.current = true
 
     setTransitioning(true)
@@ -29,7 +29,7 @@ export default function FocusStep() {
   }
 
   useEffect(() => {
-    setAnswer('focus', '')
+    setAnswer('Focus', '')
     hasTransitioned.current = false
 
     return () => {
@@ -41,12 +41,12 @@ export default function FocusStep() {
     <OnboardingStep
       title="How would you rate your ability to focus?"
       subtitle="This helps in tailoring mindfulness and productivity exercises."
-      condition={answers.focus !== ''}
+      condition={answers.Focus !== ''}
       hideButton={true}
     >
       <div className="space-y-2 py-1">
         {options.map((option) => {
-          const isSelected = answers.focus === option.id
+          const isSelected = answers.Focus === option.id
           return (
             <button
               key={option.id}

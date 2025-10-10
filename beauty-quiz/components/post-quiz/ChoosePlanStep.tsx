@@ -16,7 +16,7 @@ export default function ChoosePlanStep() {
 
   // Get BMI images based on user's gender
   const getBMIImages = () => {
-    const isFemale = answers.gender === 1 // 1 = female, 0 = male
+    const isFemale = answers.Gender === 1 // 1 = female, 0 = male
     const prefix = isFemale ? 'bmi_female' : 'bmi_male'
     
     return {

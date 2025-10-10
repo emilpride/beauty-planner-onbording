@@ -17,7 +17,7 @@ export default function HairTypeStep() {
   const handleOptionSelect = (type: string) => {
     if (hasTransitioned.current) return
     
-    setAnswer('hairType', type)
+    setAnswer('HairType', type)
     hasTransitioned.current = true
     
 
@@ -29,7 +29,7 @@ export default function HairTypeStep() {
   const handleSkip = () => {
     if (hasTransitioned.current) return
     
-    setAnswer('hairType', '')
+    setAnswer('HairType', '')
     hasTransitioned.current = true
     
 
@@ -41,7 +41,7 @@ export default function HairTypeStep() {
 
   useEffect(() => {
 
-    setAnswer('hairType', '')
+    setAnswer('HairType', '')
     hasTransitioned.current = false
     
     return () => {
@@ -53,7 +53,7 @@ export default function HairTypeStep() {
     <OnboardingStep
       title="What is your hair type?"
       subtitle="Select the type that best describes your hair."
-      condition={answers.hairType !== ''}
+      condition={answers.HairType !== ''}
       hideButton={true}
       skip={true}
       skipText="Skip"
@@ -65,7 +65,7 @@ export default function HairTypeStep() {
             key={type}
             onClick={() => handleOptionSelect(type)}
             className={`w-full p-3 border-2 rounded-lg text-left transition-all duration-300 ${
-              answers.hairType === type
+              answers.HairType === type
                 ? 'border-primary bg-surface shadow-soft'
                 : 'border-border-subtle/60 bg-surface-muted hover:border-primary/40 hover:bg-surface hover:text-text-primary'
             }`}
@@ -74,7 +74,7 @@ export default function HairTypeStep() {
               <div>
                 <p className="text-base font-semibold text-text-primary">{type}</p>
               </div>
-              {answers.hairType === type && (
+              {answers.HairType === type && (
                 <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -87,7 +87,7 @@ export default function HairTypeStep() {
         <button
           onClick={() => handleOptionSelect('ai_analyze')}
           className={`w-full p-3 border-2 rounded-lg text-left transition-all duration-300 ${
-            answers.hairType === 'ai_analyze'
+            answers.HairType === 'ai_analyze'
               ? 'border-primary bg-surface shadow-soft'
               : 'border-border-subtle/60 bg-surface-muted hover:border-primary/40 hover:bg-surface hover:text-text-primary'
           }`}

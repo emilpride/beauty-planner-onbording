@@ -9,12 +9,12 @@ import Image from 'next/image'
 export default function NotificationsConsentStep() {
   const { currentStep, nextStep, answers, setAnswer } = useQuizStore()
   const router = useRouter()
-  const [dailyReminders, setDailyReminders] = useState(answers.dailyReminders || false)
-  const [activityReminders, setActivityReminders] = useState<boolean>(answers.activityReminders || true)
+  const [dailyReminders, setDailyReminders] = useState(answers.DailyMoodReminder || false)
+  const [activityReminders, setActivityReminders] = useState<boolean>(answers.ActivityReminder || true)
 
   const handleSave = () => {
-    setAnswer('dailyReminders', dailyReminders)
-    setAnswer('activityReminders', activityReminders)
+    setAnswer('DailyMoodReminder', dailyReminders)
+    setAnswer('ActivityReminder', activityReminders)
     
     router.push('/procedures/4')
   }

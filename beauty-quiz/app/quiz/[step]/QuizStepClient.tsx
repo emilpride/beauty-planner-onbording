@@ -119,10 +119,13 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   const [hasMeasured, setHasMeasured] = useState(false)
   
   // Only use Zustand on client side
-  const { totalSteps, goToStep, answers, isTransitioning, setTransitioning } = useQuizStore()
+  const { totalSteps, goToStep, answers, isTransitioning, setTransitioning, generateSessionId } = useQuizStore()
   
   useEffect(() => {
     setIsHydrated(true)
+    if (!answers.sessionId) {
+      generateSessionId()
+    }
   }, [])
 
   // Reset transitioning flag when step changes

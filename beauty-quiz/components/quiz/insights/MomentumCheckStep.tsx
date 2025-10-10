@@ -3,11 +3,11 @@
 import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
-import { useQuizStore } from '@/store/quizStore'
+import { useQuizStore, ActivityItem, DietItem } from '@/store/quizStore'
 
-const getMomentumProfile = (activities: string[], diet: string[], mood: string) => {
-  const activityCount = activities?.length || 0
-  const dietCount = diet?.length || 0
+const getMomentumProfile = (activities: ActivityItem[], diet: DietItem[], mood: string) => {
+  const activityCount = activities?.filter(a => a.isActive).length || 0
+  const dietCount = diet?.filter(d => d.isActive).length || 0
   
   let momentumLevel = 'balanced'
   let title = 'Balanced Momentum'
@@ -72,11 +72,11 @@ export default function MomentumCheckStep() {
   
   const momentumProfile = useMemo(() => 
     getMomentumProfile(
-      answers.physicalActivities || [], 
-      answers.diet || [], 
-      answers.mood || 'okay'
+      answers.PhysicalActivities || [], 
+      answers.Diet || [], 
+      answers.Mood || 'okay'
     ), 
-    [answers.physicalActivities, answers.diet, answers.mood]
+    [answers.PhysicalActivities, answers.Diet, answers.Mood]
   )
 
   return (
@@ -220,9 +220,9 @@ export default function MomentumCheckStep() {
             
             <div className="space-y-2">
               <div className="flex flex-wrap gap-2">
-                {(answers.physicalActivities || []).slice(0, 4).map((activity, index) => (
+                {(answers.PhysicalActivities || []).slice(0, 4).map((activity, index) => (
                   <motion.span
-                    key={activity}
+                    key={activity.id}
                     className="rounded-full bg-blue-100 text-blue-800 px-3 py-1 text-xs font-medium"
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -233,12 +233,12 @@ export default function MomentumCheckStep() {
                       stiffness: 200
                     }}
                   >
-                    {activity.replace(/_/g, ' ')}
+                    {activity.title.replace(/_/g, ' ')}
                   </motion.span>
                 ))}
-                {(answers.physicalActivities || []).length > 4 && (
+                {(answers.PhysicalActivities || []).length > 4 && (
                   <span className="rounded-full bg-gray-100 text-gray-800 px-3 py-1 text-xs font-medium">
-                    +{(answers.physicalActivities || []).length - 4} more
+                    +{(answers.PhysicalActivities || []).length - 4} more
                   </span>
                 )}
               </div>
@@ -268,9 +268,9 @@ export default function MomentumCheckStep() {
             
             <div className="space-y-2">
               <div className="flex flex-wrap gap-2">
-                {(answers.diet || []).slice(0, 4).map((item, index) => (
+                {(answers.Diet || []).slice(0, 4).map((item, index) => (
                   <motion.span
-                    key={item}
+                    key={item.id}
                     className="rounded-full bg-green-100 text-green-800 px-3 py-1 text-xs font-medium"
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -281,12 +281,12 @@ export default function MomentumCheckStep() {
                       stiffness: 200
                     }}
                   >
-                    {item.replace(/_/g, ' ')}
+                    {item.title.replace(/_/g, ' ')}
                   </motion.span>
                 ))}
-                {(answers.diet || []).length > 4 && (
+                {(answers.Diet || []).length > 4 && (
                   <span className="rounded-full bg-gray-100 text-gray-800 px-3 py-1 text-xs font-medium">
-                    +{(answers.diet || []).length - 4} more
+                    +{(answers.Diet || []).length - 4} more
                   </span>
                 )}
               </div>

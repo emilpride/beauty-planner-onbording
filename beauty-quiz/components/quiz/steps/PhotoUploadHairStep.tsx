@@ -5,20 +5,28 @@ import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
+import imageCompression from 'browser-image-compression'
+import { storage } from '@/lib/firebase'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 const CameraCapture = dynamic(() => import('@/components/CameraCapture'), { ssr: false })
 
 export default function PhotoUploadHairStep() {
   const { answers, setAnswer } = useQuizStore()
-  const genderStr = answers.gender === 2 ? 'female' : 'male'
+  const genderStr = answers.Gender === 2 ? 'female' : 'male'
   const [showCamera, setShowCamera] = useState(false)
 
   const handleUpload = async (file: File) => {
     try {
-      await new Promise((r) => setTimeout(r, 800))
-      const previewUrl = URL.createObjectURL(file)
-      setAnswer('hairImageUrl', previewUrl)
-      setAnswer('hairImageSkipped', false)
+      const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true, initialQuality: 0.8 }
+  const compressed = await imageCompression(file, options)
+  const uid = (answers?.Id) ? answers.Id : 'anonymous'
+  const path = `user-uploads/${uid}/hair/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`
+      const sRef = storageRef(storage, path)
+      const uploaded = await uploadBytes(sRef, compressed)
+      const downloadUrl = await getDownloadURL(uploaded.ref)
+      setAnswer('HairImageUrl', downloadUrl)
+      setAnswer('HairImageSkipped', false)
     } catch (e) {
       console.error('Error uploading hair image', e)
     }
@@ -39,10 +47,25 @@ export default function PhotoUploadHairStep() {
     setShowCamera(true)
   }
 
-  const handleCameraCapture = (blobUrl: string, _blob: Blob) => {
-    setAnswer('hairImageUrl', blobUrl)
-    setAnswer('hairImageSkipped', false)
-    setShowCamera(false)
+  const handleCameraCapture = async (blobUrl: string, blob: Blob) => {
+    try {
+      const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true, initialQuality: 0.8 }
+      const fileLike = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' })
+  const compressed = await imageCompression(fileLike, options)
+  const uid = (answers?.Id) ? answers.Id : 'anonymous'
+  const path = `user-uploads/${uid}/hair/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`
+      const sRef = storageRef(storage, path)
+      const uploaded = await uploadBytes(sRef, compressed)
+      const downloadUrl = await getDownloadURL(uploaded.ref)
+      setAnswer('HairImageUrl', downloadUrl)
+      setAnswer('HairImageSkipped', false)
+    } catch (e) {
+      console.error('Error uploading captured hair image', e)
+      setAnswer('HairImageUrl', blobUrl)
+      setAnswer('HairImageSkipped', false)
+    } finally {
+      setShowCamera(false)
+    }
   }
 
   const handleCameraCancel = () => {
@@ -50,21 +73,21 @@ export default function PhotoUploadHairStep() {
   }
 
   const toggleSkip = () => {
-    const skipped = answers.hairImageSkipped
+    const skipped = answers.HairImageSkipped
     if (skipped) {
-      setAnswer('hairImageSkipped', false)
+      setAnswer('HairImageSkipped', false)
     } else {
-      setAnswer('hairImageUrl', '')
-      setAnswer('hairImageSkipped', true)
+      setAnswer('HairImageUrl', '')
+      setAnswer('HairImageSkipped', true)
     }
   }
 
-  const isComplete = Boolean(answers.hairImageUrl) || answers.hairImageSkipped
+  const isComplete = Boolean(answers.HairImageUrl) || answers.HairImageSkipped
 
   const title = 'Upload a clear photo of your hair'
   const subtitle = 'Why we ask: It helps tailor hair care tips for your density, texture, and scalp condition. We use it only to personalize your plan.'
 
-  const imageUrl = answers.hairImageUrl
+  const imageUrl = answers.HairImageUrl
 
   return (
     <>
@@ -93,7 +116,7 @@ export default function PhotoUploadHairStep() {
                 <div className="relative w-full h-full">
                   <Image src={imageUrl} alt="Hair preview" fill className="object-cover rounded-xl" />
                   <button
-                    onClick={() => setAnswer('hairImageUrl', '')}
+                    onClick={() => setAnswer('HairImageUrl', '')}
                     className="absolute top-2 right-2 bg-white/80 rounded-full p-1.5 text-black hover:bg-white shadow"
                     title="Change photo"
                   >
@@ -102,7 +125,7 @@ export default function PhotoUploadHairStep() {
                     </svg>
                   </button>
                 </div>
-              ) : answers.hairImageSkipped ? (
+              ) : answers.HairImageSkipped ? (
                 <button
                   onClick={toggleSkip}
                   className="w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"

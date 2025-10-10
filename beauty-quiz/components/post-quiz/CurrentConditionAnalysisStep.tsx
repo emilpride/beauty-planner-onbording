@@ -241,12 +241,77 @@ function CircularScore({
 export default function CurrentConditionAnalysisStep() {
   const router = useRouter()
   const { answers } = useQuizStore()
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false)
+  const [analysisError, setAnalysisError] = useState<string | null>(null)
+  const [aiModel, setAiModel] = useState<any | null>(null)
+  const [lastTriedAt, setLastTriedAt] = useState<number | null>(null)
+
+  // Auto-trigger analysis when payment completed and images available (or skipped)
+  useEffect(() => {
+    const shouldRun = answers.PaymentCompleted && !aiModel && !loadingAnalysis
+    const imagesReady = (
+      (Boolean(answers.FaceImageUrl) || answers.FaceImageSkipped) &&
+      (Boolean(answers.HairImageUrl) || answers.HairImageSkipped) &&
+      (Boolean(answers.BodyImageUrl) || answers.BodyImageSkipped)
+    )
+    if (!shouldRun) return
+    if (!imagesReady) return
+    let mounted = true
+    const run = async () => {
+      try {
+        setAnalysisError(null)
+        setLoadingAnalysis(true)
+        const payload = { userId: answers.Id, answers, photoUrls: { face: answers.FaceImageUrl, hair: answers.HairImageUrl, body: answers.BodyImageUrl } }
+        const resp = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        const json = await resp.json()
+        if (!mounted) return
+        if (json?.analysis) {
+          setAiModel(json.analysis)
+        } else {
+          setAnalysisError(json?.error || 'Unknown response')
+        }
+      } catch (e: any) {
+        if (!mounted) return
+        setAnalysisError(e?.message || 'Failed to analyze')
+      } finally {
+        if (!mounted) return
+        setLoadingAnalysis(false)
+        setLastTriedAt(Date.now())
+      }
+    }
+
+    run()
+
+    return () => { mounted = false }
+  }, [answers.PaymentCompleted, answers.FaceImageUrl, answers.HairImageUrl, answers.BodyImageUrl, answers.FaceImageSkipped, answers.HairImageSkipped, answers.BodyImageSkipped, answers.Id, aiModel, loadingAnalysis])
+
+  // Exposed action to manually retry the analysis (re-run the server call)
+  const retryAnalysis = async () => {
+    if (loadingAnalysis) return
+    setAnalysisError(null)
+    setLoadingAnalysis(true)
+    try {
+      const payload = { userId: answers.Id, answers, photoUrls: { face: answers.FaceImageUrl, hair: answers.HairImageUrl, body: answers.BodyImageUrl } }
+      const resp = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const json = await resp.json()
+      if (json?.analysis) {
+        setAiModel(json.analysis)
+      } else {
+        setAnalysisError(json?.error || 'Unknown response')
+      }
+    } catch (e: any) {
+      setAnalysisError(e?.message || 'Failed to analyze')
+    } finally {
+      setLoadingAnalysis(false)
+      setLastTriedAt(Date.now())
+    }
+  }
 
   // ---- Age computation ----
   const chronologicalAge = useMemo(() => {
     // Prefer birthDate if present; fallback to provided age
-    if (answers.birthDate) {
-      const d = new Date(answers.birthDate)
+    if (answers.BirthDate) {
+      const d = new Date(answers.BirthDate)
       if (!isNaN(d.getTime())) {
         const now = new Date()
         let age = now.getFullYear() - d.getFullYear()
@@ -255,9 +320,9 @@ export default function CurrentConditionAnalysisStep() {
         return Math.max(0, age)
       }
     }
-    if (typeof answers.age === 'number' && Number.isFinite(answers.age)) return Math.max(0, Math.floor(answers.age))
+    if (typeof answers.Age === 'number' && Number.isFinite(answers.Age)) return Math.max(0, Math.floor(answers.Age))
     return null
-  }, [answers.birthDate, answers.age])
+  }, [answers.BirthDate, answers.Age])
 
   // Heuristic biological age estimate from lifestyle factors
   const { positiveFactors, negativeFactors, biologicalAgeTarget } = useMemo(() => {
@@ -265,33 +330,33 @@ export default function CurrentConditionAnalysisStep() {
     const neg: string[] = []
 
     // Sleep
-    if (answers.sleepHours === '7-8') pos.push('7–8 hours of sleep')
-    if (answers.sleepHours === '<6') neg.push('Sleep deprivation (<6h)')
+    if (answers.SleepDuration === '7-8') pos.push('7–8 hours of sleep')
+    if (answers.SleepDuration === '<6') neg.push('Sleep deprivation (<6h)')
 
     // Activity / lifestyle
-    if (answers.lifestyle === 'active' || answers.lifestyle === 'sports') pos.push('Active lifestyle')
-    if (answers.lifestyle === 'sedentary') neg.push('Sedentary routine')
+    if (answers.LifeStyle === 'active' || answers.LifeStyle === 'sports') pos.push('Active lifestyle')
+    if (answers.LifeStyle === 'sedentary') neg.push('Sedentary routine')
 
     // Stress
-    if (answers.stressLevel === 'rarely') pos.push('Low stress')
-    if (answers.stressLevel === 'often' || answers.stressLevel === 'always') neg.push('High stress')
+    if (answers.Stress === 'rarely') pos.push('Low stress')
+    if (answers.Stress === 'often' || answers.Stress === 'always') neg.push('High stress')
 
     // Physical activities selection
-    if (answers.physicalActivities && answers.physicalActivities.length > 0) pos.push('Regular workouts')
+    if (answers.PhysicalActivities.some(a => a.isActive)) pos.push('Regular workouts')
 
     // Diet
-    if (answers.diet && answers.diet.length > 0) pos.push('Balanced diet')
+    if (answers.Diet.some(d => d.isActive)) pos.push('Balanced diet')
 
     // Energy/mood small signals
-    if (answers.energyLevel >= 4) pos.push('Good energy')
-    if (answers.mood === 'terrible' || answers.mood === 'bad') neg.push('Low mood')
+    if (answers.EnergyLevel && answers.EnergyLevel >= 4) pos.push('Good energy')
+    if (answers.Mood === 'terrible' || answers.Mood === 'bad') neg.push('Low mood')
 
     const base = chronologicalAge ?? 30
     const delta = Math.max(-5, Math.min(5, pos.length * -0.7 + neg.length * 0.8))
     const target = Math.max(0, Math.round(base + delta))
 
     return { positiveFactors: pos, negativeFactors: neg, biologicalAgeTarget: target }
-  }, [answers.sleepHours, answers.lifestyle, answers.stressLevel, answers.physicalActivities, answers.diet, answers.energyLevel, answers.mood, chronologicalAge])
+  }, [answers.SleepDuration, answers.LifeStyle, answers.Stress, answers.PhysicalActivities, answers.Diet, answers.EnergyLevel, answers.Mood, chronologicalAge])
 
   // Animate biological age number
   const [bioAgeAnimated, setBioAgeAnimated] = useState(0)
@@ -319,13 +384,13 @@ export default function CurrentConditionAnalysisStep() {
   }, [chronologicalAge, biologicalAgeTarget])
 
   const heightMeters = useMemo(
-    () => parseHeight(answers.height, answers.heightUnit),
-    [answers.height, answers.heightUnit],
+    () => null, // parseHeight(answers.Height, answers.HeightUnit || 'cm'),
+    [answers.Height, answers.HeightUnit],
   )
 
   const weightKg = useMemo(
-    () => parseWeight(answers.weight, answers.weightUnit),
-    [answers.weight, answers.weightUnit],
+    () => null, // parseWeight(answers.Weight, answers.WeightUnit || 'kg'),
+    [answers.Weight, answers.WeightUnit],
   )
 
   const bmi = useMemo(() => {
@@ -368,15 +433,15 @@ export default function CurrentConditionAnalysisStep() {
     return () => { if (raf) cancelAnimationFrame(raf) }
   }, [bmi])
 
-  const heightLabel = answers.height ? `${answers.height} ${answers.heightUnit === 'cm' ? 'cm' : 'ft & in'}` : 'Not provided'
-  const weightLabel = answers.weight ? `${answers.weight} ${answers.weightUnit === 'kg' ? 'kg' : 'lbs'}` : 'Not provided'
+   const heightLabel = answers.Height ? `${answers.Height} ${answers.HeightUnit === 'cm' ? 'cm' : 'ft & in'}` : 'Not provided'
+   const weightLabel = answers.Weight ? `${answers.Weight} ${answers.WeightUnit === 'kg' ? 'kg' : 'lbs'}` : 'Not provided'
 
-  const baseScores: Record<string, number> = {
+   const baseScores: Record<string, number> = {
     skin: 6,
-    hair: 9,
+    hair: 6,
     physic: 6,
     mental: 6,
-    overall: 7.2,
+    overall: 6,
   }
 
   const overallScore = baseScores.overall
@@ -662,6 +727,39 @@ export default function CurrentConditionAnalysisStep() {
               >
                 {bmiCategory.description}
               </motion.p>
+
+              {/* Analysis status message */}
+              <div className="mt-4">
+                {loadingAnalysis && (
+                  <div className="flex items-center gap-3">
+                    <svg className="h-5 w-5 animate-spin text-primary" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+                    <div>
+                      <div className="text-sm font-medium text-text-primary">Analysis running…</div>
+                      <div className="text-xs text-text-secondary">This may take a few seconds — results will appear below when ready.</div>
+                    </div>
+                  </div>
+                )}
+
+                {analysisError && (
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm text-rose-600">{analysisError}</div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => retryAnalysis()} className="rounded-md bg-primary px-3 py-1 text-sm font-semibold text-white">Retry</button>
+                    </div>
+                  </div>
+                )}
+
+                {!loadingAnalysis && !aiModel && !analysisError && lastTriedAt && (
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm text-text-secondary">No analysis found yet.</div>
+                    <div>
+                      <button type="button" onClick={() => retryAnalysis()} className="rounded-md border border-border-subtle px-3 py-1 text-sm">Refresh</button>
+                    </div>
+                  </div>
+                )}
+
+                {aiModel && <div className="mt-3 text-sm text-text-secondary"><p className="font-semibold">AI Analysis received — rendering personalized insights below.</p></div>}
+              </div>
             </motion.div>
 
             <motion.div 
@@ -741,7 +839,7 @@ export default function CurrentConditionAnalysisStep() {
                 transition={{ delay: 1.3, duration: 0.6 }}
               >
                 {(() => {
-                  const genderStr = typeof answers.gender === 'string' ? answers.gender : 'male'
+                  const genderStr = typeof answers.Gender === 'string' ? answers.Gender : 'male'
                   return (
                 <Image
                   src={getPersonImage(genderStr, bmiCategory)}
@@ -757,7 +855,11 @@ export default function CurrentConditionAnalysisStep() {
           </motion.article>
 
           {CONDITION_ORDER.map(({ id, title }, index) => {
-            const score = baseScores[id]
+            const aiForId = aiModel ? (
+              id === 'skin' ? aiModel.skinCondition : id === 'hair' ? aiModel.hairCondition : id === 'physic' ? aiModel.physicalCondition : aiModel.mentalCondition
+            ) : null
+            const score = aiForId ? Number(aiForId.score) : baseScores[id]
+            const explanation = aiForId ? aiForId.explanation : CONDITION_COPY[id]
             const scoreColor = score >= 7 ? '#33C75A' : score >= 4 ? '#FFA64D' : '#FF7D7E'
             return (
               <motion.article 
@@ -775,7 +877,17 @@ export default function CurrentConditionAnalysisStep() {
                   <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
                   <CircularScore value={score} size={44} thickness={6} gradientId={`grad-${id}`} colors={[scoreColor, scoreColor, scoreColor]} />
                 </div>
-                <p className="mt-3 text-sm leading-relaxed text-text-secondary">{CONDITION_COPY[id]}</p>
+                <p className="mt-3 text-sm leading-relaxed text-text-secondary">{explanation}</p>
+                {aiForId && aiForId.recommendations && (
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold text-text-primary">Recommendations</p>
+                    <ul className="list-disc list-inside text-sm text-text-secondary mt-2">
+                      {aiForId.recommendations.map((r: string, i: number) => (
+                        <li key={r + i}>{r}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </motion.article>
             )
           })}
@@ -807,7 +919,7 @@ export default function CurrentConditionAnalysisStep() {
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 1.25, duration: 0.5 }}
               >
-                {bmsAnimated.toFixed(1)}
+                {(aiModel ? Number(aiModel.bmsScore) : bmsAnimated).toFixed(1)}
               </motion.div>
               <motion.p 
                 className="mt-2 text-sm font-semibold text-text-primary"

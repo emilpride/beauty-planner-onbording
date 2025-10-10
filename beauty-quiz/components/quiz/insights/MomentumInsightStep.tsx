@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
-import { useQuizStore } from '@/store/quizStore'
+import { useQuizStore, ActivityItem, DietItem } from '@/store/quizStore'
 
 const moodCopy: Record<string, string> = {
   great: 'You are buzzing! We can inject higher-energy routines and weekly personal bests.',
@@ -13,9 +13,9 @@ const moodCopy: Record<string, string> = {
   terrible: 'Time for softness. Expect calming care, breathwork, and optional check-ins.',
 }
 
-const getMomentumSummary = (activities: string[], diet: string[], mood: string) => {
-  const activityCount = activities?.length || 0
-  const dietCount = diet?.length || 0
+const getMomentumSummary = (activities: ActivityItem[], diet: DietItem[], mood: string) => {
+  const activityCount = activities?.filter(a => a.isActive).length || 0
+  const dietCount = diet?.filter(d => d.isActive).length || 0
   let headline = 'Balanced Momentum'
   let blurb = 'We will blend movement, mindful check-ins, and nutrition nudges so your routine never feels heavy.'
 
@@ -40,11 +40,11 @@ export default function MomentumInsightStep() {
   const { answers } = useQuizStore()
 
   const summary = useMemo(
-    () => getMomentumSummary(answers.physicalActivities, answers.diet, answers.mood),
-    [answers.physicalActivities, answers.diet, answers.mood],
+    () => getMomentumSummary(answers.PhysicalActivities, answers.Diet, answers.Mood),
+    [answers.PhysicalActivities, answers.Diet, answers.Mood],
   )
 
-  const moodMessage = answers.mood ? moodCopy[answers.mood] ?? moodCopy.okay : moodCopy.okay
+  const moodMessage = answers.Mood ? moodCopy[answers.Mood] ?? moodCopy.okay : moodCopy.okay
 
   return (
     <OnboardingStep
@@ -101,20 +101,20 @@ export default function MomentumInsightStep() {
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary">Selected activities</p>
             <div className="flex flex-wrap gap-2 text-xs text-text-primary/80">
               <AnimatePresence>
-                {(answers.physicalActivities || []).slice(0, 6).map((activity, idx) => (
+                {(answers.PhysicalActivities || []).slice(0, 6).map((activity, idx) => (
                   <motion.span
-                    key={activity}
+                    key={activity.id}
                     className="rounded-full bg-primary/10 px-3 py-1"
                     initial={{ opacity: 0, y: 10, scale: 0.8 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.8 }}
                     transition={{ delay: 0.2 + idx * 0.08, duration: 0.4, type: 'spring', stiffness: 180 }}
                   >
-                    {activity.replace(/_/g, ' ')}
+                    {activity.title.replace(/_/g, ' ')}
                   </motion.span>
                 ))}
               </AnimatePresence>
-              {(!answers.physicalActivities || answers.physicalActivities.length === 0) && (
+              {(!answers.PhysicalActivities || answers.PhysicalActivities.length === 0) && (
                 <motion.span
                   className="rounded-full bg-primary/10 px-3 py-1"
                   initial={{ opacity: 0 }}
@@ -122,8 +122,8 @@ export default function MomentumInsightStep() {
                   transition={{ delay: 0.3, duration: 0.4 }}
                 >No activities yet</motion.span>
               )}
-              {answers.physicalActivities && answers.physicalActivities.length > 6 && (
-                <span className="rounded-full bg-primary/10 px-3 py-1">+{answers.physicalActivities.length - 6}</span>
+              {answers.PhysicalActivities && answers.PhysicalActivities.length > 6 && (
+                <span className="rounded-full bg-primary/10 px-3 py-1">+{answers.PhysicalActivities.length - 6}</span>
               )}
             </div>
           </div>
@@ -131,17 +131,17 @@ export default function MomentumInsightStep() {
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary">Diet focus</p>
             <div className="flex flex-wrap gap-2 text-xs text-text-primary/80">
               <AnimatePresence>
-                {(answers.diet || []).length
-                  ? answers.diet.slice(0, 6).map((item, idx) => (
+                {(answers.Diet || []).length
+                  ? answers.Diet.slice(0, 6).map((item, idx) => (
                       <motion.span
-                        key={item}
+                        key={item.id}
                         className="rounded-full bg-primary/10 px-3 py-1"
                         initial={{ opacity: 0, y: 10, scale: 0.8 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.8 }}
                         transition={{ delay: 0.2 + idx * 0.08, duration: 0.4, type: 'spring', stiffness: 180 }}
                       >
-                        {item.replace(/_/g, ' ')}
+                        {item.title.replace(/_/g, ' ')}
                       </motion.span>
                     ))
                   : (
@@ -153,8 +153,8 @@ export default function MomentumInsightStep() {
                     >No diet choices yet</motion.span>
                   )}
               </AnimatePresence>
-              {answers.diet && answers.diet.length > 6 && (
-                <span className="rounded-full bg-primary/10 px-3 py-1">+{answers.diet.length - 6}</span>
+              {answers.Diet && answers.Diet.length > 6 && (
+                <span className="rounded-full bg-primary/10 px-3 py-1">+{answers.Diet.length - 6}</span>
               )}
             </div>
           </div>

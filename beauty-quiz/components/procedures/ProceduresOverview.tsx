@@ -123,7 +123,7 @@ const procedureSteps = [
       {
         icon: "??",
         title: "Daily Nudges",
-        description: "Quick prompts when it’s time for the next block.",
+        description: "Quick prompts when itï¿½s time for the next block.",
         accent: "#8A60FF",
       },
       {
@@ -222,8 +222,8 @@ export default function ProceduresOverview({ currentStep }: ProceduresOverviewPr
         <h1 className="text-2xl font-bold text-text-primary">Regular care, simplified</h1>
         <p className="text-sm text-text-secondary">
           {isHydrated
-            ? `Hello ${answers.name || 'there'}! Here’s how we transform your choices into a routine.`
-            : 'Here’s how we transform your choices into a routine.'}
+            ? `Hello ${answers.Name || 'there'}! Hereï¿½s how we transform your choices into a routine.`
+            : 'Hereï¿½s how we transform your choices into a routine.'}
         </p>
       </div>
 

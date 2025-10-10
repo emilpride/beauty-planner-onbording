@@ -23,7 +23,7 @@ export default function MoodStep() {
   const handleOptionSelect = (moodId: string) => {
     if (hasTransitioned.current) return
 
-    setAnswer('mood', moodId as any)
+    setAnswer('Mood', moodId as any)
     hasTransitioned.current = true
 
     setTimeout(() => {
@@ -33,7 +33,7 @@ export default function MoodStep() {
   }
 
   useEffect(() => {
-    setAnswer('mood', '')
+    setAnswer('Mood', '')
     hasTransitioned.current = false
 
     return () => {
@@ -45,12 +45,12 @@ export default function MoodStep() {
     <OnboardingStep
       title={"How are you feeling\n today?"}
       subtitle="Your mood can be an important indicator of your overall well-being."
-      condition={answers.mood !== ''}
+      condition={answers.Mood !== ''}
       hideButton={true}
     >
       <div className="grid grid-cols-3 gap-2 place-items-center py-2">
         {options.map((option, index) => {
-          const isSelected = answers.mood === option.id
+          const isSelected = answers.Mood === option.id
           return (
             <motion.button
               key={option.id}

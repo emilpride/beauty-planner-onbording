@@ -12,14 +12,14 @@ export default function EndDayStep() {
 
   useEffect(() => {
     // Default to 12h if format is not set (US-friendly), but do not re-ask if already chosen previously
-    if (answers.timeFormat !== '12h' && answers.timeFormat !== '24h') {
-      setAnswer('timeFormat', '12h')
+    if (answers.TimeFormat !== '12h' && answers.TimeFormat !== '24h') {
+      setAnswer('TimeFormat', '12h')
     }
 
-    if (answers.endDayTime) {
-      const [h, m] = answers.endDayTime.split(':').map(Number)
+    if (answers.EndDay) {
+      const [h, m] = answers.EndDay.split(':').map(Number)
       
-      if (answers.timeFormat === '12h') {
+      if (answers.TimeFormat === '12h') {
 
         if (h === 0) {
           setHours(12)
@@ -44,7 +44,7 @@ export default function EndDayStep() {
       )
       setMinutes(closestMinute)
     }
-  }, [answers.endDayTime, answers.timeFormat])
+  }, [answers.EndDay, answers.TimeFormat])
 
   const updateTime = (newHours: number, newMinutes: number, newIsAM?: boolean) => {
     setHours(newHours)
@@ -54,7 +54,7 @@ export default function EndDayStep() {
     }
     
     let timeString: string
-    if (answers.timeFormat === '12h') {
+    if (answers.TimeFormat === '12h') {
       const effectiveIsAM = newIsAM !== undefined ? newIsAM : isAM
       let hour24 = newHours
       if (!effectiveIsAM && newHours !== 12) {
@@ -66,21 +66,21 @@ export default function EndDayStep() {
     } else {
       timeString = `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`
     }
-    setAnswer('endDayTime', timeString)
+    setAnswer('EndDay', timeString)
   }
 
   const hoursList = Array.from({ length: 24 }, (_, i) => i)
   const minutesList = Array.from({ length: 12 }, (_, i) => i * 5) // 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55
 
 
-  const displayHoursList = answers.timeFormat === '12h' 
+  const displayHoursList = answers.TimeFormat === '12h' 
     ? Array.from({ length: 12 }, (_, i) => i + 1) // 1-12
     : Array.from({ length: 24 }, (_, i) => i) // 0-23
 
   const handleWheel = (e: React.WheelEvent, type: 'hours' | 'minutes') => {
     e.preventDefault()
     if (type === 'hours') {
-      if (answers.timeFormat === '12h') {
+      if (answers.TimeFormat === '12h') {
         const newHours = Math.max(1, Math.min(12, hours + (e.deltaY > 0 ? 1 : -1)))
         updateTime(newHours, minutes)
       } else {
@@ -109,7 +109,7 @@ export default function EndDayStep() {
       const change = Math.round(deltaY / sensitivity)
       
       if (type === 'hours') {
-        if (answers.timeFormat === '12h') {
+        if (answers.TimeFormat === '12h') {
           const newHours = Math.max(1, Math.min(12, startValue + change))
           updateTime(newHours, minutes)
         } else {
@@ -137,11 +137,11 @@ export default function EndDayStep() {
     <OnboardingStep
       title="What time do you usually end your day?"
       subtitle="This helps us plan your evening wind-down routines."
-      condition={answers.endDayTime !== ''}
+      condition={answers.EndDay !== ''}
     >
       <div className="space-y-4 py-1">
         {/* Show 12h/24h toggle only if not chosen before */}
-        {!(answers.timeFormat === '12h' || answers.timeFormat === '24h') && (
+        {!(answers.TimeFormat === '12h' || answers.TimeFormat === '24h') && (
           <div className="flex justify-center">
             <div className="inline-flex items-center rounded-full bg-gray-100 p-1 text-xs font-semibold">
               {[
@@ -150,9 +150,9 @@ export default function EndDayStep() {
               ].map((opt) => (
                 <button
                   key={opt.value}
-                  onClick={() => setAnswer('timeFormat', opt.value as '12h' | '24h')}
+                  onClick={() => setAnswer('TimeFormat', opt.value as '12h' | '24h')}
                   className={`px-3 py-1.5 rounded-full transition-colors ${
-                    answers.timeFormat === opt.value ? 'bg-primary text-white' : 'text-text-secondary'
+                    answers.TimeFormat === opt.value ? 'bg-primary text-white' : 'text-text-secondary'
                   }`}
                 >
                   {opt.label}
@@ -223,7 +223,7 @@ export default function EndDayStep() {
         </div>
 
         {/* AM/PM toggle (compact) */}
-        {answers.timeFormat === '12h' && (
+        {answers.TimeFormat === '12h' && (
           <div className="flex justify-center">
             <div className="inline-flex items-center rounded-full bg-gray-100 p-1 text-xs font-semibold">
               {['AM', 'PM'].map((period) => (

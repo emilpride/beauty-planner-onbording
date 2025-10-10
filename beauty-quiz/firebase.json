@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "target": "quiz",
+    "site": "quiz-beautymirror-app",
     "public": "out",
     "ignore": [
       "firebase.json",

@@ -74,7 +74,7 @@ export default function SleepRhythmInsightStep() {
   const prefersReducedMotion = useReducedMotion()
 
   const visual = useMemo(() => {
-    if (!answers.sleepHours || !(answers.sleepHours in sleepVisuals)) {
+    if (!answers.SleepDuration || !(answers.SleepDuration in sleepVisuals)) {
       return {
         title: 'Tracking Your Rest',
         message: 'We will monitor your sleep pattern and adjust routines to keep your energy smooth.',
@@ -87,8 +87,8 @@ export default function SleepRhythmInsightStep() {
         ]
       }
     }
-    return sleepVisuals[answers.sleepHours as keyof typeof sleepVisuals]
-  }, [answers.sleepHours])
+    return sleepVisuals[answers.SleepDuration as keyof typeof sleepVisuals]
+  }, [answers.SleepDuration])
 
   // Radial score ring geometry
   const size = 112 // matches h-28 w-28
@@ -190,7 +190,7 @@ export default function SleepRhythmInsightStep() {
               <div className="absolute inset-0 flex items-center justify-center flex-col">
                 <span className="text-[10px] uppercase tracking-[0.3em] text-text-secondary">Avg</span>
                 <span className="text-xl font-semibold text-text-primary">
-                  {answers.sleepHours ? answers.sleepHours : '?'}
+                  {answers.SleepDuration ? answers.SleepDuration : '?'}
                 </span>
                 <span className="text-[10px] uppercase tracking-[0.3em] text-text-secondary">hours</span>
               </div>
@@ -206,11 +206,11 @@ export default function SleepRhythmInsightStep() {
         >
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">Bedtime window</p>
-            <p className="text-sm font-semibold text-text-primary">{answers.endDayTime || 'Not set'} {answers.timeFormat === '24h' ? '' : answers.timeFormat}</p>
+            <p className="text-sm font-semibold text-text-primary">{answers.EndDay || 'Not set'} {answers.TimeFormat === '24h' ? '' : answers.TimeFormat}</p>
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">Wake window</p>
-            <p className="text-sm font-semibold text-text-primary">{answers.wakeUpTime || 'Not set'} {answers.timeFormat === '24h' ? '' : answers.timeFormat}</p>
+            <p className="text-sm font-semibold text-text-primary">{answers.WakeUp || 'Not set'} {answers.TimeFormat === '24h' ? '' : answers.TimeFormat}</p>
           </div>
         </motion.div>
 

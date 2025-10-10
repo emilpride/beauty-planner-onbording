@@ -1,7 +1,10 @@
 ﻿'use client'
 
 import { useState, useRef } from 'react'
+import imageCompression from 'browser-image-compression'
 import { useQuizStore } from '@/store/quizStore'
+import { storage } from '@/lib/firebase'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 interface ImageUploadProps {
   type: 'face' | 'hair'
@@ -40,21 +43,35 @@ export default function ImageUpload({ type, currentImageUrl, onUploadComplete }:
     setIsUploading(true)
 
     try {
-      // Create a preview and persist the base64 string for now
+      // Compress the image with baseline options
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true,
+        initialQuality: 0.8,
+      }
+      const compressedFile = await imageCompression(file, options)
+
+      // Create a preview from compressed file
       const reader = new FileReader()
       reader.onload = (e) => {
         const base64Url = e.target?.result as string
         setPreviewUrl(base64Url)
-
-        // Store the image in the quiz state
-        setAnswer(`${type}ImageUrl`, base64Url)
-
-        // Notify parent components
-        onUploadComplete?.(base64Url)
-
-        console.log('File uploaded successfully (base64)')
       }
-      reader.readAsDataURL(file)
+      reader.readAsDataURL(compressedFile)
+
+      // Upload compressed file to Firebase Storage
+      const path = `uploads/${type}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`
+      const sRef = storageRef(storage, path)
+      const uploadResult = await uploadBytes(sRef, compressedFile)
+      const downloadUrl = await getDownloadURL(uploadResult.ref)
+
+      // Store the download URL in the quiz state
+      setAnswer(type === 'face' ? 'FaceImageUrl' : 'HairImageUrl', downloadUrl)
+
+      // Notify parent components
+      onUploadComplete?.(downloadUrl)
+      console.log('File uploaded successfully (storage url)')
     } catch (error) {
       console.error('Upload failed:', error)
       alert('Upload failed. Please try again.')
@@ -65,7 +82,7 @@ export default function ImageUpload({ type, currentImageUrl, onUploadComplete }:
 
   const handleRemoveImage = () => {
     setPreviewUrl(null)
-    setAnswer(`${type}ImageUrl`, '')
+    setAnswer(type === 'face' ? 'FaceImageUrl' : 'HairImageUrl', '')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }

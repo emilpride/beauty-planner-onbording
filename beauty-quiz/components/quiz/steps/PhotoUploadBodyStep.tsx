@@ -5,20 +5,28 @@ import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
+import imageCompression from 'browser-image-compression'
+import { storage } from '@/lib/firebase'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 const CameraCapture = dynamic(() => import('@/components/CameraCapture'), { ssr: false })
 
 export default function PhotoUploadBodyStep() {
   const { answers, setAnswer } = useQuizStore()
-  const genderStr = answers.gender === 2 ? 'female' : 'male'
+  const genderStr = answers.Gender === 2 ? 'female' : 'male'
   const [showCamera, setShowCamera] = useState(false)
 
   const handleUpload = async (file: File) => {
     try {
-      await new Promise((r) => setTimeout(r, 800))
-      const previewUrl = URL.createObjectURL(file)
-      setAnswer('bodyImageUrl', previewUrl)
-      setAnswer('bodyImageSkipped', false)
+      const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true, initialQuality: 0.8 }
+  const compressed = await imageCompression(file, options)
+  const uid = (answers?.Id) ? answers.Id : 'anonymous'
+  const path = `user-uploads/${uid}/body/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`
+      const sRef = storageRef(storage, path)
+      const uploaded = await uploadBytes(sRef, compressed)
+      const downloadUrl = await getDownloadURL(uploaded.ref)
+      setAnswer('BodyImageUrl', downloadUrl)
+      setAnswer('BodyImageSkipped', false)
     } catch (e) {
       console.error('Error uploading body image', e)
     }
@@ -39,10 +47,25 @@ export default function PhotoUploadBodyStep() {
     setShowCamera(true)
   }
 
-  const handleCameraCapture = (blobUrl: string, _blob: Blob) => {
-    setAnswer('bodyImageUrl', blobUrl)
-    setAnswer('bodyImageSkipped', false)
-    setShowCamera(false)
+  const handleCameraCapture = async (blobUrl: string, blob: Blob) => {
+    try {
+      const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true, initialQuality: 0.8 }
+      const fileLike = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' })
+  const compressed = await imageCompression(fileLike, options)
+  const uid = (answers?.Id) ? answers.Id : 'anonymous'
+  const path = `user-uploads/${uid}/body/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`
+      const sRef = storageRef(storage, path)
+      const uploaded = await uploadBytes(sRef, compressed)
+      const downloadUrl = await getDownloadURL(uploaded.ref)
+      setAnswer('BodyImageUrl', downloadUrl)
+      setAnswer('BodyImageSkipped', false)
+    } catch (e) {
+      console.error('Error uploading captured body image', e)
+      setAnswer('BodyImageUrl', blobUrl)
+      setAnswer('BodyImageSkipped', false)
+    } finally {
+      setShowCamera(false)
+    }
   }
 
   const handleCameraCancel = () => {
@@ -50,21 +73,21 @@ export default function PhotoUploadBodyStep() {
   }
 
   const toggleSkip = () => {
-    const skipped = answers.bodyImageSkipped
+    const skipped = answers.BodyImageSkipped
     if (skipped) {
-      setAnswer('bodyImageSkipped', false)
+      setAnswer('BodyImageSkipped', false)
     } else {
-      setAnswer('bodyImageUrl', '')
-      setAnswer('bodyImageSkipped', true)
+      setAnswer('BodyImageUrl', '')
+      setAnswer('BodyImageSkipped', true)
     }
   }
 
-  const isComplete = Boolean(answers.bodyImageUrl) || answers.bodyImageSkipped
+  const isComplete = Boolean(answers.BodyImageUrl) || answers.BodyImageSkipped
 
   const title = 'Upload a clear full-body photo (optional)'
   const subtitle = 'Why we ask: It helps balance activity and recovery suggestions to your posture and proportions. If you’re not comfortable, you can skip this step.'
 
-  const imageUrl = answers.bodyImageUrl
+  const imageUrl = answers.BodyImageUrl
 
   return (
     <>
@@ -93,7 +116,7 @@ export default function PhotoUploadBodyStep() {
                 <div className="relative w-full h-full">
                   <Image src={imageUrl} alt="Body preview" fill className="object-cover rounded-xl" />
                   <button
-                    onClick={() => setAnswer('bodyImageUrl', '')}
+                    onClick={() => setAnswer('BodyImageUrl', '')}
                     className="absolute top-2 right-2 bg-white/80 rounded-full p-1.5 text-black hover:bg-white shadow"
                     title="Change photo"
                   >
@@ -102,7 +125,7 @@ export default function PhotoUploadBodyStep() {
                     </svg>
                   </button>
                 </div>
-              ) : answers.bodyImageSkipped ? (
+              ) : answers.BodyImageSkipped ? (
                 <button
                   onClick={toggleSkip}
                   className="w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"

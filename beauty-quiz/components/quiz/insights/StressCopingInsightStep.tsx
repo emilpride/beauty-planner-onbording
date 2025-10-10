@@ -5,7 +5,7 @@ import { useQuizStore } from "@/store/quizStore"
 
 export default function StressCopingInsightStep() {
   const { answers } = useQuizStore()
-  const level = answers.stressLevel || "" // '', 'rarely' | 'sometimes' | 'often' | 'always'
+  const level = answers.Stress || "" // '', 'rarely' | 'sometimes' | 'often' | 'always'
 
   // Subtle personalization via colors
   const palette: Record<string, { from: string; to: string; ring: string }> = {

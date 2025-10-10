@@ -490,10 +490,10 @@ const QuickStat = ({ label, value, detail, delay }: QuickStatProps) => {
 export default function ProcedureSetupStep() {
   const { answers, nextStep } = useQuizStore()
   const router = useRouter()
-  const genderKey: GenderKey = answers.gender === 1 ? 'male' : answers.gender === 2 ? 'female' : 'unknown'
+  const genderKey: GenderKey = answers.Gender === 1 ? 'male' : answers.Gender === 2 ? 'female' : 'unknown'
 
-  const selectedActivities = answers.selectedActivities || []
-  const activityMetaOverrides = answers.activityMetaOverrides || {}
+  const selectedActivities = answers.SelectedActivities || []
+  const activityMetaOverrides = answers.ActivityMetaOverrides || {}
 
   const [activitySettings, setActivitySettings] = useState<ActivitySetting[]>(() => {
     if (selectedActivities.length === 0) {
@@ -503,7 +503,7 @@ export default function ProcedureSetupStep() {
     return selectedActivities.map((activityId) => {
       const override = activityMetaOverrides[activityId]
       const initial = createActivitySetting(activityId, override?.name, genderKey)
-      const persistedNote = answers.activityNotes?.[activityId]
+      const persistedNote = answers.ActivityNotes?.[activityId]
       return persistedNote ? { ...initial, note: persistedNote } : initial
     })
   })
@@ -533,7 +533,7 @@ export default function ProcedureSetupStep() {
         }
 
         const created = createActivitySetting(activityId, override?.name, genderKey)
-        const persistedNote = answers.activityNotes?.[activityId]
+        const persistedNote = answers.ActivityNotes?.[activityId]
         return persistedNote ? { ...created, note: persistedNote } : created
       })
     })

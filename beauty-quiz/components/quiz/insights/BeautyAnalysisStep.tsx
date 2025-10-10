@@ -4,10 +4,11 @@ import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
+import { ProblemItem } from '@/store/quizStore'
 
-const getBeautyProfile = (skinType: string, skinProblems: string[], hairType: string, hairProblems: string[]) => {
-  const skinScore = skinProblems?.length || 0
-  const hairScore = hairProblems?.length || 0
+const getBeautyProfile = (skinType: string, skinProblems: ProblemItem[], hairType: string, hairProblems: ProblemItem[]) => {
+  const skinScore = skinProblems?.filter(p => p.isActive).length || 0
+  const hairScore = hairProblems?.filter(p => p.isActive).length || 0
   
   if (skinScore <= 1 && hairScore <= 1) {
     return {
@@ -50,12 +51,12 @@ export default function BeautyAnalysisStep() {
   
   const beautyProfile = useMemo(() => 
     getBeautyProfile(
-      answers.skinType, 
-      answers.skinProblems || [], 
-      answers.hairType, 
-      answers.hairProblems || []
+      answers.SkinType, 
+      answers.SkinProblems || [], 
+      answers.HairType, 
+      answers.HairProblems || []
     ), 
-    [answers.skinType, answers.skinProblems, answers.hairType, answers.hairProblems]
+    [answers.SkinType, answers.SkinProblems, answers.HairType, answers.HairProblems]
   )
 
   return (
@@ -194,16 +195,16 @@ export default function BeautyAnalysisStep() {
               </motion.div>
               <div>
                 <h4 className="text-lg font-semibold text-text-primary">Skin Profile</h4>
-                <p className="text-sm text-text-secondary">{answers.skinType || 'Not specified'}</p>
+                <p className="text-sm text-text-secondary">{answers.SkinType || 'Not specified'}</p>
               </div>
             </div>
             
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">Areas of Focus</p>
               <div className="flex flex-wrap gap-2">
-                {(answers.skinProblems || []).slice(0, 3).map((problem, index) => (
+                {(answers.SkinProblems || []).slice(0, 3).map((problem, index) => (
                   <motion.span
-                    key={problem}
+                    key={problem.id}
                     className="rounded-full bg-rose-100 text-rose-800 px-3 py-1 text-xs font-medium"
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -214,7 +215,7 @@ export default function BeautyAnalysisStep() {
                       stiffness: 200
                     }}
                   >
-                    {problem.replace(/_/g, ' ')}
+                    {problem.title.replace(/_/g, ' ')}
                   </motion.span>
                 ))}
               </div>
@@ -238,16 +239,16 @@ export default function BeautyAnalysisStep() {
               </motion.div>
               <div>
                 <h4 className="text-lg font-semibold text-text-primary">Hair Profile</h4>
-                <p className="text-sm text-text-secondary">{answers.hairType || 'Not specified'}</p>
+                <p className="text-sm text-text-secondary">{answers.HairType || 'Not specified'}</p>
               </div>
             </div>
             
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">Areas of Focus</p>
               <div className="flex flex-wrap gap-2">
-                {(answers.hairProblems || []).slice(0, 3).map((problem, index) => (
+                {(answers.HairProblems || []).slice(0, 3).map((problem, index) => (
                   <motion.span
-                    key={problem}
+                    key={problem.id}
                     className="rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-xs font-medium"
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -258,7 +259,7 @@ export default function BeautyAnalysisStep() {
                       stiffness: 200
                     }}
                   >
-                    {problem.replace(/_/g, ' ')}
+                    {problem.title.replace(/_/g, ' ')}
                   </motion.span>
                 ))}
               </div>

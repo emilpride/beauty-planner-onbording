@@ -45,7 +45,6 @@ export default function FrequencyModal({
 
 
   const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault()
     const delta = e.deltaY > 0 ? 1 : -1
     const newFrequency = Math.max(1, Math.min(30, frequency + delta))
     setFrequency(newFrequency)
@@ -75,7 +74,6 @@ export default function FrequencyModal({
 
 
   const handlePeriodWheel = (e: React.WheelEvent) => {
-    e.preventDefault()
     const currentIndex = periods.findIndex(p => p.value === period)
     const delta = e.deltaY > 0 ? 1 : -1
     const newIndex = Math.max(0, Math.min(periods.length - 1, currentIndex + delta))
@@ -119,6 +117,7 @@ export default function FrequencyModal({
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
+              style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
             >
               <div 
                 className="flex flex-col transition-transform duration-300 ease-out"
@@ -150,6 +149,7 @@ export default function FrequencyModal({
               onTouchStart={handlePeriodTouchStart}
               onTouchMove={handlePeriodTouchMove}
               onTouchEnd={handleTouchEnd}
+              style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
             >
               <div 
                 className="flex flex-col transition-transform duration-300 ease-out"

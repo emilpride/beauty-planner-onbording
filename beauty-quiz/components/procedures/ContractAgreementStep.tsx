@@ -193,7 +193,7 @@ export default function ContractAgreementStep() {
 
   const handleFinish = () => {
     if (hasSignature) {
-      setAnswer('contractSignature', 'signed')
+      setAnswer('ContractSignature', 'signed')
       router.push('/procedures/5')
     }
   }

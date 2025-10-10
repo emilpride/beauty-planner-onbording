@@ -5,6 +5,7 @@ import { useMemo, useRef, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 import { useQuizStore } from "../../store/quizStore"
+import { auth, saveUserToFirestore } from '@/lib/firebase'
 import StripeExpressPay from "../payments/StripeExpressPay"
 
 // Types
@@ -180,11 +181,29 @@ export default function PricingStep() {
     [selectedPlan]
   )
 
-  const handleComplete = () => {
-    setAnswer("selectedPlan", selectedPlan)
-    setAnswer("subscriptionPlan", selectedPlan)
-    setAnswer("paymentCompleted", true)
-    router.push("/success")
+  const handleComplete = async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      setAnswer("Id", currentUser.uid);
+      setAnswer("Email", currentUser.email || "");
+      setAnswer("ProfilePicture", currentUser.photoURL || "");
+    }
+    setAnswer("quizEndTime", new Date().toISOString());
+    setAnswer("SelectedPlan", selectedPlan);
+    setAnswer("PaymentCompleted", true);
+
+    // Save to Firestore
+    const answers = useQuizStore.getState().answers;
+    await saveUserToFirestore(answers);
+    // Fire-and-forget: trigger analyzeUserData after saving. Don't block navigation.
+    try {
+      const payload = { userId: answers.Id, answers, photoUrls: { face: answers.FaceImageUrl, hair: answers.HairImageUrl, body: answers.BodyImageUrl } }
+      fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(e => console.warn('Analyze trigger failed', e))
+    } catch (e) {
+      console.warn('Failed to trigger analysis', e)
+    }
+
+    router.push("/success");
   }
 
   const handleOpenPayment = () => setShowPayment(true)
