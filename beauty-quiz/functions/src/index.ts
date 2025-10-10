@@ -64,31 +64,57 @@ export const analyzeUserData = onRequest(async (req, res) => {
 		// Small debug: report length only to avoid leaking secret value in logs
 		console.debug('Using Gemini API key length:', typeof apiKey === 'string' ? apiKey.length : 'unknown')
 
-		const prompt = `Provide JSON matching the AIAnalysisModel schema. User answers: ${JSON.stringify(answers || {})}. Photo URLs: ${JSON.stringify(photoUrls || {})}`
+		// Build a strict prompt asking Gemini to return ONLY valid JSON matching the schema.
+		const basePrompt = `You are an assistant that MUST return valid JSON only. Provide a single JSON object matching this TypeScript schema: ${JSON.stringify({
+			bmi: 'number|null',
+			skinCondition: { score: 'number', explanation: 'string', recommendations: ['string'] },
+			hairCondition: { score: 'number', explanation: 'string', recommendations: ['string'] },
+			physicalCondition: { score: 'number', explanation: 'string', recommendations: ['string'] },
+			mentalCondition: { score: 'number', explanation: 'string', recommendations: ['string'] },
+			bmsScore: 'number'
+		})}. Respond with JSON only, no markdown, no commentary, no surrounding text. User answers: ${JSON.stringify(answers || {})}. Photo URLs: ${JSON.stringify(photoUrls || {})}`
 
-		// Use the requested model endpoint: gemini-2.5-flash
-		const resp = await axios.post(
-			'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
-			{
-				contents: [{ parts: [{ text: prompt }] }]
-			},
-			{
-				headers: {
-					// Use x-goog-api-key to pass API key (avoid Authorization header issues)
-					'x-goog-api-key': apiKey,
-					'Content-Type': 'application/json'
-				},
-				timeout: 30000,
-			}
-		);
+		// Helper to call Gemini once with the given prompt
+		async function callGemini(promptText: string) {
+			const resp = await axios.post(
+				'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+				{ contents: [{ parts: [{ text: promptText }] }] },
+				{ headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' }, timeout: 30000 }
+			)
+			return resp?.data?.candidates?.[0]?.content?.parts?.[0]?.text
+		}
 
-		const generated = resp?.data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+		// Try primary call then one retry with an explicit 'Return JSON only' reminder
+		let generated: any = null
 		let parsed: any = null
-		if (typeof generated === 'string') {
-			try { parsed = JSON.parse(generated) } catch (e) { parsed = null }
-		} else if (typeof generated === 'object') parsed = generated
+		try {
+			generated = await callGemini(basePrompt)
+			if (typeof generated === 'string') {
+				try { parsed = JSON.parse(generated) } catch (e) { parsed = null }
+			} else if (typeof generated === 'object') parsed = generated
 
+			if (!parsed) {
+				// Retry with an explicit instruction to return JSON only and a short schema example
+				const retryPrompt = basePrompt + ' ONLY return the JSON object. Example format: {"bmi":null,...}'
+				const retryResp = await callGemini(retryPrompt)
+				if (typeof retryResp === 'string') {
+					try { parsed = JSON.parse(retryResp) } catch (e) { parsed = null }
+				} else if (typeof retryResp === 'object') parsed = retryResp
+			}
+		} catch (e) {
+			console.error('Gemini request failed', e)
+			parsed = null
+		}
+
+		// If the parsed object is invalid, do NOT use the fallback unless explicitly allowed.
+		const allowFallback = (process.env.GEMINI_ALLOW_FALLBACK || 'false').toLowerCase() === 'true'
 		if (!parsed || !validateAIModel(parsed)) {
+			console.error('Gemini returned invalid or unparsable response', { generated, parsed })
+			if (!allowFallback) {
+				// Return an error to the client so the UI can surface it—no silent fallback.
+				res.status(502).json({ error: 'Invalid response from Gemini. Please retry.' }); return
+			}
+			// If fallback is allowed, save and return the fallback as before
 			const fallback: AIAnalysisModel = {
 				bmi: null,
 				skinCondition: { score: 6, explanation: 'Insufficient data - default analysis.', recommendations: ['cleanse-hydrate','deep-hydration'] },
@@ -102,6 +128,7 @@ export const analyzeUserData = onRequest(async (req, res) => {
 			res.status(200).json({ analysis: fallback }); return
 		}
 
+		// Valid parsed model — persist and return
 		const docRef = db.collection('users').doc(userId).collection('analysis').doc()
 		await docRef.set({ createdAt: admin.firestore.FieldValue.serverTimestamp(), model: parsed })
 
