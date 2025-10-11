@@ -20,23 +20,57 @@ export const storage = getStorage(app)
 
 // Function to save onboarding session events in real-time via your deployed
 // cloud function. Returns parsed JSON result or null on error.
-export async function saveOnboardingSession(sessionId: string, events: any[], userId?: string) {
+
+async function fetchWithTimeout(url: string, opts: RequestInit = {}, timeout = 8000) {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeout)
   try {
-    const response = await fetch('https://saveonboardingsession-jy4jt54bea-uc.a.run.app', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, events, userId }),
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    return await response.json()
+    const res = await fetch(url, { ...opts, signal: controller.signal })
+    clearTimeout(id)
+    return res
   } catch (e) {
-    console.error('Error saving onboarding session:', e)
-    return null
+    clearTimeout(id)
+    throw e
   }
+}
+
+export async function saveOnboardingSession(sessionId: string, events: any[], userId?: string) {
+  if (typeof sessionId !== 'string' || sessionId.trim().length === 0) {
+    console.warn('saveOnboardingSession skipped: missing sessionId');
+    return null;
+  }
+  // Determine endpoint at call time to ensure browser uses the proxy API route
+  const endpoint =
+    typeof window !== 'undefined'
+      ? '/api/save-onboarding-session'
+      : process.env.SAVE_ONBOARDING_URL ||
+        process.env.NEXT_PUBLIC_SAVE_ONBOARDING_URL ||
+        'https://us-central1-beauty-planner-26cc0.cloudfunctions.net/saveOnboardingSession'
+
+  const payload = { sessionId, events, userId }
+  const opts: RequestInit = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }
+
+  // Retry logic: try up to 2 times for transient network failures
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const res = await fetchWithTimeout(endpoint, opts, 8000)
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`)
+      }
+      return await res.json()
+    } catch (err: any) {
+      console.error(`saveOnboardingSession attempt ${attempt} failed:`, err?.message || err)
+      if (attempt === 2) return null
+      // small backoff
+      await new Promise(r => setTimeout(r, 300 * attempt))
+    }
+  }
+  return null
 }
 
 // Helper to save or upsert a user document after signup - used by some components.

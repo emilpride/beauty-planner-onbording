@@ -62,7 +62,7 @@ export default function PhysicalActivitiesStep() {
     }
 
     const existingIndex = answers.ActivityFrequency?.findIndex(a => a.id === selectedActivity) ?? -1
-    let newFrequencies = [...(answers.ActivityFrequency || [])]
+    const newFrequencies = [...(answers.ActivityFrequency || [])]
     
     if (existingIndex >= 0) {
       newFrequencies[existingIndex] = newFrequency

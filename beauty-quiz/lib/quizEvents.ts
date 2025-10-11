@@ -5,6 +5,7 @@ import { saveOnboardingSession } from './firebase'
 // function. During local builds these are no-ops (see firebase.ts stub).
 
 export async function logQuizStart(sessionId: string) {
+  if (typeof sessionId !== 'string' || sessionId.trim().length === 0) return
   try {
     await saveOnboardingSession(sessionId, [
       { eventName: 'quizStarted', timestamp: new Date().toISOString() }
@@ -15,6 +16,7 @@ export async function logQuizStart(sessionId: string) {
 }
 
 export async function logThemeSelected(sessionId: string, theme: string) {
+  if (typeof sessionId !== 'string' || sessionId.trim().length === 0) return
   try {
     await saveOnboardingSession(sessionId, [
       { eventName: 'themeSelected', timestamp: new Date().toISOString(), details: { theme } }
@@ -25,6 +27,7 @@ export async function logThemeSelected(sessionId: string, theme: string) {
 }
 
 export async function logAssistantSelected(sessionId: string, assistantId: number) {
+  if (typeof sessionId !== 'string' || sessionId.trim().length === 0) return
   try {
     await saveOnboardingSession(sessionId, [
       { eventName: 'assistantSelected', timestamp: new Date().toISOString(), details: { assistantId } }
@@ -35,6 +38,7 @@ export async function logAssistantSelected(sessionId: string, assistantId: numbe
 }
 
 export async function logEvent(sessionId: string, event: any) {
+  if (typeof sessionId !== 'string' || sessionId.trim().length === 0) return
   try {
     await saveOnboardingSession(sessionId, [event])
   } catch (e) {

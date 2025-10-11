@@ -41,12 +41,12 @@ export default function GeneralStep() {
 
   const isFormValid = () => {
     return (
-      answers.Name.trim() !== '' &&
+      String(answers.Name || '').trim() !== '' &&
       computedAge !== null &&
       computedAge >= 13 &&
       computedAge <= 100 &&
-      answers.Height.trim() !== '' &&
-      answers.Weight.trim() !== ''
+      String(answers.Height || '').trim() !== '' &&
+      String(answers.Weight || '').trim() !== ''
     )
   }
 
@@ -54,7 +54,7 @@ export default function GeneralStep() {
     let error = ''
     switch (name) {
       case 'name':
-        if (!value.trim()) error = 'Please enter your name'
+        if (typeof value !== 'string' || !value.trim()) error = 'Please enter your name'
         break
       case 'birthDate':
         if (!value) {
@@ -77,10 +77,10 @@ export default function GeneralStep() {
         }
         break
       case 'height':
-        if (!value.trim()) error = 'Please enter your height'
+        if (typeof value !== 'string' || !value.trim()) error = 'Please enter your height'
         break
       case 'weight':
-        if (!value.trim()) error = 'Please enter your weight'
+        if (typeof value !== 'string' || !value.trim()) error = 'Please enter your weight'
         break
       default:
         break
@@ -109,6 +109,8 @@ export default function GeneralStep() {
 
   // Close calendar on outside click
   useEffect(() => {
+    if (!calendarOpen) return
+    
     const handler = (e: MouseEvent) => {
       if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
         handleCloseCalendar()
@@ -116,7 +118,7 @@ export default function GeneralStep() {
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [])
+  }, [calendarOpen])
 
   // Prevent body scroll when modal open
   useEffect(() => {

@@ -7,6 +7,58 @@ admin.initializeApp()
 const db = admin.firestore()
 let secretClient: any = null
 
+// Sanitize objects before saving to Firestore: remove functions, symbols, undefined,
+// cut off deep nesting and break cycles.
+function sanitizeForFirestore(value: any, maxDepth = 10) {
+
+	const seen = new WeakSet()
+
+	function _sanitize(v: any, depth: number): any {
+		if (v === null) return null
+		if (depth <= 0) return '[MaxDepth]'
+		const t = typeof v
+		if (t === 'string' || t === 'number' || t === 'boolean') return v
+		if (t === 'undefined') return null
+		if (t === 'function') return undefined
+		if (t === 'symbol') return String(v)
+		if (v instanceof Date) return v.toISOString()
+		if (Array.isArray(v)) {
+			const out: any[] = []
+			for (const el of v) {
+				try {
+					const s = _sanitize(el, depth - 1)
+					// drop functions/undefined
+					if (typeof s !== 'undefined') out.push(s)
+				} catch (e) {
+					// ignore
+				}
+			}
+			return out
+		}
+		if (t === 'object') {
+			if (seen.has(v)) return '[Cycle]'
+			seen.add(v)
+			const out: Record<string, any> = {}
+			for (const k of Object.keys(v)) {
+				try {
+					const s = _sanitize(v[k], depth - 1)
+					if (typeof s !== 'undefined') out[k] = s
+				} catch (e) {
+					// ignore individual property
+				}
+			}
+			return out
+		}
+		return null
+	}
+
+	try {
+		return _sanitize(value, maxDepth)
+	} catch (e) {
+		return null
+	}
+}
+
 type AIAnalysisModel = {
 	bmi: number | null
 	skinCondition: { score: number; explanation: string; recommendations: string[] }
@@ -17,6 +69,7 @@ type AIAnalysisModel = {
 }
 
 async function accessGeminiKey(): Promise<string> {
+
 	// Prefer Secret Manager via GEMINI_SECRET_NAME; fallback to GEMINI_API_KEY env
 	const secretName = process.env.GEMINI_SECRET_NAME
 	if (secretName) {
@@ -134,6 +187,15 @@ export const analyzeUserData = onRequest(async (req, res) => {
 
 		// Save onboarding session
 		if (sessionId && events) {
+			// sanitize events before writing to Firestore
+			let sanitizedEvents: any[] = []
+			try {
+				if (Array.isArray(events)) sanitizedEvents = events.map(e => sanitizeForFirestore(e, 8))
+				else sanitizedEvents = [sanitizeForFirestore(events, 8)]
+			} catch (err) {
+				console.warn('Failed to sanitize events for analyzeUserData', err)
+			}
+
 			const sessionDocRef = db.collection('users_web_onbording').doc(sessionId)
 			const sessionDoc = await sessionDocRef.get()
 			const now = admin.firestore.FieldValue.serverTimestamp()
@@ -144,14 +206,18 @@ export const analyzeUserData = onRequest(async (req, res) => {
 					userId,
 					startTime: now,
 					status: 'completed',
-					events
+					events: sanitizedEvents || []
 				})
 			} else {
-				await sessionDocRef.update({
-					events: admin.firestore.FieldValue.arrayUnion(...events),
+				if (sanitizedEvents && sanitizedEvents.length > 0) {
+					await sessionDocRef.update({
+						events: admin.firestore.FieldValue.arrayUnion(...sanitizedEvents),
 					endTime: now,
 					status: 'completed'
 				})
+				} else {
+					await sessionDocRef.update({ endTime: now, status: 'completed' })
+				}
 			}
 		}
 
@@ -164,11 +230,25 @@ export const analyzeUserData = onRequest(async (req, res) => {
 
 export const saveOnboardingSession = onRequest(async (req, res) => {
 	// Real-time onboarding session event logging - v2
+	// CORS handling: allow browser clients to POST from different origins.
+	res.set('Access-Control-Allow-Origin', '*')
+	res.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+	res.set('Access-Control-Allow-Headers', 'Content-Type')
+	if (req.method === 'OPTIONS') { res.status(204).send(''); return }
 	if (req.method !== 'POST') { res.status(405).send({ error: 'Method not allowed' }); return }
 	try {
 		const body = req.body
 		const { sessionId, events, userId } = body || {}
 		if (!sessionId) { res.status(400).send({ error: 'sessionId required' }); return }
+
+		// sanitize incoming events for storage
+		let sanitizedEvents: any[] = []
+		try {
+			if (Array.isArray(events)) sanitizedEvents = events.map(e => sanitizeForFirestore(e, 8)).filter(e => typeof e !== 'undefined' && e !== null)
+			else if (typeof events !== 'undefined' && events !== null) sanitizedEvents = [sanitizeForFirestore(events, 8)]
+		} catch (err) {
+			console.warn('Failed to sanitize events for saveOnboardingSession', err)
+		}
 
 		const docRef = db.collection('users_web_onbording').doc(sessionId)
 		const doc = await docRef.get()
@@ -181,15 +261,19 @@ export const saveOnboardingSession = onRequest(async (req, res) => {
 				userId: userId || null,
 				startTime: now,
 				status: 'in_progress',
-				events: events || []
+				events: sanitizedEvents || []
 			})
 		} else {
 			// Update existing
-			await docRef.update({
-				events: admin.firestore.FieldValue.arrayUnion(...(events || [])),
-				endTime: now,
-				status: 'completed'
-			})
+			if (sanitizedEvents && sanitizedEvents.length > 0) {
+				await docRef.update({
+					events: admin.firestore.FieldValue.arrayUnion(...sanitizedEvents),
+					endTime: now,
+					status: 'completed'
+				})
+			} else {
+				await docRef.update({ endTime: now, status: 'completed' })
+			}
 		}
 
 		res.status(200).json({ success: true }); return

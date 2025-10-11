@@ -132,9 +132,9 @@ export default function HeightPicker({ value = 170, gender, onConfirm, onCancel 
 
 // --- Ruler Component --- //
 const Ruler = ({ stageH, cmToFeetInches }: { stageH: number, cmToFeetInches: (cm: number) => { feet: number, inches: number, label: string } }) => {
-  if (!stageH) return null
-
   const marks = useMemo(() => {
+    if (!stageH) return null
+
     const numMarks = RULER_RANGE / 5 + 1 // A mark every 5cm
     return Array.from({ length: numMarks }, (_, i) => {
       const h = MIN_HEIGHT + i * 5
@@ -153,6 +153,8 @@ const Ruler = ({ stageH, cmToFeetInches }: { stageH: number, cmToFeetInches: (cm
       )
     })
   }, [stageH, cmToFeetInches])
+
+  if (!marks) return null
 
   return <div className="absolute inset-y-0 left-0 w-24 pointer-events-none">{marks}</div>
 }

@@ -45,7 +45,7 @@ export default function CustomDietsModal({
   }
 
   const handleConfirm = () => {
-    const validDiets = diets.filter(diet => diet.name.trim() !== '')
+  const validDiets = diets.filter(diet => typeof diet.name === 'string' && diet.name.trim() !== '')
     onConfirm(validDiets)
     onClose()
   }

@@ -36,21 +36,27 @@ const personalityTypes = {
   }
 }
 
-const getPersonalityType = (goals: GoalItem[], lifestyle: string) => {
-  const goalCount = goals?.filter(g => g.isActive).length || 0
-  
-  if (goals?.some(goal => goal.isActive && goal.title.toLowerCase().includes('skin') || goal.title.toLowerCase().includes('beauty'))) {
+const getPersonalityType = (goals: GoalItem[] | undefined, lifestyle: string) => {
+  const safeGoals = Array.isArray(goals) ? goals : []
+  const goalCount = safeGoals.filter((g) => g?.isActive).length || 0
+
+  const titleIncludes = (goal: GoalItem | undefined, term: string) => {
+    if (!goal || !goal.title) return false
+    return goal.title.toLowerCase().includes(term)
+  }
+
+  if (safeGoals.some((goal) => goal?.isActive && (titleIncludes(goal, 'skin') || titleIncludes(goal, 'beauty')))) {
     return personalityTypes['beauty-focused']
   }
-  
-  if (goals?.some(goal => goal.isActive && goal.title.toLowerCase().includes('health') || goal.title.toLowerCase().includes('fitness'))) {
+
+  if (safeGoals.some((goal) => goal?.isActive && (titleIncludes(goal, 'health') || titleIncludes(goal, 'fitness')))) {
     return personalityTypes['health-focused']
   }
-  
-  if (goals?.some(goal => goal.isActive && goal.title.toLowerCase().includes('energy') || goal.title.toLowerCase().includes('performance'))) {
+
+  if (safeGoals.some((goal) => goal?.isActive && (titleIncludes(goal, 'energy') || titleIncludes(goal, 'performance')))) {
     return personalityTypes['performance-focused']
   }
-  
+
   return personalityTypes['balance-focused']
 }
 

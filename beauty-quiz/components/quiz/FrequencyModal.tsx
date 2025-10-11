@@ -59,7 +59,6 @@ export default function FrequencyModal({
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return
-    e.preventDefault()
     
     const currentY = e.touches[0].clientY
     const deltaY = startY - currentY
@@ -89,7 +88,6 @@ export default function FrequencyModal({
 
   const handlePeriodTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return
-    e.preventDefault()
     
     const currentY = e.touches[0].clientY
     const deltaY = startY - currentY

@@ -11,9 +11,10 @@ export default function OrganizationInfluenceStep() {
   const { answers, setAnswer } = useQuizStore()
 
   const handleToggleInfluence = (influence: string) => {
-    const newInfluences = answers.Influence.includes(influence)
-      ? answers.Influence.filter((i) => i !== influence)
-      : [...answers.Influence, influence]
+    const current = Array.isArray(answers.Influence) ? answers.Influence : []
+    const newInfluences = current.includes(influence)
+      ? current.filter((i) => i !== influence)
+      : [...current, influence]
     setAnswer('Influence', newInfluences)
   }
 
@@ -21,7 +22,7 @@ export default function OrganizationInfluenceStep() {
     <OnboardingStep
       title="What influences your sense of organization and planning the most?"
       subtitle="Select all that apply."
-      condition={answers.Influence.length > 0}
+      condition={Array.isArray(answers.Influence) ? answers.Influence.length > 0 : false}
     >
       <div className="flex flex-wrap gap-2 py-1">
         {influences.map((influence) => (
@@ -29,7 +30,7 @@ export default function OrganizationInfluenceStep() {
             key={influence}
             onClick={() => handleToggleInfluence(influence)}
             className={`px-4 py-2 border-2 rounded-full text-center transition-all duration-200 font-medium ${
-              answers.Influence.includes(influence)
+              (Array.isArray(answers.Influence) ? answers.Influence : []).includes(influence)
                 ? 'border-primary bg-primary bg-opacity-10 text-primary'
                 : 'border-border-subtle/60 bg-surface/80 hover:border-primary/40 text-text-secondary hover:text-text-primary'
             }`}

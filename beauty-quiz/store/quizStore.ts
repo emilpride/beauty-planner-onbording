@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import { saveUserToFirestore, saveOnboardingSession } from '@/lib/firebase'
 
 export interface GoalItem {
@@ -131,16 +131,121 @@ interface QuizStore {
 }
 
 
+const MAX_STORED_EVENTS = 80;
+
+function isQuotaExceededError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const name = (error as any).name
+  const message = (error as any).message || ''
+  return name === 'QuotaExceededError' || name === 'NS_ERROR_DOM_QUOTA_REACHED' || /quota/i.test(message)
+}
+
+function safeSessionGetItem(key: string): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return window.sessionStorage.getItem(key)
+  } catch (err) {
+    console.warn('Session storage getItem failed for', key, err)
+    return null
+  }
+}
+
+function safeSessionSetItem(key: string, value: string) {
+  if (typeof window === 'undefined') return
+  try {
+    window.sessionStorage.setItem(key, value)
+  } catch (err) {
+    if (isQuotaExceededError(err)) {
+      console.warn('Session storage quota reached while setting', key, err)
+      try {
+        window.sessionStorage.removeItem(key)
+      } catch (removeErr) {
+        console.warn('Failed to remove session key after quota error', removeErr)
+      }
+    } else {
+      console.warn('Session storage setItem failed for', key, err)
+    }
+  }
+}
+
+const onboardingStorage = createJSONStorage(() => {
+  if (typeof window === 'undefined') {
+    return {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    }
+  }
+
+  const storage = window.localStorage
+  return {
+    getItem: (name: string) => {
+      try {
+        return storage.getItem(name)
+      } catch (err) {
+        console.warn('Failed to read onboarding storage', err)
+        return null
+      }
+    },
+    setItem: (name: string, newValue: string) => {
+      try {
+        storage.setItem(name, newValue)
+      } catch (err) {
+        if (isQuotaExceededError(err)) {
+          console.warn('Onboarding storage quota reached, attempting recovery', err)
+          try {
+            storage.removeItem(name)
+          } catch (removeErr) {
+            console.warn('Failed to remove onboarding key after quota error', removeErr)
+          }
+
+          try {
+            const parsed = JSON.parse(newValue)
+            if (parsed?.state?.answers?.events) {
+              parsed.state.answers.events = []
+            }
+            const trimmed = JSON.stringify(parsed)
+            storage.setItem(name, trimmed)
+          } catch (retryErr) {
+            try {
+              storage.setItem(name, newValue)
+            } catch (finalErr) {
+              console.error('Unable to persist onboarding store after recovery attempts', finalErr)
+            }
+          }
+        } else {
+          console.error('Failed to persist onboarding storage', err)
+        }
+      }
+    },
+    removeItem: (name: string) => {
+      try {
+        storage.removeItem(name)
+      } catch (err) {
+        console.warn('Failed to remove onboarding storage key', err)
+      }
+    },
+  }
+})
+
 function getOrCreateSessionId() {
   if (typeof window !== 'undefined') {
-    let sid = sessionStorage.getItem('quizSessionId');
+    let sid = safeSessionGetItem('quizSessionId');
     if (!sid) {
       sid = 'session_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
-      sessionStorage.setItem('quizSessionId', sid);
+      safeSessionSetItem('quizSessionId', sid);
     }
     return sid;
   }
   return '';
+}
+
+function appendEvent(events: any[], event: any) {
+  const merged = [...ensureEventsArray(events), event];
+  if (merged.length > MAX_STORED_EVENTS) {
+    return merged.slice(merged.length - MAX_STORED_EVENTS);
+  }
+  return merged;
 }
 
 export const initialAnswers: UserModel = {
@@ -248,10 +353,79 @@ export const initialAnswers: UserModel = {
   BodyImageSkipped: false,
 }
 
+function cloneInitialAnswers(): UserModel {
+  return JSON.parse(JSON.stringify(initialAnswers)) as UserModel;
+}
+
+// Ensure critical array/object fields are always properly shaped to avoid runtime errors
+function normalizeAnswers(input: Partial<UserModel> | undefined | null): UserModel {
+  const base = cloneInitialAnswers();
+  const ans = { ...(input as any) } as Partial<UserModel>;
+
+  // Arrays that we rely on with .includes()/length in UI
+  const influence: string[] = Array.isArray(ans?.Influence) ? (ans!.Influence as string[]) : [];
+  const goals: GoalItem[] = Array.isArray(ans?.Goals) ? (ans!.Goals as GoalItem[]) : base.Goals;
+  const diet: DietItem[] = Array.isArray(ans?.Diet) ? (ans!.Diet as DietItem[]) : base.Diet;
+  const skinProblems: ProblemItem[] = Array.isArray(ans?.SkinProblems) ? (ans!.SkinProblems as ProblemItem[]) : base.SkinProblems;
+  const hairProblems: ProblemItem[] = Array.isArray(ans?.HairProblems) ? (ans!.HairProblems as ProblemItem[]) : base.HairProblems;
+  const physicalActivities: ActivityItem[] = Array.isArray(ans?.PhysicalActivities) ? (ans!.PhysicalActivities as ActivityItem[]) : base.PhysicalActivities;
+  const activityFrequency = Array.isArray(ans?.ActivityFrequency) ? ans!.ActivityFrequency! : base.ActivityFrequency;
+  const selectedActivities: string[] = Array.isArray(ans?.SelectedActivities) ? (ans!.SelectedActivities as string[]) : [];
+  const events = Array.isArray(ans?.events) ? ans!.events! : [];
+  const activityMetaOverrides = typeof ans?.ActivityMetaOverrides === 'object' && ans?.ActivityMetaOverrides !== null
+    ? ans!.ActivityMetaOverrides!
+    : {};
+  const activityNotes = typeof ans?.ActivityNotes === 'object' && ans?.ActivityNotes !== null
+    ? ans!.ActivityNotes!
+    : {};
+
+  return {
+    ...base,
+    ...ans,
+    Influence: influence,
+    Goals: goals,
+    Diet: diet,
+    SkinProblems: skinProblems,
+    HairProblems: hairProblems,
+    PhysicalActivities: physicalActivities,
+    ActivityFrequency: activityFrequency,
+    SelectedActivities: selectedActivities,
+    ActivityMetaOverrides: activityMetaOverrides,
+    ActivityNotes: activityNotes,
+    events,
+  } as UserModel;
+}
+
+function ensureSessionIdValue(current?: unknown): string {
+  if (typeof current === 'string') {
+    const trimmed = current.trim();
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+  }
+  // When running on the server we can't access sessionStorage; return empty string
+  if (typeof window === 'undefined') {
+    return '';
+  }
+  return getOrCreateSessionId();
+}
+
+function ensureEventsArray(events?: UserModel['events'] | null): UserModel['events'] {
+  return Array.isArray(events) ? events : [];
+}
+
+function isBlankSessionId(value: unknown): boolean {
+  return !(typeof value === 'string' && value.trim().length > 0);
+}
+
 export const useQuizStore = create<QuizStore>()(
   persist(
     (set, get) => ({
-      answers: initialAnswers,
+      answers: (() => {
+        const cloned = cloneInitialAnswers();
+        const sessionId = ensureSessionIdValue(cloned.sessionId);
+        return normalizeAnswers({ ...cloned, sessionId, events: ensureEventsArray(cloned.events) });
+      })(),
       analysis: null,
       currentStep: 0,
       totalSteps: 37, // Reduced by 1 after removing Gender step
@@ -261,16 +435,32 @@ export const useQuizStore = create<QuizStore>()(
       },
 
       hydrate: () => {
-        set((state) => state)
+        set((state) => {
+          const normalized = normalizeAnswers(state.answers);
+          const sessionId = ensureSessionIdValue(normalized.sessionId);
+          const events = ensureEventsArray(normalized.events);
+          return {
+            ...state,
+            answers: {
+              ...normalized,
+              sessionId,
+              events,
+            },
+          };
+        })
       },
 
       setAnalysis: (model) => set(() => ({ analysis: model })),
 
       setAnswer: async (field, value) => {
         const state = get();
-        
+        const sessionId = ensureSessionIdValue(state.answers.sessionId);
+        const existingEvents = ensureEventsArray(state.answers.events);
+  const shouldPersistSession = isBlankSessionId(state.answers.sessionId);
+
         const newAnswers = {
           ...state.answers,
+          sessionId,
           [field]: value,
         };
         
@@ -279,20 +469,35 @@ export const useQuizStore = create<QuizStore>()(
           eventName: 'answerChanged',
           timestamp: new Date().toISOString(),
           step: state.currentStep,
-          details: { field, value }
+          details: {
+            field,
+            value: typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+              ? value
+              : Array.isArray(value)
+                ? { type: 'array', length: value.length }
+                : value && typeof value === 'object'
+                  ? { type: 'object', keys: Object.keys(value).slice(0, 10) }
+                  : value
+          }
         };
         
         // Send event immediately to backend
         try {
-          await saveOnboardingSession(state.answers.sessionId, [event], state.answers.Id);
+          if (!isBlankSessionId(sessionId)) {
+            await saveOnboardingSession(sessionId, [event], state.answers.Id);
+          }
         } catch (error) {
           console.error('Failed to save onboarding event:', error);
         }
         
         // Update local state
         set(() => ({
-          answers: { ...newAnswers, events: [...newAnswers.events, event] }
+          answers: { ...newAnswers, events: appendEvent(existingEvents, event) }
         }));
+
+        if (shouldPersistSession && sessionId) {
+          safeSessionSetItem('quizSessionId', sessionId);
+        }
       },
 
       setHeightUnit: (unit) =>
@@ -319,18 +524,22 @@ export const useQuizStore = create<QuizStore>()(
       nextStep: async () => {
         const state = get();
         const newStep = Math.min(state.currentStep + 1, state.totalSteps - 1);
+  const sessionId = ensureSessionIdValue(state.answers.sessionId);
+        const existingEvents = ensureEventsArray(state.answers.events);
         
         // Create event for step completion
         const event = {
           eventName: 'stepCompleted',
           timestamp: new Date().toISOString(),
           step: state.currentStep,
-          details: { nextStep: newStep, answers: state.answers }
+          details: { nextStep: newStep }
         };
         
         // Send event immediately to backend
         try {
-          await saveOnboardingSession(state.answers.sessionId, [event], state.answers.Id);
+          if (!isBlankSessionId(sessionId)) {
+            await saveOnboardingSession(sessionId, [event], state.answers.Id);
+          }
         } catch (error) {
           console.error('Failed to save onboarding event:', error);
         }
@@ -338,13 +547,15 @@ export const useQuizStore = create<QuizStore>()(
         // Update local state
         set(() => ({
           currentStep: newStep,
-          answers: { ...state.answers, events: [...state.answers.events, event] }
+          answers: { ...state.answers, sessionId, events: appendEvent(existingEvents, event) }
         }));
       },
 
       prevStep: async () => {
         const state = get();
         const newStep = Math.max(state.currentStep - 1, 0);
+  const sessionId = ensureSessionIdValue(state.answers.sessionId);
+        const existingEvents = ensureEventsArray(state.answers.events);
         
         // Create event for step navigation
         const event = {
@@ -356,7 +567,9 @@ export const useQuizStore = create<QuizStore>()(
         
         // Send event immediately to backend
         try {
-          await saveOnboardingSession(state.answers.sessionId, [event], state.answers.Id);
+          if (!isBlankSessionId(sessionId)) {
+            await saveOnboardingSession(sessionId, [event], state.answers.Id);
+          }
         } catch (error) {
           console.error('Failed to save onboarding event:', error);
         }
@@ -364,12 +577,14 @@ export const useQuizStore = create<QuizStore>()(
         // Update local state
         set(() => ({
           currentStep: newStep,
-          answers: { ...state.answers, events: [...state.answers.events, event] }
+          answers: { ...state.answers, sessionId, events: appendEvent(existingEvents, event) }
         }));
       },
 
       goToStep: async (step) => {
         const state = get();
+  const sessionId = ensureSessionIdValue(state.answers.sessionId);
+        const existingEvents = ensureEventsArray(state.answers.events);
         
         // Create event for step jump
         const event = {
@@ -381,7 +596,9 @@ export const useQuizStore = create<QuizStore>()(
         
         // Send event immediately to backend
         try {
-          await saveOnboardingSession(state.answers.sessionId, [event], state.answers.Id);
+          if (!isBlankSessionId(sessionId)) {
+            await saveOnboardingSession(sessionId, [event], state.answers.Id);
+          }
         } catch (error) {
           console.error('Failed to save onboarding event:', error);
         }
@@ -389,15 +606,19 @@ export const useQuizStore = create<QuizStore>()(
         // Update local state
         set(() => ({
           currentStep: Math.max(0, Math.min(step, state.totalSteps - 1)),
-          answers: { ...state.answers, events: [...state.answers.events, event] }
+          answers: { ...state.answers, sessionId, events: appendEvent(existingEvents, event) }
         }));
       },
 
       resetQuiz: () =>
-        set(() => ({
-          answers: initialAnswers,
-          currentStep: 0,
-        })),
+        set(() => {
+          const cloned = cloneInitialAnswers();
+          const sessionId = ensureSessionIdValue(cloned.sessionId);
+          return {
+            answers: normalizeAnswers({ ...cloned, sessionId, events: ensureEventsArray(cloned.events) }),
+            currentStep: 0,
+          };
+        }),
 
       completeOnboarding: () =>
         set((state) => ({
@@ -409,6 +630,7 @@ export const useQuizStore = create<QuizStore>()(
 
       generateSessionId: () => {
         const sid = 'session_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+        safeSessionSetItem('quizSessionId', sid);
         set((state) => ({
           answers: { ...state.answers, sessionId: sid }
         }));
@@ -422,13 +644,29 @@ export const useQuizStore = create<QuizStore>()(
           details
         };
         set((state) => ({
-          answers: { ...state.answers, events: [...state.answers.events, event] }
+          answers: {
+            ...state.answers,
+            sessionId: ensureSessionIdValue(state.answers.sessionId),
+            events: appendEvent(state.answers.events, event)
+          }
         }));
       },
     }),
     {
       name: 'beauty-quiz-storage-v2', // New version to avoid conflicts with old structure
+      storage: onboardingStorage,
       skipHydration: false,
+      onRehydrateStorage: () => (state, error) => {
+        // Normalize after persist rehydration to guarantee arrays exist
+        if (!error && state) {
+          try {
+            const normalized = normalizeAnswers((state as any).answers);
+            (state as any).answers = normalized;
+          } catch (e) {
+            // no-op; keep state as-is
+          }
+        }
+      },
       partialize: (state) => ({
         answers: state.answers,
         currentStep: state.currentStep,

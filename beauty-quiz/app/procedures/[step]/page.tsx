@@ -1,5 +1,6 @@
 import ProceduresFlow from '@/components/procedures/ProceduresFlow'
 import AnimatedBackground from '@/components/AnimatedBackground'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import { Suspense } from 'react'
 
 const SUPPORTED_STEPS = ['0', '1', '2', '3', '4', '5']
@@ -24,9 +25,11 @@ export default async function ProceduresPage({ params }: ProceduresPageProps) {
     <div className="relative min-h-screen overflow-hidden">
       <AnimatedBackground />
       <div className="relative z-10">
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
-          <ProceduresFlow step={step} />
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+            <ProceduresFlow step={step} />
+          </Suspense>
+        </ErrorBoundary>
       </div>
     </div>
   )

@@ -118,6 +118,9 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   const [cardTopPx, setCardTopPx] = useState<number | null>(null)
   const [hasMeasured, setHasMeasured] = useState(false)
   
+  // Animation state - must be declared before any conditional returns
+  const [animationReady, setAnimationReady] = useState(false)
+  
   // Only use Zustand on client side
   const { totalSteps, goToStep, answers, isTransitioning, setTransitioning, generateSessionId } = useQuizStore()
   
@@ -294,6 +297,8 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   const isFullScreen = stepNumber >= 34; // Post-quiz screens start from CurrentConditionAnalysis (now index 34)
   const isAutoTransitionScreen = false; // AI Analysis Intro was removed
 
+  // ===== ALL HOOKS MUST BE BEFORE ANY CONDITIONAL RETURNS =====
+  
   // Fallback: ensure content is shown after a reasonable delay if measurement fails
   useEffect(() => {
     if (!isFullScreen && !hasMeasured) {
@@ -311,27 +316,8 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
     }
   }, [stepNumber, hasMeasured, isFullScreen, showQuestion])
 
-  if (!StepComponent) {
-    // Fallback for not-yet-created components
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center p-8">
-          <h1 className="text-2xl font-bold text-text-primary mb-4">Step {stepNumber}: Component not found</h1>
-          <p className="text-text-secondary">This component is under construction.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // For auto-transition screens, render directly without any wrappers
-  if (isAutoTransitionScreen) {
-    return <StepComponent />
-  }
-
   // Ensure animation order: card (text) enters first, then character
   // Add a small delay for animation start
-  const [animationReady, setAnimationReady] = useState(false)
-  
   useEffect(() => {
     if (showQuestion && hasMeasured) {
       // Small delay to allow animation to start
@@ -341,9 +327,6 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
       setAnimationReady(false)
     }
   }, [showQuestion, hasMeasured])
-
-  const cardEntered = animationReady && !isExiting && !isGoingBack
-  const characterEntered = showCharacter && cardEntered && !isExiting && !isGoingBack
 
   // Measure card top based on character box bottom or fallback to app bar/progress bar height
   useLayoutEffect(() => {
@@ -393,6 +376,28 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
       window.removeEventListener('orientationchange', onResize)
     }
   }, [imageUrl, isFullScreen, stepNumber, assistantName, showCharacter])
+
+  // ===== CONDITIONAL RETURNS AFTER ALL HOOKS =====
+
+  if (!StepComponent) {
+    // Fallback for not-yet-created components
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center p-8">
+          <h1 className="text-2xl font-bold text-text-primary mb-4">Step {stepNumber}: Component not found</h1>
+          <p className="text-text-secondary">This component is under construction.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // For auto-transition screens, render directly without any wrappers
+  if (isAutoTransitionScreen) {
+    return <StepComponent />
+  }
+
+  const cardEntered = animationReady && !isExiting && !isGoingBack
+  const characterEntered = showCharacter && cardEntered && !isExiting && !isGoingBack
 
   // When character image loads or there is no character, allow character to enter and mark ready
   const handleCharacterLoaded = () => {

@@ -61,7 +61,7 @@ export default function CustomActivitiesModal({
   }
 
   const handleConfirm = () => {
-    const validActivities = activities.filter(activity => activity.name.trim() !== '')
+  const validActivities = activities.filter(activity => typeof activity.name === 'string' && activity.name.trim() !== '')
     onConfirm(validActivities)
     onClose()
   }
@@ -86,7 +86,6 @@ export default function CustomActivitiesModal({
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || draggingIndex === null) return
-    e.preventDefault()
     
     const activity = activities[draggingIndex]
     if (!activity) return
@@ -124,7 +123,6 @@ export default function CustomActivitiesModal({
 
   const handlePeriodTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || draggingIndex === null) return
-    e.preventDefault()
     
     const activity = activities[draggingIndex]
     if (!activity) return

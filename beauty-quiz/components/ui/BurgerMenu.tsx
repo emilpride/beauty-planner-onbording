@@ -32,7 +32,7 @@ export default function BurgerMenu({ inline }: BurgerMenuProps) {
   // After all hooks ran consistently, we can return null safely
   if (hidden) return null
 
-  const buttonClasses = `inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-border-subtle bg-surface/80 ${open ? (isDark ? 'text-white' : 'text-text-primary') : 'text-text-secondary'} shadow-soft backdrop-blur transition-colors hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:bg-surface/70 ${open ? 'md:opacity-0 md:pointer-events-none' : ''} ${inline ? (open ? 'fixed right-3 top-3 z-[1101] md:static md:z-auto' : 'relative z-[1101]') : 'relative z-[1101]'}`
+  const buttonClasses = `inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-border-subtle bg-surface/80 ${open ? (isDark ? 'text-white' : 'text-text-primary') : 'text-text-secondary'} shadow-soft backdrop-blur transition-colors hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:bg-surface/70 ${open ? 'md:opacity-0 md:pointer-events-none' : ''} ${inline ? (open ? 'fixed right-3 top-3 z-[9999] md:static md:z-auto' : 'relative z-[9999]') : 'relative z-[9999]'}`
 
   const button = (
     <button
@@ -69,7 +69,7 @@ export default function BurgerMenu({ inline }: BurgerMenuProps) {
 
   const containerClass = inline
     ? 'relative'
-    : 'pointer-events-auto fixed right-3 top-3 z-[1100] sm:right-5 sm:top-4'
+    : 'pointer-events-auto fixed right-3 top-3 z-[9998] sm:right-5 sm:top-4'
 
   const containerStyle = inline
     ? undefined
@@ -83,7 +83,7 @@ export default function BurgerMenu({ inline }: BurgerMenuProps) {
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-0 z-[102] bg-black/30"
+            className="fixed inset-0 z-[9997] bg-black/30"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -96,7 +96,7 @@ export default function BurgerMenu({ inline }: BurgerMenuProps) {
       <AnimatePresence>
         {open && (
           <motion.aside
-            className="fixed right-0 top-0 z-[1103] h-full w-[84vw] max-w-[360px] bg-surface/95 backdrop-blur border-l border-border-subtle shadow-2xl"
+            className="fixed right-0 top-0 z-[9999] h-full w-[84vw] max-w-[360px] bg-surface/95 backdrop-blur border-l border-border-subtle shadow-2xl"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}

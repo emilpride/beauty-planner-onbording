@@ -20,10 +20,15 @@ const goals = [
 export default function GoalStep() {
   const { answers, setAnswer } = useQuizStore()
 
+  // Ensure we have a safe goals array to operate on
+  const goalsState = Array.isArray(answers?.Goals)
+    ? answers.Goals
+    : // build a fallback structure from the static goals list; include `title` to match GoalItem
+      goals.map(g => ({ id: g.id, title: g.text, isActive: false }))
+
   const handleToggleGoal = (goalId: string) => {
-    const newGoals = answers.Goals.map(g => 
-      g.id === goalId ? { ...g, isActive: !g.isActive } : g
-    )
+    const base = Array.isArray(answers?.Goals) ? answers.Goals : goalsState
+    const newGoals = base.map(g => (g.id === goalId ? { ...g, isActive: !g.isActive } : g))
     setAnswer('Goals', newGoals)
   }
 
@@ -38,7 +43,7 @@ export default function GoalStep() {
   {/* Fill available vertical space under the header and above the footer without scrolling, slightly more compact */}
   <div className="grid grid-cols-2 grid-rows-4 auto-rows-fr h-full gap-[6px] px-2 pb-2">
         {goals.map((goal, index) => {
-          const isSelected = answers.Goals.find(g => g.id === goal.id)?.isActive || false
+          const isSelected = goalsState.find(g => g.id === goal.id)?.isActive || false
           return (
             <motion.button
               key={goal.text}

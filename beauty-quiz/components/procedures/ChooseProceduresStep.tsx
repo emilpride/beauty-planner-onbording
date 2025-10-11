@@ -290,7 +290,7 @@ export default function ChooseProceduresStep() {
   const [iconCategoryFilter, setIconCategoryFilter] = useState<string>('all')
   const [iconPage, setIconPage] = useState(0)
 
-  const normalizedIconSearch = iconSearchQuery.trim().toLowerCase()
+  const normalizedIconSearch = (iconSearchQuery ?? '').toString().trim().toLowerCase()
 
   const filteredIconEntries = useMemo(() => {
     return PROCEDURES_ICON_CATALOG.filter((entry) => {

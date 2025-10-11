@@ -4,6 +4,7 @@ import './globals.css'
 import './carousel-styles.css'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
 import ClientShell from '@/components/ClientShell'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -25,7 +26,9 @@ export default function RootLayout({
     <html lang="en" className="light" suppressHydrationWarning>
       <body className={[inter.className, 'antialiased'].join(' ')} suppressHydrationWarning>
         <ThemeProvider>
-          <ClientShell>{children}</ClientShell>
+          <ErrorBoundary>
+            <ClientShell>{children}</ClientShell>
+          </ErrorBoundary>
         </ThemeProvider>
       </body>
     </html>
