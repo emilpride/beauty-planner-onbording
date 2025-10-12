@@ -1,10 +1,10 @@
 ﻿'use client'
 
 import { useState, useRef } from 'react'
-import imageCompression from 'browser-image-compression'
+import { normalizeAndCompressImage } from '@/lib/imageNormalize'
 import { useQuizStore } from '@/store/quizStore'
-import { storage } from '@/lib/firebase'
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { auth } from '@/lib/firebase'
+import { uploadPhotoViaProxy } from '@/lib/uploadHelper'
 
 interface ImageUploadProps {
   type: 'face' | 'hair'
@@ -16,7 +16,7 @@ export default function ImageUpload({ type, currentImageUrl, onUploadComplete }:
   const [isUploading, setIsUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { setAnswer } = useQuizStore()
+  const { setAnswer, answers } = useQuizStore()
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -43,16 +43,10 @@ export default function ImageUpload({ type, currentImageUrl, onUploadComplete }:
     setIsUploading(true)
 
     try {
-      // Compress the image with baseline options
-      const options = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1024,
-        useWebWorker: true,
-        initialQuality: 0.8,
-      }
-      const compressedFile = await imageCompression(file, options)
+      // Normalize (HEIC/HEIF->JPEG), auto-orient + compress
+      const compressedFile = await normalizeAndCompressImage(file, { maxWidthOrHeight: 1280, quality: 0.85 })
 
-      // Create a preview from compressed file
+      // Create a preview from compressed file while uploading
       const reader = new FileReader()
       reader.onload = (e) => {
         const base64Url = e.target?.result as string
@@ -60,18 +54,16 @@ export default function ImageUpload({ type, currentImageUrl, onUploadComplete }:
       }
       reader.readAsDataURL(compressedFile)
 
-      // Upload compressed file to Firebase Storage
-      const path = `uploads/${type}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`
-      const sRef = storageRef(storage, path)
-      const uploadResult = await uploadBytes(sRef, compressedFile)
-      const downloadUrl = await getDownloadURL(uploadResult.ref)
+      // Upload via backend proxy to avoid client CORS/auth issues
+      const uid = auth.currentUser?.uid || (answers as any)?.Id || 'anonymous'
+      const downloadUrl = await uploadPhotoViaProxy(compressedFile, uid, type)
 
       // Store the download URL in the quiz state
       setAnswer(type === 'face' ? 'FaceImageUrl' : 'HairImageUrl', downloadUrl)
 
       // Notify parent components
       onUploadComplete?.(downloadUrl)
-      console.log('File uploaded successfully (storage url)')
+      console.log('File uploaded successfully (proxy url)')
     } catch (error) {
       console.error('Upload failed:', error)
       alert('Upload failed. Please try again.')
@@ -153,7 +145,8 @@ export default function ImageUpload({ type, currentImageUrl, onUploadComplete }:
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*;capture=camera"
+        capture="environment"
         onChange={handleFileSelect}
         className="hidden"
       />

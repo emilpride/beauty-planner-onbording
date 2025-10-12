@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import RecommendedCare from '@/components/post-quiz/RecommendedCare'
+import GeminiRecommendedCare from '@/components/post-quiz/GeminiRecommendedCare'
 import { useQuizStore } from '@/store/quizStore'
 
 const BMI_CATEGORIES = [
@@ -67,11 +67,12 @@ const BMI_CATEGORIES = [
   },
 ] as const
 
+// No static fallback copy – we only render data returned by Gemini
 const CONDITION_COPY: Record<'skin' | 'hair' | 'physic' | 'mental', string> = {
-  skin: 'Mostly clear with light dryness along the cheeks and an active T-zone. Weekly barrier-restoring masks keep hydration steady.',
-  hair: 'Good density with subtle dryness at the ends. Twice-weekly hydration masks and scalp massage will balance moisture.',
-  physic: 'Mobility is moderate. Low-impact cardio plus mobility sessions will rebuild endurance without stress.',
-  mental: 'Mindset is generally positive with stress dips mid-week. Daily breathwork and gratitude check-ins keep energy even.',
+  skin: '',
+  hair: '',
+  physic: '',
+  mental: '',
 }
 
 const CONDITION_ORDER = [
@@ -240,72 +241,7 @@ function CircularScore({
 
 export default function CurrentConditionAnalysisStep() {
   const router = useRouter()
-  const { answers } = useQuizStore()
-  const [loadingAnalysis, setLoadingAnalysis] = useState(false)
-  const [analysisError, setAnalysisError] = useState<string | null>(null)
-  const [aiModel, setAiModel] = useState<any | null>(null)
-  const [lastTriedAt, setLastTriedAt] = useState<number | null>(null)
-
-  // Auto-trigger analysis when payment completed and images available (or skipped)
-  useEffect(() => {
-    const shouldRun = answers.PaymentCompleted && !aiModel && !loadingAnalysis
-    const imagesReady = (
-      (Boolean(answers.FaceImageUrl) || answers.FaceImageSkipped) &&
-      (Boolean(answers.HairImageUrl) || answers.HairImageSkipped) &&
-      (Boolean(answers.BodyImageUrl) || answers.BodyImageSkipped)
-    )
-    if (!shouldRun) return
-    if (!imagesReady) return
-    let mounted = true
-    const run = async () => {
-      try {
-        setAnalysisError(null)
-        setLoadingAnalysis(true)
-        const payload = { userId: answers.Id, answers, photoUrls: { face: answers.FaceImageUrl, hair: answers.HairImageUrl, body: answers.BodyImageUrl } }
-        const resp = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-        const json = await resp.json()
-        if (!mounted) return
-        if (json?.analysis) {
-          setAiModel(json.analysis)
-        } else {
-          setAnalysisError(json?.error || 'Unknown response')
-        }
-      } catch (e: any) {
-        if (!mounted) return
-        setAnalysisError(e?.message || 'Failed to analyze')
-      } finally {
-        if (!mounted) return
-        setLoadingAnalysis(false)
-        setLastTriedAt(Date.now())
-      }
-    }
-
-    run()
-
-    return () => { mounted = false }
-  }, [answers.PaymentCompleted, answers.FaceImageUrl, answers.HairImageUrl, answers.BodyImageUrl, answers.FaceImageSkipped, answers.HairImageSkipped, answers.BodyImageSkipped, answers.Id, aiModel, loadingAnalysis])
-
-  // Exposed action to manually retry the analysis (re-run the server call)
-  const retryAnalysis = async () => {
-    if (loadingAnalysis) return
-    setAnalysisError(null)
-    setLoadingAnalysis(true)
-    try {
-      const payload = { userId: answers.Id, answers, photoUrls: { face: answers.FaceImageUrl, hair: answers.HairImageUrl, body: answers.BodyImageUrl } }
-      const resp = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-      const json = await resp.json()
-      if (json?.analysis) {
-        setAiModel(json.analysis)
-      } else {
-        setAnalysisError(json?.error || 'Unknown response')
-      }
-    } catch (e: any) {
-      setAnalysisError(e?.message || 'Failed to analyze')
-    } finally {
-      setLoadingAnalysis(false)
-      setLastTriedAt(Date.now())
-    }
-  }
+  const { answers, analysis: aiModel } = useQuizStore()
 
   // ---- Age computation ----
   const chronologicalAge = useMemo(() => {
@@ -324,39 +260,10 @@ export default function CurrentConditionAnalysisStep() {
     return null
   }, [answers.BirthDate, answers.Age])
 
-  // Heuristic biological age estimate from lifestyle factors
-  const { positiveFactors, negativeFactors, biologicalAgeTarget } = useMemo(() => {
-    const pos: string[] = []
-    const neg: string[] = []
-
-    // Sleep
-    if (answers.SleepDuration === '7-8') pos.push('7–8 hours of sleep')
-    if (answers.SleepDuration === '<6') neg.push('Sleep deprivation (<6h)')
-
-    // Activity / lifestyle
-    if (answers.LifeStyle === 'active' || answers.LifeStyle === 'sports') pos.push('Active lifestyle')
-    if (answers.LifeStyle === 'sedentary') neg.push('Sedentary routine')
-
-    // Stress
-    if (answers.Stress === 'rarely') pos.push('Low stress')
-    if (answers.Stress === 'often' || answers.Stress === 'always') neg.push('High stress')
-
-    // Physical activities selection
-    if (answers.PhysicalActivities.some(a => a.isActive)) pos.push('Regular workouts')
-
-    // Diet
-    if (answers.Diet.some(d => d.isActive)) pos.push('Balanced diet')
-
-    // Energy/mood small signals
-    if (answers.EnergyLevel && answers.EnergyLevel >= 4) pos.push('Good energy')
-    if (answers.Mood === 'terrible' || answers.Mood === 'bad') neg.push('Low mood')
-
-    const base = chronologicalAge ?? 30
-    const delta = Math.max(-5, Math.min(5, pos.length * -0.7 + neg.length * 0.8))
-    const target = Math.max(0, Math.round(base + delta))
-
-    return { positiveFactors: pos, negativeFactors: neg, biologicalAgeTarget: target }
-  }, [answers.SleepDuration, answers.LifeStyle, answers.Stress, answers.PhysicalActivities, answers.Diet, answers.EnergyLevel, answers.Mood, chronologicalAge])
+  // Remove heuristic biological age and factors – only Gemini data should be shown
+  const positiveFactors: string[] = []
+  const negativeFactors: string[] = []
+  const biologicalAgeTarget = chronologicalAge ?? null
 
   // Animate biological age number
   const [bioAgeAnimated, setBioAgeAnimated] = useState(0)
@@ -365,7 +272,7 @@ export default function CurrentConditionAnalysisStep() {
     const start = performance.now()
     const duration = 900
     const from = 0
-    const to = biologicalAgeTarget
+      const to = typeof biologicalAgeTarget === 'number' ? biologicalAgeTarget : 0
     const tick = (t: number) => {
       const p = Math.min(1, (t - start) / duration)
       const eased = 1 - Math.pow(1 - p, 3)
@@ -378,8 +285,9 @@ export default function CurrentConditionAnalysisStep() {
 
   const bioAgeColor = useMemo(() => {
     if (chronologicalAge == null) return '#33C75A'
-    if (biologicalAgeTarget <= chronologicalAge - 1) return '#33C75A' // younger -> green
-    if (biologicalAgeTarget >= chronologicalAge + 1) return '#FF7D7E' // older -> red
+      if (typeof biologicalAgeTarget !== 'number') return '#33C75A'
+      if (biologicalAgeTarget <= chronologicalAge - 1) return '#33C75A'
+      if (biologicalAgeTarget >= chronologicalAge + 1) return '#FF7D7E'
     return '#FFA64D' // about the same -> amber
   }, [chronologicalAge, biologicalAgeTarget])
 
@@ -473,10 +381,8 @@ export default function CurrentConditionAnalysisStep() {
     return colorAt(stops, t)
   }, [bmsAnimated])
 
-  // BMI vertical gradient should match the provided reference (top warm -> bottom cool)
-  const bmiGradient = useMemo(() => {
-    return 'linear-gradient(180deg, #FF7D7E 0%, #FFA64D 20%, #FBF447 40%, #33C75A 60%, #53E5FF 80%, #0066CC 100%)'
-  }, [])
+  // No BMI gradient/scale – we only show the numeric BMI returned by Gemini
+  const bmiGradient = ''
 
   // colorAt helpers moved to module scope above
 
@@ -529,7 +435,7 @@ export default function CurrentConditionAnalysisStep() {
           transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
         />
       </motion.div>
-  <div className="relative z-10 mx-auto flex min-h-screen max-w-2xl flex-col gap-5 px-5 pb-20 pt-8" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-2xl flex-col gap-5 px-5 pb-20 pt-8" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>
         <motion.header 
           className="flex items-center gap-3"
           initial={{ opacity: 0, y: -20 }}
@@ -568,425 +474,98 @@ export default function CurrentConditionAnalysisStep() {
         </motion.header>
 
         <section className="space-y-5">
-          {/* Age summary block */}
-          <motion.article 
-            className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft overflow-hidden relative"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25, duration: 0.6, ease: 'easeOut' }}
-          >
-            {/* Subtle decorative gradients */}
-            <motion.div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full blur-3xl opacity-20"
-              style={{ background: 'radial-gradient(circle, #8A60FF 0%, transparent 60%)' }}
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 10, repeat: Infinity }}
-            />
-            <motion.div className="pointer-events-none absolute -bottom-14 -left-10 h-48 w-48 rounded-full blur-3xl opacity-15"
-              style={{ background: 'radial-gradient(circle, #53E5FF 0%, transparent 60%)' }}
-              animate={{ scale: [1, 1.08, 1] }}
-              transition={{ duration: 12, repeat: Infinity }}
-            />
+            {aiModel && (
+              <>
+                {/* BMS from Gemini only */}
+                <motion.article 
+                  className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1, duration: 0.4 }}
+                >
+                  <div className="text-center mb-2">
+                    <h2 className="text-lg font-semibold text-text-primary">Beauty Mirror Score (BMS)</h2>
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <span className="text-5xl font-semibold text-text-primary">{Number(aiModel.bmsScore ?? 0).toFixed(1)}</span>
+                  </div>
+                </motion.article>
 
-            <div className="flex flex-col gap-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-stretch">
-                {/* Chronological age */}
-                <motion.div 
-                  className="rounded-2xl p-5 bg-gradient-to-br from-primary/5 to-transparent border border-border-subtle/50"
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.35, duration: 0.5 }}
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-text-secondary">Chronological Age</p>
-                  <div className="mt-2 flex items-end gap-2">
-                    <span className="text-4xl font-bold text-text-primary leading-none">{chronologicalAge ?? '—'}</span>
-                    <span className="mb-0.5 text-sm font-semibold text-text-secondary">yrs</span>
-                  </div>
-                </motion.div>
-
-                {/* Biological age */}
-                <motion.div 
-                  className="rounded-2xl p-5 bg-gradient-to-br from-[#33C75A]/10 via-transparent to-transparent border border-border-subtle/50"
-                  initial={{ x: 20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.4, duration: 0.5 }}
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-text-secondary">Biological Age</p>
-                  <div className="mt-2 flex items-end gap-2">
-                    <motion.span 
-                      className="text-4xl font-bold leading-none"
-                      style={{ color: bioAgeColor }}
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.6, duration: 0.5 }}
-                    >
-                      {Math.round(bioAgeAnimated)}
-                    </motion.span>
-                    <span className="mb-0.5 text-sm font-semibold text-text-secondary">yrs</span>
-                  </div>
-                </motion.div>
-              </div>
-
-              {/* Factors */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <motion.div 
-                  className="rounded-2xl border border-border-subtle/60 p-4 bg-white/70 dark:bg-surface/80"
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.55, duration: 0.4 }}
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    <p className="text-sm font-semibold text-text-primary">Positive Factors</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {positiveFactors.length > 0 ? (
-                      positiveFactors.map((f, i) => (
-                        <motion.span
-                          key={f + i}
-                          className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-300 dark:border-emerald-400/30"
-                          initial={{ scale: 0.95, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ delay: 0.6 + i * 0.05, duration: 0.25 }}
-                        >
-                          {f}
-                        </motion.span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-text-secondary">Нет данных</span>
-                    )}
-                  </div>
-                </motion.div>
-
-                <motion.div 
-                  className="rounded-2xl border border-border-subtle/60 p-4 bg-white/70 dark:bg-surface/80"
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.6, duration: 0.4 }}
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <XCircle className="h-4 w-4 text-rose-500" />
-                    <p className="text-sm font-semibold text-text-primary">Negative Factors</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {negativeFactors.length > 0 ? (
-                      negativeFactors.map((f, i) => (
-                        <motion.span
-                          key={f + i}
-                          className="px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-400/10 dark:text-rose-300 dark:border-rose-400/30"
-                          initial={{ scale: 0.95, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ delay: 0.65 + i * 0.05, duration: 0.25 }}
-                        >
-                          {f}
-                        </motion.span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-text-secondary">Нет данных</span>
-                    )}
-                  </div>
-                </motion.div>
-              </div>
-            </div>
-          </motion.article>
-          <motion.article 
-            className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" }}
-          >
-            <motion.div 
-              className="mb-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.6 }}
-            >
-              <p className="text-sm font-semibold text-text-primary">Your BMI is:</p>
-              <div className="mt-1 flex flex-wrap items-baseline gap-2 text-text-primary">
-                <motion.span 
-                  className="text-4xl font-bold"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.7, duration: 0.5, type: "spring", stiffness: 200 }}
-                >
-                  {bmi ? bmi.toFixed(1) : '–'}
-                </motion.span>
-                <motion.span 
-                  className="text-sm font-semibold text-primary"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.8, duration: 0.5 }}
-                >
-                  {bmiCategory.label}
-                </motion.span>
-              </div>
-              <motion.p 
-                className="mt-2 text-sm leading-relaxed text-text-secondary"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.9, duration: 0.5 }}
-              >
-                {bmiCategory.description}
-              </motion.p>
-
-              {/* Analysis status message */}
-              <div className="mt-4">
-                {loadingAnalysis && (
-                  <div className="flex items-center gap-3">
-                    <svg className="h-5 w-5 animate-spin text-primary" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
-                    <div>
-                      <div className="text-sm font-medium text-text-primary">Analysis running…</div>
-                      <div className="text-xs text-text-secondary">This may take a few seconds — results will appear below when ready.</div>
+                {/* Gender-specific BMI illustration and number (Gemini-provided BMI only) */}
+                {typeof aiModel.bmi === 'number' && (
+                  <motion.article 
+                    className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15, duration: 0.4 }}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="shrink-0">
+                        <img
+                          src={`/images/on_boarding_images/bmi_${(answers.Gender === 2 ? 'female' : 'male')}_2.png`}
+                          alt="BMI reference"
+                          className="w-16 h-16 rounded-xl object-contain bg-white/80"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-text-primary">BMI</p>
+                        <p className="mt-1 text-3xl font-bold text-text-primary">{Number(aiModel.bmi).toFixed(1)}</p>
+                      </div>
                     </div>
-                  </div>
+                  </motion.article>
                 )}
 
-                {analysisError && (
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-rose-600">{analysisError}</div>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => retryAnalysis()} className="rounded-md bg-primary px-3 py-1 text-sm font-semibold text-white">Retry</button>
-                    </div>
-                  </div>
-                )}
-
-                {!loadingAnalysis && !aiModel && !analysisError && lastTriedAt && (
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-text-secondary">No analysis found yet.</div>
-                    <div>
-                      <button type="button" onClick={() => retryAnalysis()} className="rounded-md border border-border-subtle px-3 py-1 text-sm">Refresh</button>
-                    </div>
-                  </div>
-                )}
-
-                {aiModel && <div className="mt-3 text-sm text-text-secondary"><p className="font-semibold">AI Analysis received — rendering personalized insights below.</p></div>}
-              </div>
-            </motion.div>
-
-            <motion.div 
-              className="flex items-center justify-center gap-4"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1.0, duration: 0.6 }}
-            >
-              {/* BMI Scale */}
-              <motion.div 
-                className="relative w-[36px] h-[344px]"
-                initial={{ x: -50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 1.1, duration: 0.6 }}
-              >
-                {/* Background Track */}
-                <div 
-                  className="absolute w-[10px] h-[344px] left-[13px] top-0 rounded-full"
-                  style={{ background: '#EBEDFC' }}
-                />
-                {/* Gradient Fill (category-aligned) */}
-                <div 
-                  className="absolute w-[18px] h-[344px] left-[9px] top-0 rounded-full"
-                  style={{ background: bmiGradient }}
-                />
-                {/* Slider Handle */}
-                <motion.div
-                  className="absolute w-8 h-8 rounded-full border-2 border-white shadow-lg"
-                  style={{ 
-                    background: 'linear-gradient(180deg, #F2F2F2 0%, #E8E8E8 100%)',
-                    left: 'calc(50% - 16px)',
-                    top: '100%'
-                  }}
-                  animate={{ 
-                    top: `${(1 - bmiPosition) * 100}%`,
-                    transform: 'translateY(-50%)'
-                  }}
-                  transition={{ 
-                    delay: 1.5,
-                    duration: 2.0,
-                    ease: "easeOut"
-                  }}
-                />
-                </motion.div>
-
-              {/* BMI Value - Between scale and image */}
-              <motion.div 
-                className="text-center"
-                initial={{ y: -30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.2, duration: 0.6 }}
-              >
-                <motion.div 
-                  className="text-5xl font-semibold leading-none"
-                  style={{ 
-                    color: bmiNumberColor,
-                    width: '90px',
-                    height: '56px',
-                    fontFamily: 'Raleway',
-                    fontWeight: 600,
-                    fontSize: '48px',
-                    lineHeight: '56px'
-                  }}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 1.4, duration: 0.5 }}
-                >
-                  {bmi ? bmiAnimated.toFixed(1) : '–'}
-                </motion.div>
-              </motion.div>
-              
-              {/* Person Image */}
-              <motion.div 
-                className="flex-shrink-0"
-                initial={{ x: 50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 1.3, duration: 0.6 }}
-              >
-                {(() => {
-                  const genderStr = typeof answers.Gender === 'string' ? answers.Gender : 'male'
+                {/* Four conditions – show Gemini explanation and recos only */}
+                {CONDITION_ORDER.map(({ id, title }, index) => {
+                  const aiForId = id === 'skin' ? aiModel.skinCondition : id === 'hair' ? aiModel.hairCondition : id === 'physic' ? aiModel.physicalCondition : aiModel.mentalCondition
+                  if (!aiForId) return null
+                  const score = typeof aiForId.score === 'number' ? Number(aiForId.score) : null
+                  const explanation = typeof aiForId.explanation === 'string' ? aiForId.explanation : ''
+                  const scoreColor = score != null ? (score >= 7 ? '#33C75A' : score >= 4 ? '#FFA64D' : '#FF7D7E') : 'rgb(var(--color-primary))'
                   return (
-                <Image
-                  src={getPersonImage(genderStr, bmiCategory)}
-                  alt={`${genderStr} BMI ${bmi ? bmi.toFixed(1) : 'unknown'}`}
-                  width={120}
-                  height={200}
-                  className="object-contain"
-                />
+                    <motion.article 
+                      key={id} 
+                      className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 + index * 0.05, duration: 0.4 }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
+                        {score != null && <CircularScore value={score} size={44} thickness={6} gradientId={`grad-${id}`} colors={[scoreColor, scoreColor, scoreColor]} />}
+                      </div>
+                      {explanation && <p className="mt-3 text-sm leading-relaxed text-text-secondary">{explanation}</p>}
+                      {Array.isArray(aiForId.recommendations) && aiForId.recommendations.length > 0 && (
+                        <div className="mt-4">
+                          <p className="text-xs font-semibold text-text-primary">Recommendations</p>
+                          <ul className="list-disc list-inside text-sm text-text-secondary mt-2">
+                            {aiForId.recommendations.map((r: string, i: number) => (
+                              <li key={r + i}>{r}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </motion.article>
                   )
-                })()}
-              </motion.div>
-            </motion.div>
-          </motion.article>
+                })}
 
-          {CONDITION_ORDER.map(({ id, title }, index) => {
-            const aiForId = aiModel ? (
-              id === 'skin' ? aiModel.skinCondition : id === 'hair' ? aiModel.hairCondition : id === 'physic' ? aiModel.physicalCondition : aiModel.mentalCondition
-            ) : null
-            const score = aiForId ? Number(aiForId.score) : baseScores[id]
-            const explanation = aiForId ? aiForId.explanation : CONDITION_COPY[id]
-            const scoreColor = score >= 7 ? '#33C75A' : score >= 4 ? '#FFA64D' : '#FF7D7E'
-            return (
-              <motion.article 
-                key={id} 
-                className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ 
-                  delay: 0.6 + (index * 0.1), 
-                  duration: 0.6, 
-                  ease: "easeOut" 
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
-                  <CircularScore value={score} size={44} thickness={6} gradientId={`grad-${id}`} colors={[scoreColor, scoreColor, scoreColor]} />
-                </div>
-                <p className="mt-3 text-sm leading-relaxed text-text-secondary">{explanation}</p>
-                {aiForId && aiForId.recommendations && (
-                  <div className="mt-4">
-                    <p className="text-xs font-semibold text-text-primary">Recommendations</p>
-                    <ul className="list-disc list-inside text-sm text-text-secondary mt-2">
-                      {aiForId.recommendations.map((r: string, i: number) => (
-                        <li key={r + i}>{r}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </motion.article>
-            )
-          })}
-
-          <motion.article 
-            className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.0, duration: 0.6, ease: "easeOut" }}
-          >
-            <div className="text-center mb-6">
-              <h2 className="text-lg font-semibold text-text-primary">Beauty Mirror Score (BMS)</h2>
-              <p className="mt-1 text-sm text-text-secondary">
-                BMS is calculated by averaging scores from four categories—BMI, Skin, Hair, Fitness, and Mind—each rated on a scale from 0 to 10.
-              </p>
-            </div>
-            
-            {/* BMS Score Display (large number above scale) */}
-            <motion.div 
-              className="flex flex-col items-center justify-center mb-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.2, duration: 0.6 }}
-            >
-              <motion.div 
-                className="font-semibold leading-none"
-                style={{ fontSize: '48px', lineHeight: '56px', color: bmsColor }}
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 1.25, duration: 0.5 }}
-              >
-                {(aiModel ? Number(aiModel.bmsScore) : bmsAnimated).toFixed(1)}
-              </motion.div>
-              <motion.p 
-                className="mt-2 text-sm font-semibold text-text-primary"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.4, duration: 0.5 }}
-              >
-                Your BMS is: <span className="text-primary">Balanced</span>
-              </motion.p>
-              <motion.p 
-                className="text-sm text-text-secondary mt-1"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.6, duration: 0.5 }}
-              >
-                Keep up the consistent routine!
-              </motion.p>
-            </motion.div>
-
-            {/* BMS Scale (animated fill and handle) */}
-            <motion.div 
-              className="relative w-full h-9 mb-6 overflow-visible"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 2.2, duration: 0.6 }}
-            >
-              {/* Background Track */}
-              <div 
-                className="absolute w-full h-[18px] top-[9px] rounded-full"
-                style={{ background: '#EBEDFC' }}
-              />
-              {/* Gradient Fill (animated width) */}
-              <motion.div 
-                className="absolute h-[18px] top-[9px] rounded-full"
-                style={{ 
-                  // Left red/orange -> right green (per reference)
-                  background: 'linear-gradient(90deg, #FF7D7E 0%, #FFA64D 40%, #FBF447 60%, #33C75A 100%)',
-                  width: '0%'
-                }}
-                animate={{ width: `${overallScore * 10}%` }}
-                transition={{ delay: 2.3, duration: 1.2, ease: 'easeOut' }}
-              />
-              {/* Slider Handle */}
-              <motion.div
-                className="absolute w-8 h-8 rounded-full border-2 border-white shadow-lg"
-                style={{ 
-                  background: 'linear-gradient(180deg, #F2F2F2 0%, #E8E8E8 100%)',
-                  top: '2px',
-                  left: '0%'
-                }}
-                animate={{ 
-                  left: `${overallScore * 10}%`,
-                  transform: 'translateX(-50%)'
-                }}
-                transition={{ 
-                  delay: 2.4,
-                  duration: 1.5,
-                  ease: "easeOut"
-                }}
-              />
-            </motion.div>
-
-          </motion.article>
-
-          {/* Recommended Care (standalone block below) */}
-          <RecommendedCare baseScores={{ skin: baseScores.skin, hair: baseScores.hair, physic: baseScores.physic, mental: baseScores.mental }} />
+                {/* Gemini-derived Recommended Care with icons/colors/categories */}
+                <GeminiRecommendedCare aiModel={aiModel} />
+              </>
+            )}
         </section>
+
+        {/* Next button */}
+        <div className="sticky bottom-0 left-0 right-0 mt-2">
+          <div className="mx-auto max-w-2xl px-5 pb-5">
+            <button
+              onClick={() => router.push('/premium-intro')}
+              className="w-full rounded-2xl bg-primary text-white py-3.5 text-base font-semibold shadow-soft hover:shadow-md active:scale-[0.99]"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
     </motion.div>
   )

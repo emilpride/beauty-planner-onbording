@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useQuizStore } from '@/store/quizStore'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { ensureAuthUser, auth } from '@/lib/firebase'
 import Image from 'next/image'
 import OnboardingAppbar from '@/components/quiz/OnboardingAppbar' // To be created
 import CircularProgressAnimation from '@/components/animations/CircularProgressAnimation'
@@ -122,13 +123,37 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   const [animationReady, setAnimationReady] = useState(false)
   
   // Only use Zustand on client side
-  const { totalSteps, goToStep, answers, isTransitioning, setTransitioning, generateSessionId } = useQuizStore()
+  const { totalSteps, goToStep, answers, isTransitioning, setTransitioning, generateSessionId, setAnswer } = useQuizStore()
   
   useEffect(() => {
     setIsHydrated(true)
     if (!answers.sessionId) {
       generateSessionId()
     }
+    
+    // Ensure anonymous authentication and store userId
+    const initializeAuth = async () => {
+      try {
+        // Check if we already have a valid userId
+        if (answers.Id && answers.Id.trim().length > 0) {
+          console.log('User ID already exists:', answers.Id)
+          return
+        }
+        
+        // Ensure we have an authenticated user
+        const user = await ensureAuthUser()
+        if (user && user.uid) {
+          console.log('Anonymous user authenticated:', user.uid)
+          setAnswer('Id', user.uid)
+        } else {
+          console.error('Failed to authenticate user')
+        }
+      } catch (error) {
+        console.error('Authentication error:', error)
+      }
+    }
+    
+    initializeAuth()
   }, [])
 
   // Reset transitioning flag when step changes

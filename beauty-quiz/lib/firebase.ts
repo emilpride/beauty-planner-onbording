@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth'
 import { getFirestore, collection, doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
@@ -18,6 +18,36 @@ export const auth = getAuth(app)
 export const db = getFirestore(app)
 export const storage = getStorage(app)
 
+// Ensure we have at least anonymous auth on the client so Storage/Firestore rules that
+// require authentication work during onboarding before signup.
+if (typeof window !== 'undefined') {
+  try {
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        signInAnonymously(auth).catch((e) => {
+          console.warn('Anonymous sign-in failed:', e?.message || e)
+        })
+      }
+    })
+  } catch (e) {
+    // Non-fatal: continue without auth if something unexpected happens
+    console.warn('Auth init warning:', (e as any)?.message || e)
+  }
+}
+
+// Helper to ensure we have a signed-in (anonymous) user before sensitive ops
+export async function ensureAuthUser() {
+  if (typeof window === 'undefined') return null
+  if (auth.currentUser) return auth.currentUser
+  try {
+    await signInAnonymously(auth)
+    return auth.currentUser
+  } catch (e) {
+    console.warn('ensureAuthUser: anonymous sign-in failed', (e as any)?.message || e)
+    return auth.currentUser
+  }
+}
+
 // Function to save onboarding session events in real-time via your deployed
 // cloud function. Returns parsed JSON result or null on error.
 
@@ -34,6 +64,23 @@ async function fetchWithTimeout(url: string, opts: RequestInit = {}, timeout = 8
   }
 }
 
+function detectClientDevice(): 'android' | 'ios' | 'web' {
+  if (typeof navigator === 'undefined') return 'web'
+  const ua = (navigator.userAgent || '').toLowerCase()
+  if (ua.includes('android')) return 'android'
+  if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod') || ua.includes('ios')) return 'ios'
+  return 'web'
+}
+
+function getUtmSource(): string | null {
+  try {
+    if (typeof window === 'undefined') return null
+    const params = new URLSearchParams(window.location.search)
+    const utm = params.get('utm_source') || params.get('utmSource')
+    return utm
+  } catch { return null }
+}
+
 export async function saveOnboardingSession(sessionId: string, events: any[], userId?: string) {
   if (typeof sessionId !== 'string' || sessionId.trim().length === 0) {
     console.warn('saveOnboardingSession skipped: missing sessionId');
@@ -47,7 +94,17 @@ export async function saveOnboardingSession(sessionId: string, events: any[], us
         process.env.NEXT_PUBLIC_SAVE_ONBOARDING_URL ||
         'https://us-central1-beauty-planner-26cc0.cloudfunctions.net/saveOnboardingSession'
 
-  const payload = { sessionId, events, userId }
+  const payload = {
+    sessionId,
+    events,
+    userId,
+    meta: {
+      utmSource: getUtmSource(),
+      device: detectClientDevice(),
+      // Referrer helps server classify source; header also typically carries it
+      referrer: typeof document !== 'undefined' ? document.referrer || null : null,
+    }
+  }
   const opts: RequestInit = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

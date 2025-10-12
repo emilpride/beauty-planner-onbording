@@ -452,7 +452,7 @@ export const useQuizStore = create<QuizStore>()(
 
       setAnalysis: (model) => set(() => ({ analysis: model })),
 
-      setAnswer: async (field, value) => {
+      setAnswer: (field, value) => {
         const state = get();
         const sessionId = ensureSessionIdValue(state.answers.sessionId);
         const existingEvents = ensureEventsArray(state.answers.events);
@@ -481,19 +481,17 @@ export const useQuizStore = create<QuizStore>()(
           }
         };
         
-        // Send event immediately to backend
-        try {
-          if (!isBlankSessionId(sessionId)) {
-            await saveOnboardingSession(sessionId, [event], state.answers.Id);
-          }
-        } catch (error) {
-          console.error('Failed to save onboarding event:', error);
-        }
-        
-        // Update local state
+        // Update local UI state immediately (no awaiting network)
         set(() => ({
           answers: { ...newAnswers, events: appendEvent(existingEvents, event) }
         }));
+
+        // Fire-and-forget analytics to avoid blocking UI
+        if (!isBlankSessionId(sessionId)) {
+          Promise.resolve(saveOnboardingSession(sessionId, [event], state.answers.Id)).catch((error) => {
+            console.warn('Non-blocking: failed to send onboarding event', error);
+          });
+        }
 
         if (shouldPersistSession && sessionId) {
           safeSessionSetItem('quizSessionId', sessionId);
@@ -521,7 +519,7 @@ export const useQuizStore = create<QuizStore>()(
           isTransitioning: flag,
         })),
 
-      nextStep: async () => {
+      nextStep: () => {
         const state = get();
         const newStep = Math.min(state.currentStep + 1, state.totalSteps - 1);
   const sessionId = ensureSessionIdValue(state.answers.sessionId);
@@ -535,23 +533,21 @@ export const useQuizStore = create<QuizStore>()(
           details: { nextStep: newStep }
         };
         
-        // Send event immediately to backend
-        try {
-          if (!isBlankSessionId(sessionId)) {
-            await saveOnboardingSession(sessionId, [event], state.answers.Id);
-          }
-        } catch (error) {
-          console.error('Failed to save onboarding event:', error);
-        }
-        
-        // Update local state
+        // Update local state immediately
         set(() => ({
           currentStep: newStep,
           answers: { ...state.answers, sessionId, events: appendEvent(existingEvents, event) }
         }));
+
+        // Non-blocking analytics
+        if (!isBlankSessionId(sessionId)) {
+          Promise.resolve(saveOnboardingSession(sessionId, [event], state.answers.Id)).catch((error) => {
+            console.warn('Non-blocking: failed to send onboarding event', error);
+          });
+        }
       },
 
-      prevStep: async () => {
+      prevStep: () => {
         const state = get();
         const newStep = Math.max(state.currentStep - 1, 0);
   const sessionId = ensureSessionIdValue(state.answers.sessionId);
@@ -565,23 +561,21 @@ export const useQuizStore = create<QuizStore>()(
           details: { nextStep: newStep, direction: 'previous' }
         };
         
-        // Send event immediately to backend
-        try {
-          if (!isBlankSessionId(sessionId)) {
-            await saveOnboardingSession(sessionId, [event], state.answers.Id);
-          }
-        } catch (error) {
-          console.error('Failed to save onboarding event:', error);
-        }
-        
-        // Update local state
+        // Update local state immediately
         set(() => ({
           currentStep: newStep,
           answers: { ...state.answers, sessionId, events: appendEvent(existingEvents, event) }
         }));
+
+        // Non-blocking analytics
+        if (!isBlankSessionId(sessionId)) {
+          Promise.resolve(saveOnboardingSession(sessionId, [event], state.answers.Id)).catch((error) => {
+            console.warn('Non-blocking: failed to send onboarding event', error);
+          });
+        }
       },
 
-      goToStep: async (step) => {
+      goToStep: (step) => {
         const state = get();
   const sessionId = ensureSessionIdValue(state.answers.sessionId);
         const existingEvents = ensureEventsArray(state.answers.events);
@@ -594,20 +588,18 @@ export const useQuizStore = create<QuizStore>()(
           details: { targetStep: step }
         };
         
-        // Send event immediately to backend
-        try {
-          if (!isBlankSessionId(sessionId)) {
-            await saveOnboardingSession(sessionId, [event], state.answers.Id);
-          }
-        } catch (error) {
-          console.error('Failed to save onboarding event:', error);
-        }
-        
-        // Update local state
+        // Update local state immediately
         set(() => ({
           currentStep: Math.max(0, Math.min(step, state.totalSteps - 1)),
           answers: { ...state.answers, sessionId, events: appendEvent(existingEvents, event) }
         }));
+
+        // Non-blocking analytics
+        if (!isBlankSessionId(sessionId)) {
+          Promise.resolve(saveOnboardingSession(sessionId, [event], state.answers.Id)).catch((error) => {
+            console.warn('Non-blocking: failed to send onboarding event', error);
+          });
+        }
       },
 
       resetQuiz: () =>

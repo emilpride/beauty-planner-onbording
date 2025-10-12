@@ -3,11 +3,12 @@
 import Image from 'next/image'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-import imageCompression from 'browser-image-compression'
-import { storage } from '@/lib/firebase'
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { normalizeAndCompressImage } from '@/lib/imageNormalize'
+import { auth } from '@/lib/firebase'
+import { uploadPhotoViaProxy } from '@/lib/uploadHelper'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 const CameraCapture = dynamic(() => import('@/components/CameraCapture'), { ssr: false })
 
@@ -15,32 +16,33 @@ export default function PhotoUploadHairStep() {
   const { answers, setAnswer } = useQuizStore()
   const genderStr = answers.Gender === 2 ? 'female' : 'male'
   const [showCamera, setShowCamera] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleUpload = async (file: File) => {
+    setUploading(true)
+    setUploadError(null)
     try {
-      const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true, initialQuality: 0.8 }
-  const compressed = await imageCompression(file, options)
-  const uid = (answers?.Id) ? answers.Id : 'anonymous'
-  const path = `user-uploads/${uid}/hair/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`
-      const sRef = storageRef(storage, path)
-      const uploaded = await uploadBytes(sRef, compressed)
-      const downloadUrl = await getDownloadURL(uploaded.ref)
-      setAnswer('HairImageUrl', downloadUrl)
+  const compressed = await normalizeAndCompressImage(file, { maxWidthOrHeight: 1280, quality: 0.85 })
+      const uid = auth.currentUser?.uid || answers?.Id || 'anonymous'
+      const url = await uploadPhotoViaProxy(compressed, uid, 'hair')
+      
+      setAnswer('HairImageUrl', url)
       setAnswer('HairImageSkipped', false)
     } catch (e) {
       console.error('Error uploading hair image', e)
+      setUploadError(e instanceof Error ? e.message : 'An unknown error occurred during upload.')
+      setAnswer('HairImageUrl', '')
+    } finally {
+      setUploading(false)
     }
   }
 
-  const handleFileSelect = () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (file) handleUpload(file)
-    }
-    input.click()
+  const handleFileSelect = () => fileInputRef.current?.click()
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) handleUpload(file)
   }
 
   const handleCameraOpen = () => {
@@ -48,28 +50,33 @@ export default function PhotoUploadHairStep() {
   }
 
   const handleCameraCapture = async (blobUrl: string, blob: Blob) => {
+    setUploading(true)
+    setUploadError(null)
     try {
-      const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true, initialQuality: 0.8 }
       const fileLike = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' })
-  const compressed = await imageCompression(fileLike, options)
-  const uid = (answers?.Id) ? answers.Id : 'anonymous'
-  const path = `user-uploads/${uid}/hair/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`
-      const sRef = storageRef(storage, path)
-      const uploaded = await uploadBytes(sRef, compressed)
-      const downloadUrl = await getDownloadURL(uploaded.ref)
-      setAnswer('HairImageUrl', downloadUrl)
+  const compressed = await normalizeAndCompressImage(fileLike, { maxWidthOrHeight: 1280, quality: 0.85 })
+      const uid = auth.currentUser?.uid || answers?.Id || 'anonymous'
+      const url = await uploadPhotoViaProxy(compressed, uid, 'hair')
+      
+      setAnswer('HairImageUrl', url)
       setAnswer('HairImageSkipped', false)
     } catch (e) {
       console.error('Error uploading captured hair image', e)
-      setAnswer('HairImageUrl', blobUrl)
-      setAnswer('HairImageSkipped', false)
+      setUploadError(e instanceof Error ? e.message : 'An unknown error occurred during upload.')
+      setAnswer('HairImageUrl', '')
     } finally {
+      setUploading(false)
       setShowCamera(false)
     }
   }
 
   const handleCameraCancel = () => {
     setShowCamera(false)
+  }
+
+  const handleRetry = () => {
+    setUploadError(null)
+    setAnswer('HairImageUrl', '')
   }
 
   const toggleSkip = () => {
@@ -111,8 +118,8 @@ export default function PhotoUploadHairStep() {
               </div>
             </div>
 
-            <div className="relative h-36 border-2 border-dashed border-purple-300 rounded-xl flex items-center justify-center transition-colors duration-200 p-2">
-              {imageUrl ? (
+            <div className="relative h-40 border-2 border-dashed border-purple-300 rounded-xl flex items-center justify-center transition-colors duration-200 p-2">
+              {imageUrl && !uploadError ? (
                 <div className="relative w-full h-full">
                   <Image src={imageUrl} alt="Hair preview" fill className="object-cover rounded-xl" />
                   <button
@@ -123,6 +130,23 @@ export default function PhotoUploadHairStep() {
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
+                  </button>
+                </div>
+              ) : uploading ? (
+                <div className="flex flex-col items-center justify-center text-center">
+                  <LoadingSpinner />
+                  <p className="text-sm font-semibold text-text-primary mt-2">Uploading...</p>
+                  <p className="text-xs text-text-secondary mt-1">Optimizing and securing your photo.</p>
+                </div>
+              ) : uploadError ? (
+                <div className="text-center p-2">
+                  <p className="text-sm font-semibold text-red-600">Upload Failed</p>
+                  <p className="text-xs text-red-500 mt-1 mb-3">{uploadError}</p>
+                  <button
+                    onClick={handleRetry}
+                    className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"
+                  >
+                    Try Again
                   </button>
                 </div>
               ) : answers.HairImageSkipped ? (
@@ -146,6 +170,7 @@ export default function PhotoUploadHairStep() {
                     </div>
                     <p className="text-xs font-semibold text-purple-800">Upload</p>
                   </button>
+                  <input ref={fileInputRef} type="file" accept="image/*;capture=camera" onChange={onFileChange} className="hidden" />
                   <button onClick={handleCameraOpen} className="flex flex-col items-center space-y-1 p-1 group">
                     <div className="w-12 h-12 bg-gray-200 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg">
                       <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">

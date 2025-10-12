@@ -1,27 +1,29 @@
 ﻿'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useQuizStore } from '@/store/quizStore'
 import Image from 'next/image'
 import { motion, useMotionValue } from 'framer-motion'
 
+const normalizeIdentifier = (value?: string | null) =>
+  typeof value === 'string' ? value.trim() : ''
+
 export default function AIResultsStep() {
-  const { answers: storeAnswers, setAnalysis } = useQuizStore()
-  const [runningNetwork, setRunningNetwork] = useState(false)
-  const [networkError, setNetworkError] = useState<string | null>(null)
+  const { answers: storeAnswers, setAnalysis, nextStep } = useQuizStore()
+  const effectiveUserId =
+    normalizeIdentifier(storeAnswers.Id) ||
+    normalizeIdentifier(storeAnswers.sessionId) ||
+    'web-anonymous'
+  
+  const [status, setStatus] = useState<'running' | 'success' | 'error'>('running')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
-  const [paused, setPaused] = useState(false)
-  const [questionIndex, setQuestionIndex] = useState(-1) // -1 means no question
-  const [qaAnswers, setQaAnswers] = useState<Array<'yes' | 'no'>>([])
-  const router = useRouter()
-  const { nextStep, currentStep } = useQuizStore()
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const [questionIndex, setQuestionIndex] = useState(0)
+  
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Testimonials data copied from RegularCareResultsStep
   const testimonials = [
-    { name: 'Emily', image: '/images/reviews/review_1.png', text: 'This service is a real find! Thanks for the accuracy and professionalism!' },
-    { name: 'Aisha', image: '/images/reviews/review_2.png', text: "I'm stoked! The results have been a source of inspiration." },
     { name: 'Mira', image: '/images/reviews/review_3.png', text: 'The plan keeps me consistent—real results.' },
     { name: 'Lisa', image: '/images/reviews/review_4.png', text: 'The planning feature is amazing! My routine is perfectly organized now.' },
     { name: 'Sofia', image: '/images/reviews/review_5.png', text: "Finally found the perfect beauty routine planner! It's so easy to follow." },
@@ -61,281 +63,201 @@ export default function AIResultsStep() {
     return () => cancelAnimationFrame(raf)
   }, [totalWidth, x])
 
-  const questionStops = [22, 55, 82] // when to pause and ask
+  const clearIntervalSafe = () => {
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current)
+      progressTimerRef.current = null
+    }
+  }
+
+  // Rotate through lightweight questions for interactivity
   const questions = [
-    'Do you smoke?',
-    'Do you drink alcohol?',
-    'Do you have kids?'
+    'Analyzing sleep and stress patterns…',
+    'Reviewing your goals and focus areas…',
+    'Measuring skin and hair indicators…',
+    'Personalizing daily energy plan…',
+    'Calibrating reminders and cadence…',
   ]
 
-  const startTimer = () => {
-    if (timerRef.current) return
-    timerRef.current = setInterval(() => {
+  useEffect(() => {
+    if (status !== 'running') return
+    const q = setInterval(() => {
+      setQuestionIndex((i) => (i + 1) % questions.length)
+    }, 2500)
+    return () => clearInterval(q)
+  }, [status])
+
+  // Simplified progress simulation
+  useEffect(() => {
+    clearIntervalSafe()
+    progressTimerRef.current = setInterval(() => {
       setProgress((prev) => {
-        const next = Math.min(prev + 1, 100)
-
-        // If next crosses a stop and we have remaining questions, pause
-      const nextStop = questionStops[qaAnswers.length] // next expected stop index
-        if (!paused && qaAnswers.length < questionStops.length && next >= nextStop) {
-          // Pause exactly at the stop
+        if (prev >= 100) {
           clearIntervalSafe()
-          setPaused(true)
-          setQuestionIndex(qaAnswers.length)
-          return nextStop
-        }
-
-        if (next >= 100) {
-          clearIntervalSafe()
-          // Small delay for UX and then navigate
-          setTimeout(() => {
-            nextStep()
-            // Go directly to CurrentConditionAnalysis page
-            router.push('/quiz/34')
-          }, 600)
           return 100
         }
-        return next
+        // If analysis is done, accelerate to 100
+        if (status === 'success') {
+          return prev + 8
+        }
+        // If running, move slowly and hold at 99%
+        if (status === 'running') {
+          if (prev < 90) return prev + 1
+          if (prev < 99) return prev + 0.2
+          return 99
+        }
+        // If error, stay where it is
+        return prev
       })
-    }, 80)
-  }
+    }, 100)
 
-  const clearIntervalSafe = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
-  }
-
-  useEffect(() => {
-    if (!paused && questionIndex === -1) {
-      startTimer()
-    }
     return () => clearIntervalSafe()
+  }, [status])
+
+  // Effect to transition when done
+  useEffect(() => {
+    if (progress >= 100 && status === 'success') {
+      // A short delay to let the user see 100% before navigating
+      setTimeout(() => {
+        nextStep()
+      }, 400)
+    }
+  }, [progress, status, nextStep])
+
+  const runAnalysis = async () => {
+    setStatus('running')
+    setErrorMessage(null)
+    setProgress(0) // Reset progress on retry
+
+    try {
+      const payload = {
+        userId: effectiveUserId,
+        sessionId: storeAnswers.sessionId,
+        events: storeAnswers.events,
+        answers: storeAnswers,
+        photoUrls: {
+          face: storeAnswers.FaceImageUrl,
+          hair: storeAnswers.HairImageUrl,
+          body: storeAnswers.BodyImageUrl,
+        },
+      }
+      const resp = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!resp.ok) {
+        const errorJson = await resp.json().catch(() => ({}))
+        throw new Error(errorJson?.error || `Analysis failed with status: ${resp.status}`)
+      }
+
+      const json = await resp.json()
+      if (json?.analysis) {
+        setAnalysis(json.analysis)
+        setStatus('success')
+      } else {
+        throw new Error(json?.error || 'Invalid response from analysis server.')
+      }
+    } catch (e: any) {
+      console.error('Analysis failed:', e)
+      setErrorMessage(e?.message || 'An unknown network error occurred.')
+      setStatus('error')
+    }
+  }
+
+  // Kick off the analysis immediately
+  useEffect(() => {
+    runAnalysis()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useEffect(() => {
-    if (!paused && questionIndex === -1) {
-      startTimer()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paused, questionIndex])
-
-  // When progress reaches 100% (the timer finishes), run the server analysis
-  useEffect(() => {
-    let mounted = true
-    if (progress >= 100 && !runningNetwork && !networkError) {
-      ;(async () => {
-        setRunningNetwork(true)
-        setNetworkError(null)
-        try {
-          const payload = { userId: storeAnswers.Id, sessionId: storeAnswers.sessionId, events: storeAnswers.events, answers: storeAnswers, photoUrls: { face: storeAnswers.FaceImageUrl, hair: storeAnswers.HairImageUrl, body: storeAnswers.BodyImageUrl } }
-          const resp = await fetch(process.env.NEXT_PUBLIC_ANALYZE_FN_URL!, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-          const json = await resp.json()
-          if (!mounted) return
-          if (json?.analysis) {
-            setAnalysis(json.analysis)
-            // small delay for UX then navigate to results
-            setTimeout(() => {
-              nextStep()
-              router.push('/quiz/34')
-            }, 300)
-          } else {
-            setNetworkError(json?.error || 'Unknown response from analysis')
-          }
-        } catch (e: any) {
-          if (!mounted) return
-          setNetworkError(e?.message || 'Failed to run analysis')
-        } finally {
-          if (!mounted) return
-          setRunningNetwork(false)
-        }
-      })()
-    }
-    return () => { mounted = false }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [progress])
-
-  const retryNetwork = async () => {
-    // Reset progress and network state, restart the timer and let the effect trigger the network call
-    setNetworkError(null)
-    setProgress(0)
-    setQaAnswers([])
-    setPaused(false)
-    clearIntervalSafe()
-    // Small delay before restarting to allow UI to settle
-    setTimeout(() => startTimer(), 120)
-  }
-
-  const getAnalysisMessage = () => {
-    if (progress < 20) return 'Analyzing selected procedures...'
-    if (progress < 40) return 'Building your personalized calendar and schedule...'
-    if (progress < 60) return 'Setting priorities and reminders...'
-    if (progress < 80) return 'Estimating expected impact and timeline...'
-    if (progress < 100) return 'Finalizing recommendations and your plan...'
-    return 'Your personalized plan is ready!'
-  }
-
-  const answerQuestion = (ans: 'yes' | 'no') => {
-    setQaAnswers((prev) => [...prev, ans])
-    setPaused(false)
-    setQuestionIndex(-1)
-    // Resume timer; the effect above will restart it
-  }
-
   return (
-    <div className="relative flex flex-col h-full bg-background">
-      {/* Analysis block - centered in viewport */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8">
-        <div className="w-full max-w-sm mx-auto flex flex-col items-center">
-          <h1 className="text-3xl font-bold text-text-primary mb-4">Analyzing your answers</h1>
-          <p className="text-text-secondary mb-8 text-center">
-            We’re preparing your personalized plan: reviewing procedures, building your calendar, and estimating impact.
-          </p>
+    <div className="flex flex-col h-full w-full items-center justify-between p-4 pt-8 text-center">
+      <div className="w-full max-w-md mx-auto">
+        <h1 className="text-2xl font-bold text-text-primary">
+          {status === 'error' ? 'Something Went Wrong' : 'Analyzing Your Profile'}
+        </h1>
+        <p className="text-text-secondary mt-2">
+          {status === 'error' ? errorMessage : questions[questionIndex]}
+        </p>
+      </div>
 
-          <div className="w-full">
-            <div className="w-full bg-gray-200 rounded-full h-4 mb-4 overflow-hidden">
-              <div
-                className="bg-primary h-4 rounded-full transition-all duration-150 ease-linear"
-                style={{ width: `${progress}%` }}
-              />
+      <div className="relative w-48 h-48 flex items-center justify-center my-8">
+        <svg className="w-full h-full" viewBox="0 0 100 100">
+          <circle
+            className="text-gray-200 dark:text-gray-700"
+            strokeWidth="5"
+            stroke="currentColor"
+            fill="transparent"
+            r="45"
+            cx="50"
+            cy="50"
+          />
+          <motion.circle
+            className={status === 'error' ? 'text-red-500' : 'text-blue-600'}
+            strokeWidth="5"
+            strokeDasharray={2 * Math.PI * 45}
+            strokeDashoffset={2 * Math.PI * 45 * (1 - progress / 100)}
+            strokeLinecap="round"
+            stroke="currentColor"
+            fill="transparent"
+            r="45"
+            cx="50"
+            cy="50"
+            transform="rotate(-90 50 50)"
+            style={{ transition: 'stroke-dashoffset 0.3s ease' }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          {status === 'running' && (
+            <div className="text-center">
+              <p className="text-3xl font-bold text-text-primary">{Math.floor(progress)}%</p>
+              <p className="text-xs text-text-secondary">Analyzing...</p>
             </div>
-            <p className="text-center font-semibold text-primary text-lg mb-4">{progress}%</p>
-              <p className="text-center text-text-secondary h-10">{getAnalysisMessage()}</p>
-              {networkError && (
-                <div className="mt-4 mx-auto max-w-xs text-center">
-                  <div className="rounded-lg border border-rose-200 bg-rose-50 p-4">
-                    <p className="text-sm font-semibold text-rose-700 mb-2">Network error</p>
-                    <p className="text-xs text-rose-600 mb-3">{networkError}</p>
-                    <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => retryNetwork()} className="rounded-md bg-primary px-3 py-1 text-sm font-semibold text-white">Retry</button>
-                      <button onClick={() => {
-                        // Let user skip retry and proceed (optional): navigate to results to let them try later
-                        nextStep()
-                        router.push('/quiz/34')
-                      }} className="rounded-md border border-border-subtle px-3 py-1 text-sm">Skip</button>
-                    </div>
-                  </div>
-                </div>
-              )}
-          </div>
+          )}
+          {status === 'success' && (
+             <div className="text-center">
+              <p className="text-3xl font-bold text-blue-600">100%</p>
+              <p className="text-xs text-text-secondary">Done!</p>
+            </div>
+          )}
+          {status === 'error' && (
+            <button onClick={runAnalysis} className="flex flex-col items-center">
+               <svg className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span className="text-sm font-semibold text-red-500 mt-2">Retry</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Testimonials block - separate container at bottom */}
-      <div className="bg-surface border-t border-border-subtle/60 p-4">
-        <div className="w-full max-w-md mx-auto">
-          <div className="w-full overflow-hidden relative cursor-grab active:cursor-grabbing">
-            <div
-              className="pointer-events-none absolute inset-y-0 left-0 w-8 z-10"
-              style={{ background: 'linear-gradient(90deg, rgb(var(--color-surface)) 0%, rgba(255,255,255,0) 100%)' }}
-            />
-            <div
-              className="pointer-events-none absolute inset-y-0 right-0 w-8 z-10"
-              style={{ background: 'linear-gradient(270deg, rgb(var(--color-surface)) 0%, rgba(255,255,255,0) 100%)' }}
-            />
-            <motion.div
-              className="flex flex-row items-start gap-2.5"
-              style={{ width: 'max-content', x }}
-              drag="x"
-              dragConstraints={{ left: -2 * totalWidth, right: 0 }}
-              dragElastic={0.08}
-              onDragStart={() => (draggingRef.current = true)}
-              onDragEnd={() => {
-                draggingRef.current = false
-                const val = x.get()
-                if (val > 0) {
-                  x.set(val - totalWidth)
-                } else if (val < -2 * totalWidth) {
-                  x.set(val + totalWidth)
-                }
-              }}
-            >
-              {[0, 1, 2].map((copy) => (
-                <div key={`copy-${copy}`} className="flex flex-row items-start gap-2.5">
-                  {testimonials.map((review, index) => (
-                    <div
-                      key={`${copy}-${index}`}
-                      className="flex flex-col items-start p-2 gap-2 bg-surface flex-none border border-border-subtle/60 shadow-soft rounded-lg select-none"
-                      style={{ width: '141px', height: '200px' }}
-                    >
-                      <Image
-                        src={review.image}
-                        alt={`User review ${review.name}`}
-                        width={125}
-                        height={80}
-                        className="w-full h-auto object-cover flex-none rounded-md pointer-events-none"
-                        draggable={false}
-                      />
-                      <div className="flex flex-row items-center gap-1 flex-none">
-                        <span className="font-bold text-sm text-text-primary">{review.name}</span>
-                        <div className="flex items-center gap-1">
-                          <div
-                            className="flex-none flex items-center justify-center w-4 h-4"
-                            style={{ background: '#A385E9', borderRadius: '50%' }}
-                          >
-                            <svg width="6" height="6" viewBox="0 0 6 6" fill="none">
-                              <path
-                                d="M1 3L2.5 4.5L5 1.5"
-                                stroke="white"
-                                strokeWidth="1.9"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </div>
-                          <span className="font-bold text-xs" style={{ color: '#A385E9' }}>
-                            Verified
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex flex-none self-stretch border border-border-subtle/60" />
-                      <div className="flex flex-row items-center gap-2 flex-none">
-                        <div className="flex flex-row items-start flex-none">
-                          {[...Array(5)].map((_, i) => (
-                            <svg key={i} className="flex-none" width="10" height="10" viewBox="0 0 10 10" fill="#FABB05">
-                              <path d="M5 0L6.18 3.82L10 3.82L7.27 6.18L8.45 10L5 7.64L1.55 10L2.73 6.18L0 3.82L3.82 3.82L5 0Z" />
-                            </svg>
-                          ))}
-                        </div>
-                        <span className="text-xs text-text-secondary">5.0</span>
-                      </div>
-                      <p className="flex-1 text-sm text-text-primary overflow-hidden" style={{ fontWeight: 500 }}>
-                        {review.text}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </motion.div>
-          </div>
-        </div>
-      </div>      {paused && questionIndex >= 0 && (
-        <div
-          className="fixed inset-x-4 z-50"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.25rem)' }}
-        >
-          <div
-            className="mx-auto w-[min(100%,32rem)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-border-subtle/60 bg-surface/95 dark:bg-surface/90 px-4 py-3 shadow-elevated backdrop-blur-md"
+      {status !== 'error' ? (
+        <div className="w-full overflow-hidden">
+          <p className="text-sm font-semibold text-text-secondary mb-3">What our users say</p>
+          <motion.div
+            className="flex gap-3"
+            drag="x"
+            dragConstraints={{ left: -totalWidth, right: 0 }}
+            onDragStart={() => (draggingRef.current = true)}
+            onDragEnd={() => (draggingRef.current = false)}
+            style={{ x }}
           >
-            <span className="text-base sm:text-lg font-semibold text-text-primary text-center sm:text-left">
-              {questions[questionIndex]}
-            </span>
-            <div className="flex items-center justify-center gap-2">
-              <button
-                onClick={() => answerQuestion('yes')}
-                className="min-w-[84px] px-4 py-2 rounded-xl bg-primary text-white text-base font-semibold shadow-soft hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/40 active:scale-[0.98]"
-              >
-                Yes
-              </button>
-              <button
-                onClick={() => answerQuestion('no')}
-                className="min-w-[84px] px-4 py-2 rounded-xl bg-gray-200 text-text-primary dark:bg-white/10 dark:text-white text-base font-semibold hover:bg-gray-300 dark:hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/20 active:scale-[0.98]"
-              >
-                No
-              </button>
-            </div>
-          </div>
+            {[...testimonials, ...testimonials].map((t, i) => (
+              <div key={i} className="flex-shrink-0 w-32 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-md text-left">
+                <div className="flex items-center mb-2">
+                  <Image src={t.image} alt={t.name} width={28} height={28} className="rounded-full mr-2" />
+                  <p className="text-xs font-bold text-text-primary">{t.name}</p>
+                </div>
+                <p className="text-[11px] text-text-secondary leading-snug">{t.text}</p>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      ) : (
+        <div className="w-full max-w-md mx-auto p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+           <p className="text-xs text-red-700 dark:text-red-300">Please check your internet connection and try again. If the problem persists, you can contact our support team.</p>
         </div>
       )}
     </div>

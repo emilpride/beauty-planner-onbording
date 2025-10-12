@@ -4,7 +4,13 @@ import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
 
 const influences = [
-  "Family", "Friends", "Work", "Social Media", "News", "Health"
+  'Family',
+  'Friends',
+  'Work',
+  'Social Media',
+  'News',
+  'Health',
+  'Nothing', // special value that clears the rest
 ]
 
 export default function OrganizationInfluenceStep() {
@@ -12,10 +18,18 @@ export default function OrganizationInfluenceStep() {
 
   const handleToggleInfluence = (influence: string) => {
     const current = Array.isArray(answers.Influence) ? answers.Influence : []
-    const newInfluences = current.includes(influence)
-      ? current.filter((i) => i !== influence)
-      : [...current, influence]
-    setAnswer('Influence', newInfluences)
+    // If user selects 'Nothing', make it the only selection
+    if (influence === 'Nothing') {
+      const next = current.includes('Nothing') ? [] : ['Nothing']
+      setAnswer('Influence', next)
+      return
+    }
+    // Otherwise remove 'Nothing' and toggle the chosen one
+    const base = current.filter((i) => i !== 'Nothing')
+    const next = base.includes(influence)
+      ? base.filter((i) => i !== influence)
+      : [...base, influence]
+    setAnswer('Influence', next)
   }
 
   return (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useRef } from 'react'
 import { UploadCloud, CheckCircle, AlertTriangle } from 'lucide-react';
 
 interface ImageUploadProps {
@@ -67,7 +67,7 @@ export default function ImageUpload({ onUpload, uploadStatus, previewUrl }: Imag
         ref={fileInputRef}
         onChange={handleFileChange}
         className="hidden"
-        accept="image/png, image/jpeg, image/gif"
+        accept="image/*"
       />
       <div
         onClick={handleAreaClick}

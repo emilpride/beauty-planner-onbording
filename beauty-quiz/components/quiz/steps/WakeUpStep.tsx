@@ -2,13 +2,14 @@
 
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 export default function WakeUpStep() {
   const { answers, setAnswer } = useQuizStore()
   const [hours, setHours] = useState(7)
   const [minutes, setMinutes] = useState(30)
   const [isAM, setIsAM] = useState(true)
+  const wheelBufferRef = useRef({ hours: 0, minutes: 0 })
 
   useEffect(() => {
     // Default to 12h for US-friendly experience if not set
@@ -73,19 +74,30 @@ export default function WakeUpStep() {
   const minutesList = Array.from({ length: 12 }, (_, i) => i * 5) // 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55
 
   const handleWheel = (e: React.WheelEvent, type: 'hours' | 'minutes') => {
-    e.preventDefault()
-    if (type === 'hours') {
-      if (answers.TimeFormat === '12h') {
-        const newHours = Math.max(1, Math.min(12, hours + (e.deltaY > 0 ? 1 : -1)))
-        updateTime(newHours, minutes)
-      } else {
-        const newHours = Math.max(0, Math.min(23, hours + (e.deltaY > 0 ? 1 : -1)))
-        updateTime(newHours, minutes)
-      }
-    } else if (type === 'minutes') {
+    if (e.cancelable) e.preventDefault()
+    const threshold = type === 'hours' ? 120 : 90
+    const buffer = wheelBufferRef.current
+    buffer[type] += e.deltaY
+    if (Math.abs(buffer[type]) < threshold) return
 
+    const steps = buffer[type] > 0 ? Math.floor(buffer[type] / threshold) : Math.ceil(buffer[type] / threshold)
+    buffer[type] -= steps * threshold
+
+    if (type === 'hours') {
+      const maxHour = answers.TimeFormat === '12h' ? 12 : 23
+      const minHour = answers.TimeFormat === '12h' ? 1 : 0
+      let newHours = hours + steps
+      if (answers.TimeFormat === '12h') {
+        if (newHours > maxHour) newHours = maxHour
+        if (newHours < minHour) newHours = minHour
+      } else {
+        newHours = Math.min(maxHour, Math.max(minHour, newHours))
+      }
+      updateTime(newHours, minutes)
+    } else {
       const currentMinuteIndex = minutesList.indexOf(minutes)
-      const newIndex = Math.max(0, Math.min(11, currentMinuteIndex + (e.deltaY > 0 ? 1 : -1)))
+      let newIndex = currentMinuteIndex + steps
+      newIndex = Math.max(0, Math.min(minutesList.length - 1, newIndex))
       updateTime(hours, minutesList[newIndex])
     }
   }
@@ -96,11 +108,11 @@ export default function WakeUpStep() {
     const startValue = type === 'hours' ? hours : minutes
     
     const handleTouchMove = (e: TouchEvent) => {
-      e.preventDefault()
+      if (e.cancelable) e.preventDefault()
       const touch = e.touches[0]
       const currentY = touch.clientY
       const deltaY = startY - currentY
-      const sensitivity = 3
+      const sensitivity = type === 'hours' ? 18 : 22
       const change = Math.round(deltaY / sensitivity)
       
       if (type === 'hours') {
@@ -166,6 +178,7 @@ export default function WakeUpStep() {
           <div className="flex flex-col items-center">
             <div
               className="h-32 overflow-hidden relative w-16 sm:w-20"
+              style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
               onWheel={(e) => handleWheel(e, 'hours')}
               onTouchStart={(e) => handleTouchStart(e, 'hours')}
             >
@@ -196,6 +209,7 @@ export default function WakeUpStep() {
           <div className="flex flex-col items-center">
             <div
               className="h-32 overflow-hidden relative w-16 sm:w-20"
+              style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
               onWheel={(e) => handleWheel(e, 'minutes')}
               onTouchStart={(e) => handleTouchStart(e, 'minutes')}
             >

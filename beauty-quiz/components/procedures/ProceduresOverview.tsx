@@ -37,19 +37,19 @@ const procedureSteps = [
       "We craft routines that blend daily habits with weekly boosters. Tell us what feels right for your schedule and lifestyle.",
     items: [
       {
-        icon: "??",
+        icon: "🧴",
         title: "Skin Treatments",
         description: "Cleansers, serums, and barrier support matched to your primary concerns.",
         accent: "#8A60FF",
       },
       {
-        icon: "???+?",
+        icon: "💇‍♀️",
         title: "Hair & Scalp Rituals",
         description: "Hydration, detox, and styling guidance to keep texture healthy.",
         accent: "#33C75A",
       },
       {
-        icon: "??",
+        icon: "🧘",
         title: "Mind & Body Rest",
         description: "Breathwork, stretching, and mindful breaks woven into your day.",
         accent: "#FFA64D",
@@ -65,19 +65,19 @@ const procedureSteps = [
       "You control how often each block repeats. Set morning boosts, evening wind-downs, and weekend resets.",
     items: [
       {
-        icon: "?",
+        icon: "🗓️",
         title: "Smart Scheduling",
         description: "Spacing routines so skin, hair, and body get recovery windows.",
         accent: "#53E5FF",
       },
       {
-        icon: "???",
+        icon: "📅",
         title: "Weekly Focus",
         description: "Highlight the themes you want to emphasise each week.",
         accent: "#33C75A",
       },
       {
-        icon: "??",
+        icon: "📝",
         title: "Routine Notes",
         description: "Drop in product names, coach tips, or self-reminders for future you.",
         accent: "#FBBE24",
@@ -93,19 +93,19 @@ const procedureSteps = [
       "Our engine arranges your selections into a balanced calendar so high-intensity blocks never clash.",
     items: [
       {
-        icon: "??",
+        icon: "⚖️",
         title: "Balanced Load",
         description: "No more piling active serums or workouts on back-to-back days.",
         accent: "#FFA64D",
       },
       {
-        icon: "??",
+        icon: "🎯",
         title: "Goal Alignment",
         description: "Every block maps to the goals you set during onboarding.",
         accent: "#F75C7E",
       },
       {
-        icon: "??",
+        icon: "🧩",
         title: "Adaptive Slots",
         description: "We leave room for recovery, travel, or busy weeks.",
         accent: "#53E5FF",
@@ -121,19 +121,19 @@ const procedureSteps = [
       "Stay gently nudged without noise. Choose push, email, or silent mode.",
     items: [
       {
-        icon: "??",
+        icon: "🔔",
         title: "Daily Nudges",
-        description: "Quick prompts when it�s time for the next block.",
+        description: "Quick prompts when it's time for the next block.",
         accent: "#8A60FF",
       },
       {
-        icon: "??",
+        icon: "🗞️",
         title: "Weekly Digest",
         description: "A Sunday snapshot with the wins ahead.",
         accent: "#33C75A",
       },
       {
-        icon: "??",
+        icon: "🚫",
         title: "Do Not Disturb",
         description: "One tap pauses alerts when life gets full.",
         accent: "#FF8A4C",
@@ -149,19 +149,19 @@ const procedureSteps = [
       "Make sure everything feels aligned. You can always tweak later from the dashboard.",
     items: [
       {
-        icon: "??",
+        icon: "📝",
         title: "Plan Summary",
         description: "Every routine block plus timing in one glance.",
         accent: "#33C75A",
       },
       {
-        icon: "???",
+        icon: "⚙️",
         title: "Adjustments",
         description: "Edit frequency or swap a block before signing.",
         accent: "#53E5FF",
       },
       {
-        icon: "??",
+        icon: "✅",
         title: "Consent",
         description: "We log your approval and unlock advanced insights.",
         accent: "#FFA64D",
@@ -177,19 +177,19 @@ const procedureSteps = [
       "We show how consistency lifts your Beauty Mirror score across skin, hair, body, and mindset.",
     items: [
       {
-        icon: "??",
+        icon: "📈",
         title: "Score Growth",
         description: "Visualise wins as your Beauty Mirror score climbs.",
         accent: "#8A60FF",
       },
       {
-        icon: "??",
+        icon: "🏆",
         title: "Milestones",
         description: "Celebrate streaks and unlock premium care boosters.",
         accent: "#33C75A",
       },
       {
-        icon: "??",
+        icon: "✨",
         title: "Next Step Hints",
         description: "Tailored boosters to keep your routine feeling fresh.",
         accent: "#FBBE24",

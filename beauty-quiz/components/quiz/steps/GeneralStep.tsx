@@ -107,6 +107,23 @@ export default function GeneralStep() {
     validateField(field, value)
   }
 
+  // Helpers to avoid timezone issues when handling YYYY-MM-DD
+  const ymdToLocalDate = (ymd: string): Date | null => {
+    if (!ymd) return null
+    const [y, m, d] = ymd.split('-').map((v) => parseInt(v, 10))
+    if (!y || !m || !d) return null
+    return new Date(y, m - 1, d)
+  }
+  const formatYMD = (ymd: string): string => {
+    const d = ymdToLocalDate(ymd)
+    if (!d) return ''
+    try {
+      return d.toLocaleDateString()
+    } catch {
+      return ymd
+    }
+  }
+
   // Close calendar on outside click
   useEffect(() => {
     if (!calendarOpen) return
@@ -214,7 +231,7 @@ export default function GeneralStep() {
             aria-expanded={calendarOpen}
           >
             <span className={`text-left ${answers.BirthDate ? 'text-text-primary' : 'text-gray-400'}`}>
-              {answers.BirthDate ? new Date(answers.BirthDate).toLocaleDateString() : 'Select your birth date'}
+              {answers.BirthDate ? formatYMD(answers.BirthDate) : 'Select your birth date'}
             </span>
             <svg
               className="h-5 w-5 text-primary"
@@ -246,7 +263,7 @@ export default function GeneralStep() {
               className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl animate-in zoom-in-95 duration-300"
             >
               <DatePicker
-                value={answers.BirthDate ? new Date(answers.BirthDate) : null}
+                value={answers.BirthDate ? ymdToLocalDate(answers.BirthDate) : null}
                 min={new Date(new Date().getFullYear() - 100, new Date().getMonth(), new Date().getDate())}
                 max={new Date(new Date().getFullYear() - 13, new Date().getMonth(), new Date().getDate())}
                 onCancel={handleCloseCalendar}

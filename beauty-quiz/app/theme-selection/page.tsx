@@ -14,12 +14,13 @@ export default function ThemeSelectionPage() {
   const { theme, setTheme } = useTheme()
   const [activeTheme, setActiveTheme] = useState<ThemeVariant>(theme)
   const { sessionId, setAnswer } = useQuizStore()
+  const [isContinuing, setIsContinuing] = useState(false)
   useEffect(() => {
     setActiveTheme(theme)
   }, [theme])
 
 
-  // Флаг, чтобы не логировать старт квиза повторно
+  // Flag to avoid logging quiz start multiple times
   const [quizStarted, setQuizStarted] = useState(false)
 
   const isDark = activeTheme === 'dark'
@@ -33,6 +34,8 @@ export default function ThemeSelectionPage() {
   const toggle = () => handleSelect(isDark ? 'light' : 'dark')
 
   const handleContinue = async () => {
+    if (isContinuing) return
+    setIsContinuing(true)
     try {
       sessionStorage.setItem('themeSelected', '1')
     } catch {}
@@ -45,6 +48,8 @@ export default function ThemeSelectionPage() {
     await logThemeSelected(sessionId, activeTheme)
     setAnswer('theme', activeTheme)
     router.push('/welcome')
+    // small grace to avoid double taps before navigation completes
+    setTimeout(() => setIsContinuing(false), 1200)
   }
 
   return (
@@ -187,7 +192,12 @@ export default function ThemeSelectionPage() {
 
             <motion.button
               onClick={handleContinue}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-7 py-3 text-base font-semibold text-white shadow-soft transition-all duration-200 hover:scale-[1.02] hover:shadow-elevated"
+              disabled={isContinuing}
+              className={`inline-flex items-center justify-center gap-2 rounded-xl px-7 py-3 text-base font-semibold text-white shadow-soft transition-all duration-200 ${
+                isContinuing
+                  ? 'bg-primary/70 cursor-wait'
+                  : 'bg-primary hover:scale-[1.02] hover:shadow-elevated'
+              }`}
               whileHover={{ 
                 scale: 1.05,
                 boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
@@ -195,6 +205,9 @@ export default function ThemeSelectionPage() {
               whileTap={{ scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             >
+              {isContinuing && (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+              )}
               <motion.span
                 key={isDark ? 'dark' : 'light'}
                 initial={{ opacity: 0, y: 10 }}
@@ -202,7 +215,7 @@ export default function ThemeSelectionPage() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
               >
-                Continue in {isDark ? 'Dark' : 'Light'} Mode
+                {isContinuing ? 'Loading…' : `Continue in ${isDark ? 'Dark' : 'Light'} Mode`}
               </motion.span>
             </motion.button>
           </div>

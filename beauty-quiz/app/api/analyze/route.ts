@@ -3,7 +3,12 @@ import { NextResponse } from 'next/server'
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const fnUrl = process.env.ANALYZE_FN_URL || 'http://localhost:5001/beauty-planner-26cc0/us-central1/analyzeUserData'
+    // In production, rely on Firebase Hosting rewrite to route /api/analyze
+    // Only use local emulator URL during local development
+    const isDev = process.env.NODE_ENV !== 'production'
+    const fnUrl = isDev
+      ? (process.env.ANALYZE_FN_URL || 'http://localhost:5001/beauty-planner-26cc0/us-central1/analyzeUserData')
+      : 'https://quiz-beautymirror-app.web.app/api/analyze'
     const resp = await fetch(fnUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -2,13 +2,14 @@
 
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 export default function EndDayStep() {
   const { answers, setAnswer } = useQuizStore()
   const [hours, setHours] = useState(23)
   const [minutes, setMinutes] = useState(0)
   const [isAM, setIsAM] = useState(false)
+  const wheelBufferRef = useRef({ hours: 0, minutes: 0 })
 
   useEffect(() => {
     // Default to 12h if format is not set (US-friendly), but do not re-ask if already chosen previously
@@ -78,19 +79,30 @@ export default function EndDayStep() {
     : Array.from({ length: 24 }, (_, i) => i) // 0-23
 
   const handleWheel = (e: React.WheelEvent, type: 'hours' | 'minutes') => {
-    e.preventDefault()
-    if (type === 'hours') {
-      if (answers.TimeFormat === '12h') {
-        const newHours = Math.max(1, Math.min(12, hours + (e.deltaY > 0 ? 1 : -1)))
-        updateTime(newHours, minutes)
-      } else {
-        const newHours = Math.max(0, Math.min(23, hours + (e.deltaY > 0 ? 1 : -1)))
-        updateTime(newHours, minutes)
-      }
-    } else {
+    if (e.cancelable) e.preventDefault()
+    const threshold = type === 'hours' ? 120 : 90
+    const buffer = wheelBufferRef.current
+    buffer[type] += e.deltaY
+    if (Math.abs(buffer[type]) < threshold) return
 
+    const steps = buffer[type] > 0 ? Math.floor(buffer[type] / threshold) : Math.ceil(buffer[type] / threshold)
+    buffer[type] -= steps * threshold
+
+    if (type === 'hours') {
+      const maxHour = answers.TimeFormat === '12h' ? 12 : 23
+      const minHour = answers.TimeFormat === '12h' ? 1 : 0
+      let newHours = hours + steps
+      if (answers.TimeFormat === '12h') {
+        if (newHours > maxHour) newHours = maxHour
+        if (newHours < minHour) newHours = minHour
+      } else {
+        newHours = Math.min(maxHour, Math.max(minHour, newHours))
+      }
+      updateTime(newHours, minutes)
+    } else {
       const currentMinuteIndex = minutesList.indexOf(minutes)
-      const newIndex = Math.max(0, Math.min(11, currentMinuteIndex + (e.deltaY > 0 ? 1 : -1)))
+      let newIndex = currentMinuteIndex + steps
+      newIndex = Math.max(0, Math.min(minutesList.length - 1, newIndex))
       updateTime(hours, minutesList[newIndex])
     }
   }
@@ -101,11 +113,12 @@ export default function EndDayStep() {
     const startValue = type === 'hours' ? hours : minutes
     
     const handleTouchMove = (e: TouchEvent) => {
-      e.preventDefault()
+      // Only call preventDefault on cancelable events to avoid intervention warnings
+      if (e.cancelable) e.preventDefault()
       const touch = e.touches[0]
       const currentY = touch.clientY
       const deltaY = startY - currentY
-      const sensitivity = 3
+  const sensitivity = type === 'hours' ? 18 : 22
       const change = Math.round(deltaY / sensitivity)
       
       if (type === 'hours') {
@@ -129,6 +142,7 @@ export default function EndDayStep() {
       document.removeEventListener('touchend', handleTouchEnd)
     }
 
+    // Use non-passive listener so we can conditionally prevent default scrolling within the wheel
     document.addEventListener('touchmove', handleTouchMove, { passive: false })
     document.addEventListener('touchend', handleTouchEnd)
   }
@@ -168,6 +182,7 @@ export default function EndDayStep() {
           <div className="flex flex-col items-center">
             <div
               className="h-32 overflow-hidden relative w-16 sm:w-20"
+              style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
               onWheel={(e) => handleWheel(e, 'hours')}
               onTouchStart={(e) => handleTouchStart(e, 'hours')}
             >
@@ -198,6 +213,7 @@ export default function EndDayStep() {
           <div className="flex flex-col items-center">
             <div
               className="h-32 overflow-hidden relative w-16 sm:w-20"
+              style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
               onWheel={(e) => handleWheel(e, 'minutes')}
               onTouchStart={(e) => handleTouchStart(e, 'minutes')}
             >

@@ -60,6 +60,7 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
   const [selected, setSelected] = useState<Date | null>(value ?? null);
   const [yearOpen, setYearOpen] = useState(false);
   const [monthOpen, setMonthOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -68,6 +69,20 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
       setVisibleMonth(startOfMonth(value));
     }
   }, [value]);
+
+  useEffect(() => {
+    const mql = typeof window !== 'undefined' ? window.matchMedia('(max-width: 640px)') : null;
+    const update = () => setIsMobile(Boolean(mql?.matches));
+    update();
+    if (!mql) return;
+    if (typeof mql.addEventListener === 'function') {
+      mql.addEventListener('change', update);
+      return () => mql.removeEventListener('change', update);
+    } else if (typeof mql.addListener === 'function') {
+      mql.addListener(update);
+      return () => mql.removeListener(update);
+    }
+  }, []);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -145,79 +160,110 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
 
   return (
     <div className="w-full select-none" ref={containerRef}>
-      <div className="flex items-center justify-center gap-2">
-        {/* Year dropdown */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => { setYearOpen((v) => !v); setMonthOpen(false); }}
-            className="px-2 py-1 rounded-full bg-gray-100 text-xs font-medium text-text-primary flex items-center gap-1 shadow-sm"
-          >
-            {visibleMonth.getFullYear()}
-            <span className="text-gray-500">▾</span>
-          </button>
-          {yearOpen && (
-            <div className="absolute left-1/2 z-20 mt-2 w-28 -translate-x-1/2 rounded-2xl bg-white p-2 shadow-xl ring-1 ring-black/5 max-h-64 overflow-y-auto scrollbar-none">
-              {years.map((y) => {
-                const isActive = y === visibleMonth.getFullYear();
-                return (
-                  <button
-                    key={y}
-                    type="button"
-                    onClick={() => { onChangeYear(y); setYearOpen(false); }}
-                    className={[
-                      "w-full text-center rounded-lg py-2 text-sm",
-                      isActive ? "text-primary font-semibold" : "text-gray-500 hover:bg-gray-50",
-                    ].join(' ')}
-                  >
-                    {y}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+      {isMobile ? (
+        <div className="flex items-center justify-center gap-4">
+          <label className="flex flex-col text-xs font-medium text-text-secondary w-28">
+            <span className="mb-1 text-[11px] uppercase tracking-wide">Month</span>
+            <select
+              value={visibleMonth.getMonth()}
+              onChange={(e) => onChangeMonth(Number(e.target.value))}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              {MONTHS.map((label, idx) => (
+                <option key={label} value={idx}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col text-xs font-medium text-text-secondary w-28">
+            <span className="mb-1 text-[11px] uppercase tracking-wide">Year</span>
+            <select
+              value={visibleMonth.getFullYear()}
+              onChange={(e) => onChangeYear(Number(e.target.value))}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              {years.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
+      ) : (
+        <div className="flex items-center justify-center gap-3">
+          {/* Year dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => { setYearOpen((v) => !v); setMonthOpen(false); }}
+              className="rounded-full bg-gray-100/90 px-4 py-2 text-sm font-semibold text-text-primary shadow-sm transition hover:bg-gray-200"
+            >
+              {visibleMonth.getFullYear()}
+              <span className="ml-1 text-gray-500">▾</span>
+            </button>
+            {yearOpen && (
+              <div className="absolute left-1/2 z-20 mt-3 max-h-72 w-32 -translate-x-1/2 overflow-y-auto rounded-2xl bg-white p-2 shadow-lg ring-1 ring-black/5 scrollbar-thin scrollbar-thumb-gray-200">
+                {years.map((y) => {
+                  const isActive = y === visibleMonth.getFullYear();
+                  return (
+                    <button
+                      key={y}
+                      type="button"
+                      onClick={() => { onChangeYear(y); setYearOpen(false); }}
+                      className={`w-full rounded-lg px-3 py-2 text-sm text-left transition ${
+                        isActive ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-gray-50 text-gray-600'
+                      }`}
+                    >
+                      {y}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
-        {/* Month dropdown */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => { setMonthOpen((v) => !v); setYearOpen(false); }}
-            className="px-2 py-1 rounded-full bg-gray-100 text-xs font-medium text-text-primary flex items-center gap-1 shadow-sm"
-          >
-            {MONTHS[visibleMonth.getMonth()]}
-            <span className="text-gray-500">▾</span>
-          </button>
-          {monthOpen && (
-            <div className="absolute left-1/2 z-20 mt-2 w-32 -translate-x-1/2 rounded-2xl bg-white p-2 shadow-xl ring-1 ring-black/5 max-h-64 overflow-y-auto scrollbar-none">
-              {MONTHS.map((m, idx) => {
-                const isActive = idx === visibleMonth.getMonth();
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => { onChangeMonth(idx); setMonthOpen(false); }}
-                    className={[
-                      "w-full text-center rounded-lg py-2 text-sm",
-                      isActive ? "text-primary font-semibold" : "text-gray-500 hover:bg-gray-50",
-                    ].join(' ')}
-                  >
-                    {m}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          {/* Month dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => { setMonthOpen((v) => !v); setYearOpen(false); }}
+              className="rounded-full bg-gray-100/90 px-4 py-2 text-sm font-semibold text-text-primary shadow-sm transition hover:bg-gray-200"
+            >
+              {MONTHS[visibleMonth.getMonth()]}
+              <span className="ml-1 text-gray-500">▾</span>
+            </button>
+            {monthOpen && (
+              <div className="absolute left-1/2 z-20 mt-3 max-h-72 w-36 -translate-x-1/2 overflow-y-auto rounded-2xl bg-white p-2 shadow-lg ring-1 ring-black/5 scrollbar-thin scrollbar-thumb-gray-200">
+                {MONTHS.map((m, idx) => {
+                  const isActive = idx === visibleMonth.getMonth();
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => { onChangeMonth(idx); setMonthOpen(false); }}
+                      className={`w-full rounded-lg px-3 py-2 text-sm text-left transition ${
+                        isActive ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-gray-50 text-gray-600'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="mt-2 grid grid-cols-7 text-center text-[11px] text-text-secondary">
+      <div className="mt-4 grid grid-cols-7 text-center text-[11px] uppercase tracking-wide text-text-secondary/80">
         {['Su','Mo','Tu','We','Th','Fr','Sa'].map((d) => (
           <div key={d} className="py-0.5">{d}</div>
         ))}
       </div>
 
-      <div className="mt-1 grid grid-cols-7 gap-1">
+      <div className="mt-2 grid grid-cols-7 gap-1.5">
         {daysMatrix.map((week, i) => (
           <div key={i} className="contents">
             {week.map((cell, j) => {
@@ -230,9 +276,9 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
                   disabled={!cell.date || cell.disabled}
                   onClick={() => cell.date && setSelected(cell.date)}
                   className={[
-                    "relative h-8 w-8 mx-auto flex items-center justify-center rounded-full text-xs",
-                    cell.outside ? "text-gray-400" : "text-text-primary",
-                    cell.disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-primary/10",
+                    "relative mx-auto flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition",
+                    cell.outside ? "text-gray-300" : "text-text-primary",
+                    cell.disabled ? "cursor-not-allowed opacity-40" : "hover:bg-primary/10",
                     isSelected ? "bg-primary text-white hover:bg-primary" : "",
                     !isSelected && isToday ? "ring-1 ring-primary/40" : "",
                   ].join(' ')}
@@ -245,11 +291,11 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
         ))}
       </div>
 
-      <div className="mt-3 flex items-center justify-end gap-2">
+      <div className="mt-5 flex items-center justify-end gap-2">
         <button
           type="button"
           onClick={onCancel}
-          className="px-3 py-1.5 rounded-lg bg-gray-100 text-xs font-medium text-text-primary hover:bg-gray-200"
+          className="rounded-xl bg-gray-100 px-4 py-2 text-sm font-semibold text-text-primary transition hover:bg-gray-200"
         >
           Cancel
         </button>
@@ -257,7 +303,7 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
           type="button"
           disabled={!selected}
           onClick={() => selected && onConfirm(clampDate(selected, min ?? undefined, max ?? undefined))}
-          className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold disabled:opacity-50"
+          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
         >
           OK
         </button>

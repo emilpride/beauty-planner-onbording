@@ -69,7 +69,7 @@ export default function WeightPicker({ valueKg = 80, onConfirm, onCancel }: Weig
     const y = sy - centerY
     let angle = Math.atan2(-y, x) * (180 / Math.PI)
     if (angle < 0) angle += 360
-    // Clamp into semicircle range so стрелка всегда следует курсору
+  // Clamp into semicircle range so the pointer always follows the cursor
     if (angle > 180) angle = 180
     if (angle < 0) angle = 0
     setAngleDeg(angle)

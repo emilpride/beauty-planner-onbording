@@ -732,7 +732,7 @@ export const getProceduresIconCategories = (): string[] => {
   return Array.from(categories).sort();
 }
 
-// Статистика по категориям
+// Statistics per category
 export const getIconStats = () => {
   const stats: Record<string, number> = {};
   PROCEDURES_ICON_CATALOG.forEach(icon => {

@@ -1,7 +1,8 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { usePathname } from 'next/navigation'
 import { useTheme } from '@/components/theme/ThemeProvider'
 import ThemeToggle from '@/components/theme/ThemeToggle'
@@ -28,11 +29,29 @@ export default function BurgerMenu({ inline }: BurgerMenuProps) {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Mount guard for portal usage
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    if (!mounted) return
+    const prev = document.body.style.overflow
+    if (open) {
+      document.body.style.overflow = 'hidden'
+    }
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [open, mounted])
+
 
   // After all hooks ran consistently, we can return null safely
   if (hidden) return null
 
-  const buttonClasses = `inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-border-subtle bg-surface/80 ${open ? (isDark ? 'text-white' : 'text-text-primary') : 'text-text-secondary'} shadow-soft backdrop-blur transition-colors hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:bg-surface/70 ${open ? 'md:opacity-0 md:pointer-events-none' : ''} ${inline ? (open ? 'fixed right-3 top-3 z-[9999] md:static md:z-auto' : 'relative z-[9999]') : 'relative z-[9999]'}`
+  const buttonClasses = `inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-border-subtle bg-surface/80 ${open ? (isDark ? 'text-white' : 'text-text-primary') : 'text-text-secondary'} shadow-soft backdrop-blur transition-colors hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:bg-surface/70 ${open ? 'md:opacity-0 md:pointer-events-none' : ''} ${inline ? (open ? 'fixed right-3 top-3 z-[10002] md:static md:z-auto' : 'relative z-[10002]') : 'relative z-[10002]'}`
 
   const button = (
     <button
@@ -69,7 +88,7 @@ export default function BurgerMenu({ inline }: BurgerMenuProps) {
 
   const containerClass = inline
     ? 'relative'
-    : 'pointer-events-auto fixed right-3 top-3 z-[9998] sm:right-5 sm:top-4'
+  : 'pointer-events-auto fixed right-3 top-3 z-[10002] sm:right-5 sm:top-4'
 
   const containerStyle = inline
     ? undefined
@@ -79,82 +98,84 @@ export default function BurgerMenu({ inline }: BurgerMenuProps) {
     <div className={containerClass} style={containerStyle}>
       {button}
 
-      {/* Overlay */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            className="fixed inset-0 z-[9997] bg-black/30"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Slide-in Panel */}
-      <AnimatePresence>
-        {open && (
-          <motion.aside
-            className="fixed right-0 top-0 z-[9999] h-full w-[84vw] max-w-[360px] bg-surface/95 backdrop-blur border-l border-border-subtle shadow-2xl"
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle/60">
-              <span className="text-sm font-semibold text-text-secondary">Menu</span>
-              <button
-                aria-label="Close menu"
+      {/* Portal renders overlay + panel at document.body to escape stacking contexts on mobile */}
+      {mounted && createPortal(
+        <Fragment>
+          <AnimatePresence>
+            {open && (
+              <motion.div
+                className="fixed inset-0 z-[10000] bg-black/35"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 onClick={() => setOpen(false)}
-                className="hidden md:inline-flex h-9 w-9 items-center justify-center rounded-full border border-border-subtle bg-surface text-text-secondary hover:text-text-primary"
+                style={{ WebkitTransform: 'translateZ(0)' }}
+              />
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {open && (
+              <motion.aside
+                className="fixed right-0 top-0 z-[10001] h-full w-[84vw] max-w-[360px] bg-surface/95 backdrop-blur border-l border-border-subtle shadow-2xl"
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                role="dialog"
+                aria-modal="true"
+                style={{ WebkitTransform: 'translateZ(0)' }}
               >
-                {/* X icon using same lines to keep consistency */}
-                <span className="relative block h-4 w-4">
-                  <span className="absolute left-0 top-1/2 h-0.5 w-full -translate-y-1/2 rotate-45 rounded bg-current" />
-                  <span className="absolute left-0 top-1/2 h-0.5 w-full -translate-y-1/2 -rotate-45 rounded bg-current" />
-                </span>
-              </button>
-            </div>
-
-            <div className="px-5 py-4 space-y-4">
-              {/* Theme Switch */}
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-border-subtle/60 bg-surface-muted px-4 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-text-primary">Theme</p>
-                  <p className="text-xs text-text-secondary">{isDark ? 'Dark' : 'Light'} mode</p>
-                </div>
-                <ThemeToggle inline />
-              </div>
-
-              {/* Links */}
-              <nav className="space-y-2">
-                {[
-                  { label: 'Home', href: 'https://beautymirror.app' },
-                  { label: 'About', href: 'https://beautymirror.app/about' },
-                  { label: 'Contact', href: 'https://beautymirror.app/contact' },
-                  { label: 'Terms', href: 'https://beautymirror.app/terms' },
-                  { label: 'Privacy', href: 'https://beautymirror.app/privacy' },
-                ].map((item) => (
-                  <a
-                    key={item.href}
-                    href={item.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-between rounded-xl border border-border-subtle/60 bg-surface px-4 py-3 text-sm text-text-primary hover:bg-surface-muted"
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle/60">
+                  <span className="text-sm font-semibold text-text-secondary">Menu</span>
+                  <button
+                    aria-label="Close menu"
                     onClick={() => setOpen(false)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border-subtle bg-surface text-text-secondary hover:text-text-primary"
                   >
-                    <span>{item.label}</span>
-                    <span className="text-text-tertiary">↗</span>
-                  </a>
-                ))}
-              </nav>
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
+                    <span className="relative block h-4 w-4">
+                      <span className="absolute left-0 top-1/2 h-0.5 w-full -translate-y-1/2 rotate-45 rounded bg-current" />
+                      <span className="absolute left-0 top-1/2 h-0.5 w-full -translate-y-1/2 -rotate-45 rounded bg-current" />
+                    </span>
+                  </button>
+                </div>
+
+                <div className="px-5 py-4 space-y-4">
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-border-subtle/60 bg-surface-muted px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary">Theme</p>
+                      <p className="text-xs text-text-secondary">{isDark ? 'Dark' : 'Light'} mode</p>
+                    </div>
+                    <ThemeToggle inline />
+                  </div>
+
+                  <nav className="space-y-2">
+                    {[
+                      { label: 'Home', href: 'https://beautymirror.app' },
+                      { label: 'About', href: 'https://beautymirror.app/about' },
+                      { label: 'Contact', href: 'https://beautymirror.app/contact' },
+                      { label: 'Terms', href: 'https://beautymirror.app/terms' },
+                      { label: 'Privacy', href: 'https://beautymirror.app/privacy' },
+                    ].map((item) => (
+                      <a
+                        key={item.href}
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between rounded-xl border border-border-subtle/60 bg-surface px-4 py-3 text-sm text-text-primary hover:bg-surface-muted"
+                        onClick={() => setOpen(false)}
+                      >
+                        <span>{item.label}</span>
+                        <span className="text-text-tertiary">↗</span>
+                      </a>
+                    ))}
+                  </nav>
+                </div>
+              </motion.aside>
+            )}
+          </AnimatePresence>
+        </Fragment>,
+        document.body
+      )}
     </div>
   )
 }
