@@ -608,13 +608,16 @@ export const uploadPhoto = onRequest({
 			},
 		})
 
-		// Make file publicly readable (or adjust based on your rules)
-		await file.makePublic()
-		const publicUrl = `https://storage.googleapis.com/${bucket.name}/${storagePath}`
+		// Generate a signed URL that provides temporary access to the file
+		// This works with the new Service Account Token Creator permissions
+		const [signedUrl] = await file.getSignedUrl({
+			action: 'read',
+			expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days from now
+		})
 
 		res.status(200).json({
 			success: true,
-			url: publicUrl,
+			url: signedUrl,
 			path: storagePath,
 		})
 	} catch (e: any) {

@@ -21,7 +21,8 @@
     "firebase-admin": "^12.6.0",
     "firebase-functions": "^5.0.0",
     "long": "^5.3.2",
-    "stripe": "^16.8.0"
+    "stripe": "^16.8.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.16.11",
