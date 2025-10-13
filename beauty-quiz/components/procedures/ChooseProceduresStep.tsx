@@ -109,66 +109,72 @@ const createPresetActivity = (
     note: overrides.note ?? getDefaultNote(activityId, gender),
   }
 }
-const buildInitialActivities = (gender: GenderKey): ActivityCollection => ({
+const buildInitialActivities = (gender: GenderKey, aiRecommendations?: Set<string>): ActivityCollection => ({
   skin: [
-    createPresetActivity('cleanse-hydrate', { aiRecommended: true }, gender),
-    createPresetActivity('deep-hydration', {}, gender),
-    createPresetActivity('exfoliate', { aiRecommended: true }, gender),
-    createPresetActivity('face-massage', {}, gender),
-    createPresetActivity('lip-eye-care', { aiRecommended: true }, gender),
-    createPresetActivity('spf-protection', {}, gender),
+    createPresetActivity('cleanse-hydrate', { aiRecommended: aiRecommendations?.has('cleanse-hydrate') ?? true }, gender),
+    createPresetActivity('deep-hydration', { aiRecommended: aiRecommendations?.has('deep-hydration') ?? false }, gender),
+    createPresetActivity('exfoliate', { aiRecommended: aiRecommendations?.has('exfoliate') ?? true }, gender),
+    createPresetActivity('face-massage', { aiRecommended: aiRecommendations?.has('face-massage') ?? false }, gender),
+    createPresetActivity('lip-eye-care', { aiRecommended: aiRecommendations?.has('lip-eye-care') ?? true }, gender),
+    createPresetActivity('spf-protection', { aiRecommended: aiRecommendations?.has('spf-protection') ?? false }, gender),
   ],
   hair: [
-    createPresetActivity('wash-care', {}, gender),
-    createPresetActivity('deep-nourishment', { aiRecommended: true }, gender),
-    createPresetActivity('scalp-detox', {}, gender),
-    createPresetActivity('heat-protection', { aiRecommended: true }, gender),
-    createPresetActivity('scalp-massage', {}, gender),
-    createPresetActivity('trim-split-ends', { aiRecommended: true }, gender),
-    createPresetActivity('post-color-care', {}, gender),
+    createPresetActivity('wash-care', { aiRecommended: aiRecommendations?.has('wash-care') ?? false }, gender),
+    createPresetActivity('deep-nourishment', { aiRecommended: aiRecommendations?.has('deep-nourishment') ?? true }, gender),
+    createPresetActivity('scalp-detox', { aiRecommended: aiRecommendations?.has('scalp-detox') ?? false }, gender),
+    createPresetActivity('heat-protection', { aiRecommended: aiRecommendations?.has('heat-protection') ?? true }, gender),
+    createPresetActivity('scalp-massage', { aiRecommended: aiRecommendations?.has('scalp-massage') ?? false }, gender),
+    createPresetActivity('trim-split-ends', { aiRecommended: aiRecommendations?.has('trim-split-ends') ?? true }, gender),
+    createPresetActivity('post-color-care', { aiRecommended: aiRecommendations?.has('post-color-care') ?? false }, gender),
     ...(gender === 'male'
       ? [
-          createPresetActivity('beard-shave-care', { aiRecommended: true }, gender),
-          createPresetActivity('hair-loss-support', {}, gender),
+          createPresetActivity('beard-shave-care', { aiRecommended: aiRecommendations?.has('beard-shave-care') ?? true }, gender),
+          createPresetActivity('hair-loss-support', { aiRecommended: aiRecommendations?.has('hair-loss-support') ?? false }, gender),
         ]
       : []),
     ...(gender === 'female'
       ? [
-          createPresetActivity('leave-in-care', {}, gender),
-          createPresetActivity('night-care-routine', { aiRecommended: true }, gender),
+          createPresetActivity('leave-in-care', { aiRecommended: aiRecommendations?.has('leave-in-care') ?? false }, gender),
+          createPresetActivity('night-care-routine', { aiRecommended: aiRecommendations?.has('night-care-routine') ?? true }, gender),
         ]
       : []),
   ],
   physical: [
-    createPresetActivity('morning-stretch', { aiRecommended: true }, gender),
-    createPresetActivity('cardio-boost', {}, gender),
-    createPresetActivity('strength-training', { aiRecommended: true }, gender),
-    createPresetActivity('yoga-flexibility', {}, gender),
-    createPresetActivity('dance-it-out', { aiRecommended: true }, gender),
-    createPresetActivity('swimming-time', {}, gender),
-    createPresetActivity('cycling', { aiRecommended: true }, gender),
-    createPresetActivity('posture-fix', {}, gender),
-    createPresetActivity('evening-stretch', { aiRecommended: true }, gender),
+    createPresetActivity('morning-stretch', { aiRecommended: aiRecommendations?.has('morning-stretch') ?? true }, gender),
+    createPresetActivity('cardio-boost', { aiRecommended: aiRecommendations?.has('cardio-boost') ?? false }, gender),
+    createPresetActivity('strength-training', { aiRecommended: aiRecommendations?.has('strength-training') ?? true }, gender),
+    createPresetActivity('yoga-flexibility', { aiRecommended: aiRecommendations?.has('yoga-flexibility') ?? false }, gender),
+    createPresetActivity('dance-it-out', { aiRecommended: aiRecommendations?.has('dance-it-out') ?? true }, gender),
+    createPresetActivity('swimming-time', { aiRecommended: aiRecommendations?.has('swimming-time') ?? false }, gender),
+    createPresetActivity('cycling', { aiRecommended: aiRecommendations?.has('cycling') ?? true }, gender),
+    createPresetActivity('posture-fix', { aiRecommended: aiRecommendations?.has('posture-fix') ?? false }, gender),
+    createPresetActivity('evening-stretch', { aiRecommended: aiRecommendations?.has('evening-stretch') ?? true }, gender),
   ],
   mental: [
-    createPresetActivity('mindful-meditation', { aiRecommended: true }, gender),
-    createPresetActivity('breathing-exercises', {}, gender),
-    createPresetActivity('gratitude-exercises', { aiRecommended: true }, gender),
-    createPresetActivity('mood-check-in', {}, gender),
-    createPresetActivity('learn-grow', { aiRecommended: true }, gender),
-    createPresetActivity('social-media-detox', {}, gender),
-    createPresetActivity('positive-affirmations', { aiRecommended: true }, gender),
-    createPresetActivity('talk-it-out', {}, gender),
-    createPresetActivity('stress-relief', { aiRecommended: true }, gender),
+    createPresetActivity('mindful-meditation', { aiRecommended: aiRecommendations?.has('mindful-meditation') ?? true }, gender),
+    createPresetActivity('breathing-exercises', { aiRecommended: aiRecommendations?.has('breathing-exercises') ?? false }, gender),
+    createPresetActivity('gratitude-exercises', { aiRecommended: aiRecommendations?.has('gratitude-exercises') ?? true }, gender),
+    createPresetActivity('mood-check-in', { aiRecommended: aiRecommendations?.has('mood-check-in') ?? false }, gender),
+    createPresetActivity('learn-grow', { aiRecommended: aiRecommendations?.has('learn-grow') ?? true }, gender),
+    createPresetActivity('social-media-detox', { aiRecommended: aiRecommendations?.has('social-media-detox') ?? false }, gender),
+    createPresetActivity('positive-affirmations', { aiRecommended: aiRecommendations?.has('positive-affirmations') ?? true }, gender),
+    createPresetActivity('talk-it-out', { aiRecommended: aiRecommendations?.has('talk-it-out') ?? false }, gender),
+    createPresetActivity('stress-relief', { aiRecommended: aiRecommendations?.has('stress-relief') ?? true }, gender),
   ],
 })
 
 export default function ChooseProceduresStep() {
   const router = useRouter()
-  const { setAnswer, answers } = useQuizStore()
+  const { setAnswer, answers, analysis, saveUiSnapshot, getUiSnapshot } = useQuizStore()
   const genderKey: GenderKey = answers.Gender === 1 ? 'male' : answers.Gender === 2 ? 'female' : 'unknown'
-  const [selectedActivities, setSelectedActivities] = useState<string[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedActivities, setSelectedActivities] = useState<string[]>(() => {
+    const snap = getUiSnapshot('procedures-0')
+    return Array.isArray(snap?.selectedActivities) ? snap.selectedActivities : []
+  })
+  const [searchQuery, setSearchQuery] = useState<string>(() => {
+    const snap = getUiSnapshot('procedures-0')
+    return typeof snap?.searchQuery === 'string' ? snap.searchQuery : ''
+  })
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false)
   const [promptText, setPromptText] = useState('')
   const [selectedTemplates, setSelectedTemplates] = useState<string[]>([])
@@ -177,11 +183,41 @@ export default function ChooseProceduresStep() {
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [iconSearchQuery, setIconSearchQuery] = useState('')
-  const [activities, setActivities] = useState<ActivityCollection>(() => buildInitialActivities(genderKey))
+  // Extract AI recommendations from analysis results
+  const extractAIRecommendations = (analysis: any): Set<string> => {
+    const recommendations = new Set<string>()
+    
+    if (!analysis) return recommendations
+    
+    // Extract recommendations from all condition types
+    const conditionTypes = ['skinCondition', 'hairCondition', 'physicalCondition', 'mentalCondition']
+    
+    for (const conditionType of conditionTypes) {
+      const condition = analysis[conditionType]
+      if (condition && Array.isArray(condition.recommendations)) {
+        for (const rec of condition.recommendations) {
+          if (typeof rec === 'string') {
+            recommendations.add(rec)
+          }
+        }
+      }
+    }
+    
+    console.log('Extracted AI recommendations:', Array.from(recommendations))
+    return recommendations
+  }
+
+  const aiRecommendations = extractAIRecommendations(analysis)
+  const [activities, setActivities] = useState<ActivityCollection>(() => buildInitialActivities(genderKey, aiRecommendations))
+  // Persist UI state on change (throttled by React cadence)
   useEffect(() => {
-    // If gender changes within the session, rebuild defaults but keep any custom additions
+    saveUiSnapshot('procedures-0', { selectedActivities, searchQuery })
+  }, [selectedActivities, searchQuery, saveUiSnapshot])
+  useEffect(() => {
+    // Rebuild activities when gender or analysis changes
+    const currentAIRecommendations = extractAIRecommendations(analysis)
     setActivities((prev) => {
-      const rebuilt = buildInitialActivities(genderKey)
+      const rebuilt = buildInitialActivities(genderKey, currentAIRecommendations)
       // Merge in any extra categories/items previously added by user
       const merged: ActivityCollection = { ...rebuilt }
       for (const [key, list] of Object.entries(prev)) {
@@ -195,7 +231,7 @@ export default function ChooseProceduresStep() {
       return merged
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answers.Gender])
+  }, [answers.Gender, analysis])
   
 
   const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] = useState(false)

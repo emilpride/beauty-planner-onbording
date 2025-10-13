@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { motion, useInView, useMotionValue, useTransform, animate, useScroll } from 'framer-motion'
+import { motion, useInView, useMotionValue, useTransform, animate, useScroll, useReducedMotion } from 'framer-motion'
 import { useRef, useEffect } from 'react'
 
 export default function RegularCareResultsStep() {
@@ -159,22 +159,31 @@ export default function RegularCareResultsStep() {
   ];
 
   // Carousel constants and motion
-  const STRIDE = 145; // card width + gap approximation
+  // Use precise stride: 141 card width + 10 gap (gap-2.5)
+  const STRIDE = 151;
   const nCards = testimonials.length;
   const totalWidth = STRIDE * nCards;
   const x = useMotionValue(-totalWidth);
   const draggingRef = useRef(false);
+  const reducedMotion = useReducedMotion();
+  const dprRef = useRef<number>(1);
+  useEffect(() => {
+    dprRef.current = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  }, []);
 
   useEffect(() => {
     let raf = 0;
     let last = performance.now();
-    const speed = 20; // px/sec auto drift to the left
+    const speed = 12; // px/sec auto drift to the left
 
     const tick = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
-      if (!draggingRef.current) {
-        const next = x.get() - speed * dt;
+      if (!draggingRef.current && !reducedMotion) {
+        const current = x.get();
+        const nextRaw = current - speed * dt;
+        const dpr = dprRef.current;
+        const next = Math.round(nextRaw * dpr) / dpr;
         x.set(next);
         const curr = x.get();
         // normalize into [-2*totalWidth, 0]
@@ -185,7 +194,7 @@ export default function RegularCareResultsStep() {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [totalWidth, x]);
+  }, [totalWidth, x, reducedMotion]);
 
   // Timeline item component
   const TimelineItem = ({ title, description, icon, index, rootRef }: { title: string; description: string; icon: React.ReactNode; index: number; rootRef: React.RefObject<HTMLDivElement | null> }) => {
@@ -780,10 +789,10 @@ export default function RegularCareResultsStep() {
             <div className="pointer-events-none absolute inset-y-0 right-0 w-8 z-10" style={{background: 'linear-gradient(270deg, rgb(var(--color-surface)) 0%, rgba(255,255,255,0) 100%)'}} />
             <motion.div
               className="flex flex-row items-start gap-2.5"
-              style={{ width: 'max-content', x }}
+              style={{ width: 'max-content', x, willChange: 'transform', transform: 'translateZ(0)' }}
               drag="x"
               dragConstraints={{ left: -2 * totalWidth, right: 0 }}
-              dragElastic={0.08}
+              dragElastic={0.04}
               onDragStart={() => (draggingRef.current = true)}
               onDragEnd={() => {
                 draggingRef.current = false;

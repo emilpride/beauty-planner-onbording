@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import { useQuizStore } from '@/store/quizStore'
 
 // Import all procedure steps
 import ChooseProceduresStep from './ChooseProceduresStep'
@@ -29,11 +30,29 @@ export default function ProceduresFlow({ step }: ProceduresFlowProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isReady, setIsReady] = useState(false)
+  const { saveUiSnapshot, getUiSnapshot } = useQuizStore()
 
   useEffect(() => {
     const timer = setTimeout(() => setIsReady(true), 100)
     return () => clearTimeout(timer)
   }, [step])
+
+  // Restore scroll position for this step
+  useEffect(() => {
+    const key = `procedures-${step}`
+    const snap = getUiSnapshot(key)
+    if (snap && typeof snap.scrollY === 'number') {
+      requestAnimationFrame(() => window.scrollTo(0, snap.scrollY))
+    }
+    const onBeforeUnload = () => {
+      saveUiSnapshot(key, { scrollY: window.scrollY })
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => {
+      saveUiSnapshot(key, { scrollY: window.scrollY })
+      window.removeEventListener('beforeunload', onBeforeUnload)
+    }
+  }, [step, getUiSnapshot, saveUiSnapshot])
 
   const StepComponent = procedureSteps[step]
 

@@ -5,6 +5,7 @@ import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
 import { useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
+import ConfirmSkipModal from '@/components/ConfirmSkipModal'
 import { normalizeAndCompressImage } from '@/lib/imageNormalize'
 import { auth } from '@/lib/firebase'
 import { uploadPhotoViaProxy } from '@/lib/uploadHelper'
@@ -19,6 +20,7 @@ export default function PhotoUploadHairStep() {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false)
 
   const handleUpload = async (file: File) => {
     setUploading(true)
@@ -79,27 +81,23 @@ export default function PhotoUploadHairStep() {
     setAnswer('HairImageUrl', '')
   }
 
-  const toggleSkip = () => {
-    const skipped = answers.HairImageSkipped
-    if (skipped) {
-      setAnswer('HairImageSkipped', false)
-    } else {
-      setAnswer('HairImageUrl', '')
-      setAnswer('HairImageSkipped', true)
-    }
+  const confirmSkip = () => {
+    setAnswer('HairImageUrl', '')
+    setAnswer('HairImageSkipped', true)
+    setShowSkipConfirm(false)
   }
 
   const isComplete = Boolean(answers.HairImageUrl) || answers.HairImageSkipped
 
-  const title = 'Upload a clear photo of your hair'
-  const subtitle = 'Why we ask: It helps tailor hair care tips for your density, texture, and scalp condition. We use it only to personalize your plan.'
+  const title = 'Take a hair photo'
+  const subtitle = undefined
 
   const imageUrl = answers.HairImageUrl
 
   return (
     <>
       {showCamera && (
-        <CameraCapture onCapture={handleCameraCapture} onCancel={handleCameraCancel} />
+        <CameraCapture mode="hair" onCapture={handleCameraCapture} onCancel={handleCameraCancel} />
       )}
       <OnboardingStep title={title} subtitle={subtitle} condition={isComplete}>
         <div className="p-1 border-2 border-dotted border-blue-300 rounded-2xl">
@@ -109,11 +107,10 @@ export default function PhotoUploadHairStep() {
                 <Image src={`/images/on_boarding_images/hair_${genderStr}.png`} alt="Hair reference" fill className="object-cover" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-text-primary mb-1">Tips:</div>
-                <ul className="list-disc pl-5 text-sm text-text-secondary space-y-1">
-                  <li>Natural light, hair fully visible</li>
-                  <li>Avoid heavy styling products</li>
-                  <li>Front or side view with good focus</li>
+                <ul className="text-sm text-text-secondary space-y-1">
+                  <li>• Capture the top area of your head</li>
+                  <li>• Avoid heavy styling and filters</li>
+                  <li>• Straight angle, good lighting</li>
                 </ul>
               </div>
             </div>
@@ -151,7 +148,7 @@ export default function PhotoUploadHairStep() {
                 </div>
               ) : answers.HairImageSkipped ? (
                 <button
-                  onClick={toggleSkip}
+                  onClick={() => setAnswer('HairImageSkipped', false)}
                   className="w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 >
                   <p className="font-semibold text-red-600 dark:text-red-400">Skipped</p>
@@ -180,7 +177,7 @@ export default function PhotoUploadHairStep() {
                     </div>
                     <p className="text-xs font-semibold text-gray-600">Camera</p>
                   </button>
-                  <button onClick={toggleSkip} className="flex flex-col items-center space-y-1 p-1 group">
+                  <button onClick={() => setShowSkipConfirm(true)} className="flex flex-col items-center space-y-1 p-1 group">
                     <div className="w-12 h-12 bg-gray-200 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg">
                       <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
@@ -194,6 +191,9 @@ export default function PhotoUploadHairStep() {
             <p className="text-[11px] text-gray-500 mt-2">Used only to personalize your hair routine. You can skip if you prefer.</p>
           </div>
         </div>
+        {showSkipConfirm && (
+          <ConfirmSkipModal onConfirm={confirmSkip} onCancel={() => setShowSkipConfirm(false)} />
+        )}
       </OnboardingStep>
     </>
   )

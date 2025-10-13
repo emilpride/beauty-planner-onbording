@@ -106,17 +106,24 @@ export interface UserModel {
   FaceImageSkipped: boolean;
   HairImageSkipped: boolean;
   BodyImageSkipped: boolean;
+  // Micro-questions (analysis interludes)
+  UsesAlcohol: boolean | null;
+  Smokes: boolean | null;
+  HasChildren: boolean | null;
 }
 
 interface QuizStore {
   answers: UserModel
   analysis: any | null
+  uiSnapshots: Record<string, any>
   currentStep: number
   totalSteps: number
   isTransitioning: boolean
   sessionId: string
   hydrate: () => void
   setAnalysis: (model: any | null) => void
+  saveUiSnapshot: (key: string, data: any) => void
+  getUiSnapshot: (key: string) => any | undefined
   setAnswer: <K extends keyof UserModel>(field: K, value: UserModel[K]) => void
   generateSessionId: () => void
   addEvent: (eventName: string, step?: number, details?: any) => void
@@ -351,6 +358,9 @@ export const initialAnswers: UserModel = {
   FaceImageSkipped: false,
   HairImageSkipped: false,
   BodyImageSkipped: false,
+  UsesAlcohol: null,
+  Smokes: null,
+  HasChildren: null,
 }
 
 function cloneInitialAnswers(): UserModel {
@@ -427,6 +437,7 @@ export const useQuizStore = create<QuizStore>()(
         return normalizeAnswers({ ...cloned, sessionId, events: ensureEventsArray(cloned.events) });
       })(),
       analysis: null,
+      uiSnapshots: {},
       currentStep: 0,
       totalSteps: 37, // Reduced by 1 after removing Gender step
       isTransitioning: false,
@@ -451,6 +462,12 @@ export const useQuizStore = create<QuizStore>()(
       },
 
       setAnalysis: (model) => set(() => ({ analysis: model })),
+
+      saveUiSnapshot: (key, data) => set((state) => ({
+        uiSnapshots: { ...state.uiSnapshots, [key]: data }
+      })),
+
+      getUiSnapshot: (key) => get().uiSnapshots[key],
 
       setAnswer: (field, value) => {
         const state = get();
@@ -662,6 +679,8 @@ export const useQuizStore = create<QuizStore>()(
       partialize: (state) => ({
         answers: state.answers,
         currentStep: state.currentStep,
+        analysis: state.analysis, // persist analysis so step 34 doesn't disappear
+        uiSnapshots: state.uiSnapshots, // persist UI snapshots
       }),
     }
   )

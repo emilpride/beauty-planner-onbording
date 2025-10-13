@@ -48,6 +48,7 @@ export default function OnboardingAppbar({ onBackAnimation }: OnboardingAppbarPr
   return (
     <header className="absolute top-0 left-0 right-0 z-30 p-4 max-w-lg mx-auto">
   <div className="flex items-center space-x-4">
+        {currentStep === 33 ? null : (
         <button
           onClick={() => {
             if (onBackAnimation) {
@@ -74,6 +75,7 @@ export default function OnboardingAppbar({ onBackAnimation }: OnboardingAppbarPr
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
         </button>
+        )}
 
         <div className="flex-1">
           <ProgressBar sections={progressSections} currentStep={currentStep} />

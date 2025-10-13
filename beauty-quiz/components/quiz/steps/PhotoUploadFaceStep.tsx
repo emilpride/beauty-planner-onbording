@@ -8,6 +8,7 @@ import { normalizeAndCompressImage } from '@/lib/imageNormalize'
 import { auth } from '@/lib/firebase'
 import { uploadPhotoViaProxy } from '@/lib/uploadHelper'
 import dynamic from 'next/dynamic'
+import ConfirmSkipModal from '@/components/ConfirmSkipModal'
 import LoadingSpinner from '@/components/ui/LoadingSpinner' // Assuming this exists
 
 const CameraCapture = dynamic(() => import('@/components/CameraCapture'), { ssr: false })
@@ -19,6 +20,7 @@ export default function PhotoUploadFaceStep() {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false)
 
   const handleUpload = async (file: File) => {
     setUploading(true)
@@ -81,25 +83,21 @@ export default function PhotoUploadFaceStep() {
     setAnswer('FaceImageUrl', '')
   }
 
-  const toggleSkip = () => {
-    const skipped = answers.FaceImageSkipped
-    if (skipped) {
-      setAnswer('FaceImageSkipped', false)
-    } else {
-      setAnswer('FaceImageUrl', '')
-      setAnswer('FaceImageSkipped', true)
-    }
+  const confirmSkip = () => {
+    setAnswer('FaceImageUrl', '')
+    setAnswer('FaceImageSkipped', true)
+    setShowSkipConfirm(false)
   }
 
   const isComplete = Boolean(answers.FaceImageUrl) || answers.FaceImageSkipped
-  const title = 'Upload a clear photo of your face'
-  const subtitle = 'Why we ask: It helps personalize guidance for your skin tone, texture, and sensitivity. We use it only to tailor your plan.'
+  const title = 'Take a face photo'
+  const subtitle = undefined
   const imageUrl = answers.FaceImageUrl
 
   return (
     <>
       {showCamera && (
-        <CameraCapture onCapture={handleCameraCapture} onCancel={handleCameraCancel} />
+        <CameraCapture mode="face" onCapture={handleCameraCapture} onCancel={handleCameraCancel} />
       )}
       <OnboardingStep title={title} subtitle={subtitle} condition={isComplete}>
         <div className="p-1 border-2 border-dotted border-blue-300 rounded-2xl">
@@ -109,11 +107,10 @@ export default function PhotoUploadFaceStep() {
                 <Image src={`/images/on_boarding_images/face_${genderStr}.png`} alt="Face reference" fill className="object-cover" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-text-primary mb-1">Tips:</div>
-                <ul className="list-disc pl-5 text-sm text-text-secondary space-y-1">
-                  <li>Natural light, face centered, neutral background</li>
-                  <li>No filters or heavy makeup</li>
-                  <li>Pull hair back; keep camera at eye level</li>
+                <ul className="text-sm text-text-secondary space-y-1">
+                  <li>• Remove glasses and look straight ahead</li>
+                  <li>• Neutral background, natural light</li>
+                  <li>• Pull hair back from your face</li>
                 </ul>
               </div>
             </div>
@@ -151,7 +148,7 @@ export default function PhotoUploadFaceStep() {
                 </div>
               ) : answers.FaceImageSkipped ? (
                 <button
-                  onClick={toggleSkip}
+                  onClick={() => setAnswer('FaceImageSkipped', false)}
                   className="w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 >
                   <p className="font-semibold text-red-600 dark:text-red-400">Skipped</p>
@@ -180,7 +177,7 @@ export default function PhotoUploadFaceStep() {
                     </div>
                     <p className="text-xs font-semibold text-gray-600">Camera</p>
                   </button>
-                  <button onClick={toggleSkip} className="flex flex-col items-center space-y-1 p-1 group">
+                  <button onClick={() => setShowSkipConfirm(true)} className="flex flex-col items-center space-y-1 p-1 group">
                     <div className="w-12 h-12 bg-gray-200 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg">
                       <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
@@ -194,6 +191,9 @@ export default function PhotoUploadFaceStep() {
             <p className="text-[11px] text-gray-500 mt-2">Your photo is stored securely and used only to generate your personal plan.</p>
           </div>
         </div>
+        {showSkipConfirm && (
+          <ConfirmSkipModal onConfirm={confirmSkip} onCancel={() => setShowSkipConfirm(false)} />
+        )}
       </OnboardingStep>
     </>
   )

@@ -474,85 +474,81 @@ export default function CurrentConditionAnalysisStep() {
         </motion.header>
 
         <section className="space-y-5">
-            {aiModel && (
-              <>
-                {/* BMS from Gemini only */}
-                <motion.article 
-                  className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1, duration: 0.4 }}
-                >
-                  <div className="text-center mb-2">
-                    <h2 className="text-lg font-semibold text-text-primary">Beauty Mirror Score (BMS)</h2>
+          {aiModel && (
+            <>
+              {/* BMI block */}
+              <motion.article 
+                className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.4 }}
+              >
+                <div className="flex items-start gap-4">
+                  {/* Gradient bar like screenshot */}
+                  <div className="h-24 w-3 rounded-full" style={{
+                    background: 'linear-gradient(180deg,#FF7D7E 0%,#FFA64D 25%,#FBF447 50%,#33C75A 75%,#53E5FF 100%)'
+                  }} />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-text-primary">Your BMI is:</p>
+                      <p className="text-sm font-semibold text-blue-600">{aiModel.bmiCategory || '—'}</p>
+                    </div>
+                    <p className="mt-1 text-sm text-text-secondary">{aiModel.bmiDescription || ''}</p>
+                    <div className="mt-3 flex items-center gap-4">
+                      <span className="text-3xl font-bold text-text-primary">{typeof aiModel.bmi === 'number' ? Number(aiModel.bmi).toFixed(1) : '—'}</span>
+                      <img
+                        src={`/images/on_boarding_images/bmi_${(answers.Gender === 2 ? 'female' : 'male')}_2.png`}
+                        alt="BMI reference"
+                        className="w-16 h-16 rounded-xl object-contain bg-white/80"
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-center">
-                    <span className="text-5xl font-semibold text-text-primary">{Number(aiModel.bmsScore ?? 0).toFixed(1)}</span>
-                  </div>
-                </motion.article>
+                </div>
+              </motion.article>
 
-                {/* Gender-specific BMI illustration and number (Gemini-provided BMI only) */}
-                {typeof aiModel.bmi === 'number' && (
+              {/* Four condition cards (score + explanation, no per-card recs) */}
+              {CONDITION_ORDER.map(({ id, title }, index) => {
+                const aiForId = id === 'skin' ? aiModel.skinCondition : id === 'hair' ? aiModel.hairCondition : id === 'physic' ? aiModel.physicalCondition : aiModel.mentalCondition
+                if (!aiForId) return null
+                const score = typeof aiForId.score === 'number' ? Number(aiForId.score) : null
+                const scoreColor = score != null ? (score >= 7 ? '#33C75A' : score >= 4 ? '#FFA64D' : '#FF7D7E') : 'rgb(var(--color-primary))'
+                const explanation = typeof aiForId.explanation === 'string' ? aiForId.explanation : ''
+                return (
                   <motion.article 
+                    key={id} 
                     className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15, duration: 0.4 }}
+                    transition={{ delay: 0.2 + index * 0.05, duration: 0.4 }}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="shrink-0">
-                        <img
-                          src={`/images/on_boarding_images/bmi_${(answers.Gender === 2 ? 'female' : 'male')}_2.png`}
-                          alt="BMI reference"
-                          className="w-16 h-16 rounded-xl object-contain bg-white/80"
-                        />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-text-primary">BMI</p>
-                        <p className="mt-1 text-3xl font-bold text-text-primary">{Number(aiModel.bmi).toFixed(1)}</p>
-                      </div>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
+                      {score != null && <CircularScore value={score} size={44} thickness={6} gradientId={`grad-${id}`} colors={[scoreColor, scoreColor, scoreColor]} />}
                     </div>
+                    {explanation && <p className="mt-3 text-sm leading-relaxed text-text-secondary">{explanation}</p>}
                   </motion.article>
-                )}
+                )
+              })}
 
-                {/* Four conditions – show Gemini explanation and recos only */}
-                {CONDITION_ORDER.map(({ id, title }, index) => {
-                  const aiForId = id === 'skin' ? aiModel.skinCondition : id === 'hair' ? aiModel.hairCondition : id === 'physic' ? aiModel.physicalCondition : aiModel.mentalCondition
-                  if (!aiForId) return null
-                  const score = typeof aiForId.score === 'number' ? Number(aiForId.score) : null
-                  const explanation = typeof aiForId.explanation === 'string' ? aiForId.explanation : ''
-                  const scoreColor = score != null ? (score >= 7 ? '#33C75A' : score >= 4 ? '#FFA64D' : '#FF7D7E') : 'rgb(var(--color-primary))'
-                  return (
-                    <motion.article 
-                      key={id} 
-                      className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 + index * 0.05, duration: 0.4 }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
-                        {score != null && <CircularScore value={score} size={44} thickness={6} gradientId={`grad-${id}`} colors={[scoreColor, scoreColor, scoreColor]} />}
-                      </div>
-                      {explanation && <p className="mt-3 text-sm leading-relaxed text-text-secondary">{explanation}</p>}
-                      {Array.isArray(aiForId.recommendations) && aiForId.recommendations.length > 0 && (
-                        <div className="mt-4">
-                          <p className="text-xs font-semibold text-text-primary">Recommendations</p>
-                          <ul className="list-disc list-inside text-sm text-text-secondary mt-2">
-                            {aiForId.recommendations.map((r: string, i: number) => (
-                              <li key={r + i}>{r}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </motion.article>
-                  )
-                })}
+              {/* BMS card with prominent number */}
+              <motion.article 
+                className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35, duration: 0.4 }}
+              >
+                <div className="text-center mb-2">
+                  <h2 className="text-lg font-semibold text-text-primary">Beauty Mirror Score (BMS)</h2>
+                </div>
+                <div className="flex items-center justify-center">
+                  <span className="text-5xl font-semibold text-[#33C75A]">{Number(aiModel.bmsScore ?? 0).toFixed(1)}</span>
+                </div>
+              </motion.article>
 
-                {/* Gemini-derived Recommended Care with icons/colors/categories */}
-                <GeminiRecommendedCare aiModel={aiModel} />
-              </>
-            )}
+              {/* Consolidated recommended care at bottom */}
+              <GeminiRecommendedCare aiModel={aiModel} />
+            </>
+          )}
         </section>
 
         {/* Next button */}
@@ -562,7 +558,7 @@ export default function CurrentConditionAnalysisStep() {
               onClick={() => router.push('/premium-intro')}
               className="w-full rounded-2xl bg-primary text-white py-3.5 text-base font-semibold shadow-soft hover:shadow-md active:scale-[0.99]"
             >
-              Next
+              To The Activities
             </button>
           </div>
         </div>

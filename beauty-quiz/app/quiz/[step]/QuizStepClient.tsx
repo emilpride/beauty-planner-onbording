@@ -123,7 +123,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   const [animationReady, setAnimationReady] = useState(false)
   
   // Only use Zustand on client side
-  const { totalSteps, goToStep, answers, isTransitioning, setTransitioning, generateSessionId, setAnswer } = useQuizStore()
+  const { totalSteps, goToStep, answers, isTransitioning, setTransitioning, generateSessionId, setAnswer, currentStep } = useQuizStore()
   
   useEffect(() => {
     setIsHydrated(true)
@@ -177,6 +177,14 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
       goToStep(stepNumber)
     }
   }, [stepNumber, goToStep, totalSteps, router, answers.assistant, isHydrated])
+
+  // Route-sync: when store currentStep advances (e.g., after analysis reaches 100%), sync URL
+  useEffect(() => {
+    if (!isHydrated) return
+    if (typeof currentStep === 'number' && currentStep !== stepNumber) {
+      router.push(`/quiz/${currentStep}`)
+    }
+  }, [currentStep, isHydrated, stepNumber, router])
 
   // Centralized entry sequencing: reset flags and precompute layout to avoid blank delays
   useLayoutEffect(() => {
