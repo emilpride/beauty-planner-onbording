@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useQuizStore } from '@/store/quizStore'
+import { useState, useCallback } from 'react'
 
 const StarIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -19,10 +20,15 @@ const StarIcon = () => (
 export default function ScheduleIntroStep() {
   const router = useRouter()
   const { nextStep, currentStep, answers } = useQuizStore()
+  const [loading, setLoading] = useState(false)
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
+    if (loading) return
+    setLoading(true)
     nextStep()
-  }
+    // Safety fallback if state doesn't transition for some reason
+    setTimeout(() => setLoading(false), 8000)
+  }, [loading, nextStep])
 
   const assistantImage = answers.assistant === 0 // 0 = max, 1 = ellie
     ? "/images/content/assistant_max.png"
@@ -73,8 +79,13 @@ export default function ScheduleIntroStep() {
           </ul>
         </div>
 
-        <button onClick={handleNext} className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg mt-6">
-          Let's Go
+        <button
+          onClick={handleNext}
+          disabled={loading}
+          className={`w-full text-white font-bold py-4 rounded-xl shadow-lg mt-6 flex items-center justify-center gap-2 transition ${loading ? 'bg-primary/70 cursor-wait' : 'bg-primary'}`}
+        >
+          {loading && <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/60 border-t-transparent" aria-hidden="true" />}
+          {loading ? 'Loading...' : "Let's Go"}
         </button>
       </div>
     </div>

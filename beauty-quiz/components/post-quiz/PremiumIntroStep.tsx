@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useCallback } from 'react'
 import Image from 'next/image'
 
 const CheckIcon = () => (
@@ -21,11 +22,15 @@ export default function PremiumIntroStep() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const assistant = searchParams.get('assistant') || 'ellie'
+  const [loading, setLoading] = useState(false)
 
-  const handleContinue = () => {
-    // Flow: Premium intro -> Procedures
+  const handleContinue = useCallback(() => {
+    if (loading) return
+    setLoading(true)
     router.push('/procedures/0')
-  }
+    // Fallback safety timeout to re-enable after 8s if something blocks navigation.
+    setTimeout(() => setLoading(false), 8000)
+  }, [loading, router])
 
   return (
     <div className="relative min-h-screen flex flex-col justify-center items-center px-4 py-8 safe-area-inset">
@@ -77,9 +82,13 @@ export default function PremiumIntroStep() {
 
           <button
             onClick={handleContinue}
-            className="mt-5 w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-white shadow-soft transition-all duration-200 hover:scale-[1.02] hover:shadow-elevated"
+            disabled={loading}
+            className={`mt-5 w-full rounded-xl py-2.5 text-sm font-semibold text-white shadow-soft transition-all duration-200 flex items-center justify-center gap-2 ${loading ? 'bg-primary/70 cursor-wait' : 'bg-primary hover:scale-[1.02] hover:shadow-elevated'}`}
           >
-            Let's Go
+            {loading && (
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/60 border-t-transparent" aria-hidden="true" />
+            )}
+            {loading ? 'Loading...' : "Let's Go"}
           </button>
         </div>
       </div>

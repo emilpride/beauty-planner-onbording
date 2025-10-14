@@ -175,9 +175,7 @@ export default function ChooseProceduresStep() {
     const snap = getUiSnapshot('procedures-0')
     return typeof snap?.searchQuery === 'string' ? snap.searchQuery : ''
   })
-  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false)
-  const [promptText, setPromptText] = useState('')
-  const [selectedTemplates, setSelectedTemplates] = useState<string[]>([])
+  // Removed prompt-driven schedule creation (analysis icon button & modal)
   const [isCreateActivityModalOpen, setIsCreateActivityModalOpen] = useState(false)
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false)
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false)
@@ -257,24 +255,7 @@ export default function ChooseProceduresStep() {
   })
 
 
-  const templates = [
-    { id: 'morning-routine', name: 'Morning Routine', description: 'Cleanse, moisturize, SPF protection' },
-    { id: 'evening-routine', name: 'Evening Routine', description: 'Deep cleanse, exfoliate, night cream' },
-    { id: 'weekly-treatment', name: 'Weekly Treatment', description: 'Face mask, deep hydration, massage' },
-    { id: 'hair-care', name: 'Hair Care', description: 'Wash, condition, heat protection, styling' },
-    { id: 'fitness', name: 'Fitness Plan', description: 'Cardio, strength training, yoga, stretching' },
-    { id: 'wellness', name: 'Wellness', description: 'Meditation, breathing exercises, gratitude' },
-    { id: 'skincare-intensive', name: 'Intensive Skincare', description: 'Serums, treatments, professional care' },
-    { id: 'hair-treatment', name: 'Hair Treatment', description: 'Deep conditioning, scalp care, styling' },
-    { id: 'body-care', name: 'Body Care', description: 'Exfoliation, moisturizing, massage' },
-    { id: 'mental-health', name: 'Mental Health', description: 'Therapy, journaling, mindfulness' },
-    { id: 'nutrition', name: 'Nutrition Plan', description: 'Healthy eating, supplements, hydration' },
-    { id: 'sleep-routine', name: 'Sleep Routine', description: 'Wind down, relaxation, quality sleep' },
-    { id: 'workout-beginner', name: 'Beginner Workout', description: 'Light exercises, walking, basic stretches' },
-    { id: 'workout-advanced', name: 'Advanced Workout', description: 'Intense training, HIIT, weightlifting' },
-    { id: 'beauty-maintenance', name: 'Beauty Maintenance', description: 'Nails, eyebrows, hair trimming' },
-    { id: 'stress-management', name: 'Stress Management', description: 'Breathing, meditation, relaxation' },
-  ]
+  // Removed templates list (was used by deleted prompt modal)
 
 
   const [categories, setCategories] = useState([
@@ -432,22 +413,7 @@ export default function ChooseProceduresStep() {
     router.push('/procedures/1')
   }
 
-  const handlePromptSubmit = () => {
-
-    console.log('Prompt text:', promptText)
-    console.log('Selected templates:', selectedTemplates)
-    setIsPromptModalOpen(false)
-    setPromptText('')
-    setSelectedTemplates([])
-  }
-
-  const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplates(prev => 
-      prev.includes(templateId)
-        ? prev.filter(id => id !== templateId)
-        : [...prev, templateId]
-    )
-  }
+  // Removed prompt submit & template selection handlers
 
 
   const handleNewActivityChange = (field: string, value: string) => {
@@ -744,12 +710,7 @@ export default function ChooseProceduresStep() {
             <span className="text-text-primary text-xl">‹</span>
           </button>
           <h1 className="text-2xl font-bold text-text-primary">Choose Activities</h1>
-          <button 
-            onClick={() => setIsCreateActivityModalOpen(true)}
-            className="w-10 h-10 bg-surface border-2 border-primary rounded-full flex items-center justify-center hover:bg-primary hover:text-white transition-all duration-200 shadow-sm"
-          >
-            <span className="text-primary text-xl font-medium">+</span>
-          </button>
+          <div className="w-10 h-10" aria-hidden="true"></div>
         </div>
 
         {/* Search Bar */}
@@ -770,15 +731,11 @@ export default function ChooseProceduresStep() {
           />
             </div>
           <button
-              onClick={() => setIsPromptModalOpen(true)}
-              className="w-14 h-12 bg-transparent border border-border-subtle/70 rounded-lg flex items-center justify-center hover:bg-surface-muted transition-colors"
+            onClick={() => setIsCreateActivityModalOpen(true)}
+            aria-label="Add new activity"
+            className="w-14 h-12 bg-surface border-2 border-primary rounded-xl flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors font-semibold text-2xl"
           >
-              <Image 
-                src="/custom-icons/misc/analysis.svg" 
-                alt="Analysis" 
-                width={24} 
-                height={24}
-              />
+            +
           </button>
           </div>
         </div>
@@ -851,103 +808,7 @@ export default function ChooseProceduresStep() {
         </div>
       </div>
 
-      {/* Prompt Modal */}
-      {isPromptModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-surface rounded-3xl p-8 w-full max-w-lg shadow-2xl border border-border-subtle/40">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-text-primary">Create Custom Schedule</h2>
-                <div className="w-16 h-1 bg-gradient-to-r from-primary to-primary/80 rounded-full mt-2"></div>
-              </div>
-              <button
-                onClick={() => setIsPromptModalOpen(false)}
-                className="w-10 h-10 rounded-full hover:bg-surface-muted/80 flex items-center justify-center text-text-secondary hover:text-text-primary transition-all duration-200"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-        </button>
-      </div>
-
-            <div className="bg-gradient-to-r from-surface-muted to-surface-muted/80 rounded-2xl p-4 mb-6 border border-border-subtle/40">
-              <p className="text-text-primary text-sm leading-relaxed">
-                Describe what procedures and how often you want to do, and we'll create a personalized schedule for you, or choose from our ready-made templates.
-              </p>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-text-primary mb-3">
-                Describe your ideal routine:
-              </label>
-              <div className="relative">
-                <textarea
-                  value={promptText}
-                  onChange={(e) => setPromptText(e.target.value)}
-                  placeholder="e.g., I want to do morning skincare routine with cleansing and moisturizing, evening routine with exfoliation twice a week, and yoga 3 times a week..."
-                  className="w-full h-28 p-4 border-2 border-border-subtle/50 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 placeholder-text-secondary scrollbar-hide text-text-primary"
-                />
-                <div className="absolute bottom-3 right-3 text-xs text-text-secondary bg-surface px-2 py-1 rounded">
-                  {promptText.length}/500
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-8">
-              <label className="block text-sm font-semibold text-text-primary mb-3">
-                Or choose from templates (multiple selection):
-              </label>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto scrollbar-hide">
-                {templates.map((template) => (
-                  <button
-                    key={template.id}
-                    onClick={() => handleTemplateSelect(template.id)}
-                    className={`p-3 text-left border rounded-lg transition-all duration-200 ${
-                      selectedTemplates.includes(template.id)
-                        ? 'border-primary bg-surface-muted'
-                        : 'border-border-subtle/50 hover:border-primary/60 hover:bg-surface-muted'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-text-primary text-xs truncate">{template.name}</div>
-                        <div className="text-xs text-text-secondary mt-1 line-clamp-2">{template.description}</div>
-                      </div>
-                      {selectedTemplates.includes(template.id) && (
-                        <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center ml-2 flex-shrink-0">
-                          <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-              {selectedTemplates.length > 0 && (
-                <div className="mt-3 text-xs text-text-secondary">
-                  Selected: {selectedTemplates.length} template{selectedTemplates.length !== 1 ? 's' : ''}
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-4">
-              <button
-                onClick={() => setIsPromptModalOpen(false)}
-                className="flex-1 px-6 py-3 border-2 border-border-subtle/60 text-text-primary rounded-xl hover:bg-surface-muted hover:border-primary/60 transition-all duration-200 font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePromptSubmit}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-primary/90 text-white rounded-xl hover:from-primary/90 hover:to-primary/80 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
-              >
-                Create Schedule
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Prompt modal removed */}
 
       {/* Create Activity Modal */}
       {isCreateActivityModalOpen && (
@@ -1077,7 +938,6 @@ export default function ChooseProceduresStep() {
                 >
                   {quickIconOptions.map((option) => {
                     const isSelected = newActivity.iconId === option.id
-
                     return (
                       <button
                         key={`activity-${option.id}`}
@@ -1086,7 +946,7 @@ export default function ChooseProceduresStep() {
                           isSelected ? 'ring-2 ring-primary ring-offset-1 scale-110' : 'hover:scale-105'
                         }`}
                         style={{
-                          backgroundColor: isSelected ? (newActivity.color || 'rgb(var(--color-primary))') : (newActivity.color || 'rgb(var(--color-primary))'),
+                          backgroundColor: newActivity.color || 'rgb(var(--color-primary))',
                         }}
                       >
                         <Image src={option.path} alt={`${option.label} icon`} width={20} height={20} />
@@ -1280,7 +1140,6 @@ export default function ChooseProceduresStep() {
                 <div className="grid grid-cols-8 gap-3">
                   {paginatedIconEntries.map((entry) => {
                     const isSelected = activeIconId === entry.id
-
                     return (
                       <button
                         key={entry.id}
@@ -1294,7 +1153,7 @@ export default function ChooseProceduresStep() {
                         className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-200 ${
                           isSelected ? 'ring-2 ring-primary ring-offset-1 scale-105' : 'hover:scale-105'
                         }`}
-                        style={{ backgroundColor: isSelected ? activeIconColor : activeIconColor }}
+                        style={{ backgroundColor: activeIconColor }}
                         title={entry.label}
                       >
                         <Image src={entry.path} alt={`${entry.label} icon`} width={24} height={24} />
