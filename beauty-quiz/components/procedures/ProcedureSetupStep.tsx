@@ -690,9 +690,9 @@ export default function ProcedureSetupStep() {
   }, [activitySettings])
 
   return (
-    <div className="min-h-screen bg-background text-text-primary">
+    <div className="min-h-screen bg-background text-text-primary overflow-x-hidden">
       {/* Scrollable content (hide scrollbar) */}
-      <div className="mx-auto h-[100svh] w-full max-w-md overflow-y-auto scrollbar-hide">
+      <div className="mx-auto h-[100svh] w-full max-w-md overflow-y-auto overflow-x-hidden scrollbar-hide">
         {/* Top bar */}
         <div className="px-4 pt-4">
           <button
@@ -1040,10 +1040,10 @@ export default function ProcedureSetupStep() {
 
       {/* Sticky Next */}
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-center pb-[16px]"
+        className="pointer-events-none fixed bottom-0 left-1/2 -translate-x-1/2 z-20 w-full max-w-md flex justify-center pb-[16px] px-4"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
       >
-        <div className="pointer-events-auto w-full max-w-md px-4">
+        <div className="pointer-events-auto w-full">
           <button
             type="button"
             onClick={handleContinue}

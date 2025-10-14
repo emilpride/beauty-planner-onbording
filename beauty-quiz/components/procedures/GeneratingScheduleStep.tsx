@@ -35,11 +35,12 @@ export default function GeneratingScheduleStep() {
   const router = useRouter()
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
 
+  // Progressive phases shown to user while generating schedule
   const steps = [
-    { id: 'analyzing', title: 'Analyzing your answers', completed: false },
-    { id: 'personalizing', title: 'Analyzing your appearance', completed: false },
-    { id: 'optimizing', title: 'Your plan is almost ready', completed: false },
-    { id: 'finalizing', title: 'Done!', completed: false }
+    { id: 'analyzing-setup', title: 'Analyzing your setup', completed: false },
+    { id: 'evaluating-impact', title: 'Evaluating potential impact', completed: false },
+    { id: 'building-schedule', title: 'Building personalized schedule', completed: false },
+    { id: 'ready', title: 'Ready! Your plan is live', completed: false }
   ]
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function GeneratingScheduleStep() {
           // Navigate to next step after all steps are complete
           setTimeout(() => {
             router.push('/procedures/3')
-          }, 3000)
+          }, 1200)
           return prev
         }
         return nextIndex
@@ -189,7 +190,7 @@ export default function GeneratingScheduleStep() {
           transition={{ delay: 1 }}
         >
           <p className="text-text-secondary">
-            Please wait while we create your personalized beauty routine...
+            Crafting your adaptive routine. This usually takes just a few seconds.
           </p>
         </motion.div>
       </div>
