@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 type EnergyLevel = 1 | 2 | 3 | 4 | 5
 
+
 export default function EnergyLevelStep() {
   const { answers, setAnswer } = useQuizStore()
   const batteryRef = useRef<HTMLDivElement>(null)
@@ -13,6 +14,7 @@ export default function EnergyLevelStep() {
   const [currentLevel, setCurrentLevel] = useState<EnergyLevel>(3)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // Плавное обновление уровня энергии по всей высоте батарейки
   const updateLevel = useCallback(
     (level: EnergyLevel) => {
       setCurrentLevel(level)
@@ -21,14 +23,19 @@ export default function EnergyLevelStep() {
     [setAnswer]
   )
 
+  // Плавное определение уровня по позиции пальца
   const measureLevel = useCallback(
     (clientY: number): EnergyLevel => {
       const battery = batteryRef.current
       if (!battery) return currentLevel
       const rect = battery.getBoundingClientRect()
       const relY = clientY - rect.top
-      const segment = rect.height / 5
-      let level = 5 - Math.floor(relY / segment)
+      // Позволяет плавно менять уровень по всей высоте
+      let percent = 1 - relY / rect.height
+      if (percent < 0) percent = 0
+      if (percent > 1) percent = 1
+      // 1 = низ, 5 = верх
+      let level = Math.round(percent * 4) + 1
       if (level < 1) level = 1
       if (level > 5) level = 5
       return level as EnergyLevel
@@ -45,6 +52,7 @@ export default function EnergyLevelStep() {
     }
   }, [answers.EnergyLevel, updateLevel])
 
+  // Обработка pointer событий для плавного свайпа
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault()
     draggingRef.current = true
@@ -62,72 +70,56 @@ export default function EnergyLevelStep() {
     draggingRef.current = false
     batteryRef.current?.releasePointerCapture(e.pointerId)
   }
-
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    draggingRef.current = true
-    if (e.cancelable) e.preventDefault()
-    const clientY = e.touches[0]?.clientY
-    if (clientY) updateLevel(measureLevel(clientY))
+  // Цвет батарейки в зависимости от уровня
+  const getBatteryColor = (level: number) => {
+    if (level <= 2) return 'bg-orange-400'
+    if (level === 3) return 'bg-yellow-300'
+    if (level === 4) return 'bg-green-400'
+    return 'bg-green-600'
   }
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!draggingRef.current) return
-    if (e.cancelable) e.preventDefault()
-    const clientY = e.touches[0]?.clientY
-    if (clientY) updateLevel(measureLevel(clientY))
-  }
-
-  const handleTouchEnd = () => {
-    draggingRef.current = false
-  }
-
-  const batteryColor = useMemo(() => {
-    if (currentLevel <= 1) return 'bg-red-500'
-    if (currentLevel <= 2) return 'bg-orange-500'
-    if (currentLevel <= 3) return 'bg-yellow-400'
-    if (currentLevel <= 4) return 'bg-green-400'
-    return 'bg-green-500'
-  }, [currentLevel])
 
   return (
     <OnboardingStep
       title="Daily energy"
-      subtitle="Tap or drag to fill the battery"
       condition={(answers.EnergyLevel || 0) > 0}
-      fillContent
+      onNext={() => {}}
     >
-      <div ref={containerRef} className="flex w-full justify-center px-4 py-6 touch-manipulation select-none" onWheel={(e)=> e.preventDefault()}>
-        <div className="flex w-full max-w-sm flex-col items-center gap-6">
-          <div
-            ref={batteryRef}
-            className="relative select-none rounded-3xl border-4 border-primary bg-white/70 p-3 shadow-inner"
-            style={{ width: 120, height: 220 }}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-          >
-            <div className="absolute -top-4 left-1/2 h-4 w-12 -translate-x-1/2 rounded-t-lg bg-primary" />
-            {/* Segments container */}
-            <div className="absolute inset-3 flex flex-col-reverse gap-2 overflow-hidden">
-              {[1, 2, 3, 4, 5].map((level) => (
-                <div
-                  key={level}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => updateLevel(level as EnergyLevel)}
-                  className={`h-full rounded-md transition-colors duration-150 ${
-                    level <= currentLevel ? `${batteryColor}` : 'bg-gray-200'
-                  }`}
-                  style={{ flex: '1 1 0%' }}
-                />
-              ))}
-            </div>
+      <div
+        ref={containerRef}
+        className="flex flex-col items-center justify-center w-full h-full"
+        style={{ minHeight: 320 }}
+      >
+        <div
+          ref={batteryRef}
+          className="relative select-none touch-none flex flex-col justify-end"
+          style={{
+            width: 64,
+            height: 240,
+            paddingTop: 'clamp(24px, 8vw, 40px)',
+            paddingBottom: 'clamp(24px, 8vw, 40px)',
+            boxSizing: 'content-box',
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+        >
+          {/* Батарейка: 5 сегментов */}
+          <div className="absolute left-1/2 -top-3 w-8 h-3 -translate-x-1/2 rounded-t bg-gray-300" />
+          <div className="flex flex-col-reverse h-full w-full gap-1">
+            {[1, 2, 3, 4, 5].map((level) => (
+              <div
+                key={level}
+                className={`transition-colors duration-150 rounded ${level <= currentLevel ? getBatteryColor(level) : 'bg-gray-200'}`}
+                style={{ flex: '1 1 0%' }}
+                onClick={() => updateLevel(level as EnergyLevel)}
+                role="button"
+                tabIndex={0}
+              />
+            ))}
           </div>
         </div>
+        {/* Можно добавить подписи или подсказки ниже */}
       </div>
     </OnboardingStep>
   )

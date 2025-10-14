@@ -27,7 +27,6 @@ export default function SleepStep() {
 
     setTransitioning(true)
     nextStep()
-    router.push(`/quiz/${currentStep + 1}`)
   }
 
 

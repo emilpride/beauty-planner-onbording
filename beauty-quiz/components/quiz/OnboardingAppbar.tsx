@@ -21,7 +21,7 @@ interface OnboardingAppbarProps {
 
 export default function OnboardingAppbar({ onBackAnimation }: OnboardingAppbarProps) {
   const router = useRouter()
-  const { currentStep } = useQuizStore()
+  const { currentStep, prevStep } = useQuizStore()
 
   const getProgress = () => {
     let completedSections = 0
@@ -55,7 +55,7 @@ export default function OnboardingAppbar({ onBackAnimation }: OnboardingAppbarPr
               onBackAnimation()
             }
             setTimeout(() => {
-              router.back()
+              prevStep()
             }, 300)
           }}
           className="w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg flex-shrink-0"

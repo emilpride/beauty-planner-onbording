@@ -46,6 +46,8 @@ export interface UserModel {
   // Assistant and theme
   assistant: 0 | 1 | 2;
   theme: string;
+  // Primary accent color for theming
+  primaryColor: 'purple' | 'red' | 'blue' | 'green' | 'pink';
 
   // Personal info
   Name: string;
@@ -125,6 +127,8 @@ interface QuizStore {
   saveUiSnapshot: (key: string, data: any) => void
   getUiSnapshot: (key: string) => any | undefined
   setAnswer: <K extends keyof UserModel>(field: K, value: UserModel[K]) => void
+  // Convenience setter to avoid generic keyof issues in some consumers
+  setPrimaryColor: (color: UserModel['primaryColor']) => void
   generateSessionId: () => void
   addEvent: (eventName: string, step?: number, details?: any) => void
   setHeightUnit: (unit: 'cm' | 'ft&in') => void
@@ -137,6 +141,33 @@ interface QuizStore {
   completeOnboarding: () => void
 }
 
+
+// Simple analytics batching to avoid spamming the server
+const ANALYTICS_FLUSH_INTERVAL_MS = 1500;
+let analyticsQueue: UserModel['events'] = [];
+let analyticsTimer: ReturnType<typeof setTimeout> | null = null;
+
+function queueAnalyticsSend(getState: () => QuizStore, newEvents: UserModel['events']) {
+  analyticsQueue.push(...newEvents);
+  if (analyticsTimer) return;
+  analyticsTimer = setTimeout(() => {
+    const eventsToSend = analyticsQueue.splice(0, analyticsQueue.length);
+    analyticsTimer = null;
+    if (!eventsToSend.length) return;
+    try {
+      const state = getState();
+      const sid = ensureSessionIdValue(state.answers.sessionId);
+      const uid = state.answers.Id;
+      if (!isBlankSessionId(sid)) {
+        Promise.resolve(saveOnboardingSession(sid, eventsToSend, uid)).catch((error) => {
+          console.warn('Non-blocking: failed to send batched onboarding events', error);
+        });
+      }
+    } catch (err) {
+      // swallow; next tick will retry
+    }
+  }, ANALYTICS_FLUSH_INTERVAL_MS);
+}
 
 const MAX_STORED_EVENTS = 80;
 
@@ -265,6 +296,7 @@ export const initialAnswers: UserModel = {
   events: [],
   assistant: 0,
   theme: '',
+  primaryColor: 'purple',
   Name: '',
   Gender: 0,
   Age: null,
@@ -475,6 +507,13 @@ export const useQuizStore = create<QuizStore>()(
         const existingEvents = ensureEventsArray(state.answers.events);
   const shouldPersistSession = isBlankSessionId(state.answers.sessionId);
 
+        // Avoid emitting events when value is unchanged (for primitives)
+        const prev = (state.answers as any)[field];
+        const isPrimitive = (v: any) => v === null || ['string','number','boolean','undefined'].includes(typeof v);
+        if (isPrimitive(prev) && isPrimitive(value) && prev === value) {
+          return;
+        }
+
         const newAnswers = {
           ...state.answers,
           sessionId,
@@ -504,11 +543,38 @@ export const useQuizStore = create<QuizStore>()(
         }));
 
         // Fire-and-forget analytics to avoid blocking UI
-        if (!isBlankSessionId(sessionId)) {
-          Promise.resolve(saveOnboardingSession(sessionId, [event], state.answers.Id)).catch((error) => {
-            console.warn('Non-blocking: failed to send onboarding event', error);
-          });
+        queueAnalyticsSend(get, [event]);
+
+        if (shouldPersistSession && sessionId) {
+          safeSessionSetItem('quizSessionId', sessionId);
         }
+      },
+
+      // Dedicated setter for primaryColor with consistent analytics
+      setPrimaryColor: (color) => {
+        const state = get();
+        const sessionId = ensureSessionIdValue(state.answers.sessionId);
+        const existingEvents = ensureEventsArray(state.answers.events);
+        const shouldPersistSession = isBlankSessionId(state.answers.sessionId);
+
+        const newAnswers: UserModel = {
+          ...state.answers,
+          sessionId,
+          primaryColor: color,
+        };
+
+        const event = {
+          eventName: 'answerChanged',
+          timestamp: new Date().toISOString(),
+          step: state.currentStep,
+          details: { field: 'primaryColor', value: color },
+        };
+
+        set(() => ({
+          answers: { ...newAnswers, events: appendEvent(existingEvents, event) },
+        }));
+
+        queueAnalyticsSend(get, [event]);
 
         if (shouldPersistSession && sessionId) {
           safeSessionSetItem('quizSessionId', sessionId);
@@ -557,11 +623,7 @@ export const useQuizStore = create<QuizStore>()(
         }));
 
         // Non-blocking analytics
-        if (!isBlankSessionId(sessionId)) {
-          Promise.resolve(saveOnboardingSession(sessionId, [event], state.answers.Id)).catch((error) => {
-            console.warn('Non-blocking: failed to send onboarding event', error);
-          });
-        }
+        queueAnalyticsSend(get, [event]);
       },
 
       prevStep: () => {
@@ -585,29 +647,31 @@ export const useQuizStore = create<QuizStore>()(
         }));
 
         // Non-blocking analytics
-        if (!isBlankSessionId(sessionId)) {
-          Promise.resolve(saveOnboardingSession(sessionId, [event], state.answers.Id)).catch((error) => {
-            console.warn('Non-blocking: failed to send onboarding event', error);
-          });
-        }
+        queueAnalyticsSend(get, [event]);
       },
 
       goToStep: (step) => {
         const state = get();
-  const sessionId = ensureSessionIdValue(state.answers.sessionId);
+        const target = Math.max(0, Math.min(step, state.totalSteps - 1));
+        // No-op if target step equals current to avoid event spam/loops
+        if (target === state.currentStep) {
+          return;
+        }
+
+        const sessionId = ensureSessionIdValue(state.answers.sessionId);
         const existingEvents = ensureEventsArray(state.answers.events);
-        
+
         // Create event for step jump
         const event = {
           eventName: 'stepJumped',
           timestamp: new Date().toISOString(),
           step: state.currentStep,
-          details: { targetStep: step }
+          details: { targetStep: target }
         };
-        
+
         // Update local state immediately
         set(() => ({
-          currentStep: Math.max(0, Math.min(step, state.totalSteps - 1)),
+          currentStep: target,
           answers: { ...state.answers, sessionId, events: appendEvent(existingEvents, event) }
         }));
 

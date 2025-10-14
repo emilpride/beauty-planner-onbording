@@ -175,7 +175,7 @@ export default function WelcomeCarousel() {
             <button
               onClick={nextSlide}
               disabled={isTransitioning}
-              className="w-full bg-[#A385E9] hover:bg-primary/90 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-200 text-[15px]"
+              className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-200 text-[15px]"
             >
               Next
             </button>

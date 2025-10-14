@@ -25,7 +25,6 @@ export default function FocusStep() {
 
     setTransitioning(true)
     nextStep()
-    router.push(`/quiz/${currentStep + 1}`)
   }
 
   useEffect(() => {

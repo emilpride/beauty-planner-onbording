@@ -2,148 +2,39 @@
 
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
-import { useState, useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 
 export default function WakeUpStep() {
   const { answers, setAnswer } = useQuizStore()
-  const [hours, setHours] = useState(7)
-  const [minutes, setMinutes] = useState(30)
-  const [isAM, setIsAM] = useState(true)
-  const wheelBufferRef = useRef({ hours: 0, minutes: 0 })
 
   useEffect(() => {
     // Default to 12h for US-friendly experience if not set
     if (answers.TimeFormat !== '12h' && answers.TimeFormat !== '24h') {
       setAnswer('TimeFormat', '12h')
     }
-
-    if (answers.WakeUp) {
-      const [h, m] = answers.WakeUp.split(':').map(Number)
-      
-      if (answers.TimeFormat === '12h') {
-
-        if (h === 0) {
-          setHours(12)
-          setIsAM(true)
-        } else if (h < 12) {
-          setHours(h)
-          setIsAM(true)
-        } else if (h === 12) {
-          setHours(12)
-          setIsAM(false)
-        } else {
-          setHours(h - 12)
-          setIsAM(false)
-        }
-      } else {
-        setHours(h)
-      }
-      
-
-      const closestMinute = minutesList.reduce((prev, curr) => 
-        Math.abs(curr - m) < Math.abs(prev - m) ? curr : prev
-      )
-      setMinutes(closestMinute)
+    if (!answers.WakeUp) {
+      setAnswer('WakeUp', '07:30')
     }
-  }, [answers.WakeUp, answers.TimeFormat])
+  }, [answers.TimeFormat, answers.WakeUp, setAnswer])
 
-  const updateTime = (newHours: number, newMinutes: number, newIsAM?: boolean) => {
-    setHours(newHours)
-    setMinutes(newMinutes)
-    if (newIsAM !== undefined) {
-      setIsAM(newIsAM)
-    }
-    
-    let timeString: string
-    if (answers.TimeFormat === '12h') {
-      const effectiveIsAM = newIsAM !== undefined ? newIsAM : isAM
-      let hour24 = newHours
-      if (!effectiveIsAM && newHours !== 12) {
-        hour24 = newHours + 12
-      } else if (effectiveIsAM && newHours === 12) {
-        hour24 = 0
-      }
-      timeString = `${hour24.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`
-    } else {
-      timeString = `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`
-    }
-    setAnswer('WakeUp', timeString)
+  const presets = ['06:30', '07:00', '07:30', '08:00', '08:30']
+
+  const adjustMinutes = (value: string, delta: number) => {
+    const [hh, mm] = (value || '00:00').split(':').map(Number)
+    let total = hh * 60 + mm + delta
+    total = (total % (24 * 60) + (24 * 60)) % (24 * 60) // wrap around 0..1439
+    const nh = Math.floor(total / 60)
+    const nm = total % 60
+    return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`
   }
 
-  const hoursList = Array.from({ length: 24 }, (_, i) => i)
-  const minutesList = Array.from({ length: 12 }, (_, i) => i * 5) // 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55
-
-  const handleWheel = (e: React.WheelEvent, type: 'hours' | 'minutes') => {
-    if (e.cancelable) e.preventDefault()
-    const threshold = type === 'hours' ? 120 : 90
-    const buffer = wheelBufferRef.current
-    buffer[type] += e.deltaY
-    if (Math.abs(buffer[type]) < threshold) return
-
-    const steps = buffer[type] > 0 ? Math.floor(buffer[type] / threshold) : Math.ceil(buffer[type] / threshold)
-    buffer[type] -= steps * threshold
-
-    if (type === 'hours') {
-      const maxHour = answers.TimeFormat === '12h' ? 12 : 23
-      const minHour = answers.TimeFormat === '12h' ? 1 : 0
-      let newHours = hours + steps
-      if (answers.TimeFormat === '12h') {
-        if (newHours > maxHour) newHours = maxHour
-        if (newHours < minHour) newHours = minHour
-      } else {
-        newHours = Math.min(maxHour, Math.max(minHour, newHours))
-      }
-      updateTime(newHours, minutes)
-    } else {
-      const currentMinuteIndex = minutesList.indexOf(minutes)
-      let newIndex = currentMinuteIndex + steps
-      newIndex = Math.max(0, Math.min(minutesList.length - 1, newIndex))
-      updateTime(hours, minutesList[newIndex])
-    }
+  const toLabel = (value: string) => {
+    const [hh, mm] = (value || '00:00').split(':').map(Number)
+    if ((answers.TimeFormat || '12h') === '24h') return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`
+    const isAM = hh < 12
+    const h12 = hh % 12 === 0 ? 12 : hh % 12
+    return `${h12}:${String(mm).padStart(2,'0')} ${isAM ? 'AM' : 'PM'}`
   }
-
-  const handleTouchStart = (e: React.TouchEvent, type: 'hours' | 'minutes') => {
-    const touch = e.touches[0]
-    const startY = touch.clientY
-    const startValue = type === 'hours' ? hours : minutes
-    
-    const handleTouchMove = (e: TouchEvent) => {
-      if (e.cancelable) e.preventDefault()
-      const touch = e.touches[0]
-      const currentY = touch.clientY
-      const deltaY = startY - currentY
-      const sensitivity = type === 'hours' ? 18 : 22
-      const change = Math.round(deltaY / sensitivity)
-      
-      if (type === 'hours') {
-        if (answers.TimeFormat === '12h') {
-          const newHours = Math.max(1, Math.min(12, startValue + change))
-          updateTime(newHours, minutes)
-        } else {
-          const newHours = Math.max(0, Math.min(23, startValue + change))
-          updateTime(newHours, minutes)
-        }
-      } else if (type === 'minutes') {
-
-        const currentMinuteIndex = minutesList.indexOf(startValue)
-        const newIndex = Math.max(0, Math.min(11, currentMinuteIndex + change))
-        updateTime(hours, minutesList[newIndex])
-      }
-    }
-
-    const handleTouchEnd = () => {
-      document.removeEventListener('touchmove', handleTouchMove)
-      document.removeEventListener('touchend', handleTouchEnd)
-    }
-
-    document.addEventListener('touchmove', handleTouchMove, { passive: false })
-    document.addEventListener('touchend', handleTouchEnd)
-  }
-
-
-  const displayHoursList = answers.TimeFormat === '12h' 
-    ? Array.from({ length: 12 }, (_, i) => i + 1) // 1-12
-    : Array.from({ length: 24 }, (_, i) => i) // 0-23
 
   return (
     <OnboardingStep
@@ -152,19 +43,14 @@ export default function WakeUpStep() {
       condition={answers.WakeUp !== ''}
     >
       <div className="space-y-4 py-1">
-        {/* Format toggle (compact, horizontal) */}
+        {/* Toggle only on the first time step */}
         <div className="flex justify-center">
           <div className="inline-flex items-center rounded-full bg-gray-100 p-1 text-xs font-semibold">
-            {[
-              { value: '12h', label: '12h' },
-              { value: '24h', label: '24h' }
-            ].map((opt) => (
+            {[{ value: '12h', label: '12h' }, { value: '24h', label: '24h' }].map(opt => (
               <button
                 key={opt.value}
                 onClick={() => setAnswer('TimeFormat', opt.value as '12h' | '24h')}
-                className={`px-3 py-1.5 rounded-full transition-colors ${
-                  answers.TimeFormat === opt.value ? 'bg-primary text-white' : 'text-text-secondary'
-                }`}
+                className={`px-3 py-1.5 rounded-full transition-colors ${answers.TimeFormat === opt.value ? 'bg-primary text-white' : 'text-text-secondary'}`}
               >
                 {opt.label}
               </button>
@@ -172,89 +58,62 @@ export default function WakeUpStep() {
           </div>
         </div>
 
-        {/* Time wheels (compact) */}
-        <div className="flex items-center justify-center gap-3 sm:gap-6">
-          {/* Hours */}
-          <div className="flex flex-col items-center">
-            <div
-              className="h-32 overflow-hidden relative w-16 sm:w-20"
-              style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
-              onWheel={(e) => handleWheel(e, 'hours')}
-              onTouchStart={(e) => handleTouchStart(e, 'hours')}
-            >
-              <div
-                className="flex flex-col transition-transform duration-300 ease-out"
-                style={{ transform: `translateY(${64 - displayHoursList.indexOf(hours) * 40}px)` }}
-              >
-                {displayHoursList.map((hour) => (
-                  <div
-                    key={hour}
-                    className={`h-10 flex items-center justify-center text-2xl sm:text-4xl font-bold cursor-pointer transition-all duration-200 ${
-                      hour === hours ? 'text-text-primary scale-110' : 'text-gray-400 scale-75'
-                    }`}
-                    onClick={() => updateTime(hour, minutes)}
-                  >
-                    {hour.toString().padStart(2, '0')}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="w-16 sm:w-20 h-1 bg-primary mt-2 rounded-full"></div>
+        {/* Header with big current time and +/-5 controls */}
+        <div className="flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => setAnswer('WakeUp', adjustMinutes(answers.WakeUp || '07:30', -5))}
+            className="px-3 py-2 rounded-xl border border-gray-200 text-text-secondary hover:border-primary/60"
+            aria-label="Decrease time by 5 minutes"
+            title="-5 min"
+          >
+            -5
+          </button>
+          <div className="text-3xl sm:text-4xl font-bold text-text-primary tabular-nums">
+            {toLabel(answers.WakeUp || '07:30')}
           </div>
-
-          {/* Colon */}
-          <div className="text-2xl sm:text-4xl font-bold text-text-primary select-none">:</div>
-
-          {/* Minutes */}
-          <div className="flex flex-col items-center">
-            <div
-              className="h-32 overflow-hidden relative w-16 sm:w-20"
-              style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
-              onWheel={(e) => handleWheel(e, 'minutes')}
-              onTouchStart={(e) => handleTouchStart(e, 'minutes')}
-            >
-              <div
-                className="flex flex-col transition-transform duration-300 ease-out"
-                style={{ transform: `translateY(${64 - minutesList.indexOf(minutes) * 40}px)` }}
-              >
-                {minutesList.map((minute) => (
-                  <div
-                    key={minute}
-                    className={`h-10 flex items-center justify-center text-2xl sm:text-4xl font-bold cursor-pointer transition-all duration-200 ${
-                      minute === minutes ? 'text-text-primary scale-110' : 'text-gray-400 scale-75'
-                    }`}
-                    onClick={() => updateTime(hours, minute)}
-                  >
-                    {minute.toString().padStart(2, '0')}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="w-16 sm:w-20 h-1 bg-primary mt-2 rounded-full"></div>
-          </div>
+          <button
+            type="button"
+            onClick={() => setAnswer('WakeUp', adjustMinutes(answers.WakeUp || '07:30', +5))}
+            className="px-3 py-2 rounded-xl border border-gray-200 text-text-secondary hover:border-primary/60"
+            aria-label="Increase time by 5 minutes"
+            title="+5 min"
+          >
+            +5
+          </button>
         </div>
 
-        {/* AM/PM toggle (compact) */}
-        {answers.TimeFormat === '12h' && (
-          <div className="flex justify-center">
-            <div className="inline-flex items-center rounded-full bg-gray-100 p-1 text-xs font-semibold">
-              {['AM', 'PM'].map((period) => (
-                <button
-                  key={period}
-                  onClick={() => updateTime(hours, minutes, period === 'AM')}
-                  className={`px-3 py-1.5 rounded-full transition-colors ${
-                    (period === 'AM' && isAM) || (period === 'PM' && !isAM)
-                      ? 'bg-primary text-white'
-                      : 'text-text-secondary'
-                  }`}
-                >
-                  {period}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Preset slots and quick adjust */}
+        <div className="flex flex-wrap gap-2 justify-center">
+          {presets.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setAnswer('WakeUp', p)}
+              className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                (answers.WakeUp || '') === p ? 'bg-primary text-white border-primary' : 'border-gray-200 text-text-secondary hover:border-primary/60'
+              }`}
+            >
+              {toLabel(p)}
+            </button>
+          ))}
+          {/* additional fixed time options */}
+          {['09:00','09:30'].map((t) => (
+            <button
+              key={`fixed-${t}`}
+              type="button"
+              onClick={() => setAnswer('WakeUp', t)}
+              className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                (answers.WakeUp || '') === t ? 'bg-primary text-white border-primary' : 'border-gray-200 text-text-secondary hover:border-primary/60'
+              }`}
+              aria-label={`Set time to ${toLabel(t)}`}
+            >
+              {toLabel(t)}
+            </button>
+          ))}
+        </div>
       </div>
+
     </OnboardingStep>
   )
 }

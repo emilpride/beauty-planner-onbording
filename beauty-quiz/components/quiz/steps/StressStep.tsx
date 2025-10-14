@@ -26,7 +26,6 @@ export default function StressStep() {
 
     setTransitioning(true)
     nextStep()
-    router.push(`/quiz/${currentStep + 1}`)
   }
 
 

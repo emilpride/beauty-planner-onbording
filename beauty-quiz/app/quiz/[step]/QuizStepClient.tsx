@@ -123,7 +123,15 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   const [animationReady, setAnimationReady] = useState(false)
   
   // Only use Zustand on client side
-  const { totalSteps, goToStep, answers, isTransitioning, setTransitioning, generateSessionId, setAnswer, currentStep } = useQuizStore()
+  const {
+    totalSteps,
+    answers,
+    isTransitioning,
+    setTransitioning,
+    generateSessionId,
+    setAnswer,
+    currentStep,
+  } = useQuizStore()
   
   useEffect(() => {
     setIsHydrated(true)
@@ -162,29 +170,28 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   }, [stepNumber, setTransitioning])
 
   
+  // Simplified sync: store is source of truth, URL follows store
   useEffect(() => {
     if (!isHydrated) return
-    
 
+    // eslint-disable-next-line no-console
+    console.log('[QuizStepClient] sync check', { stepNumber, currentStep, assistant: answers.assistant })
+
+    // Assistant must be selected before quiz
     if (answers.assistant === 0) {
-      router.push('/assistant-selection')
+      console.log('[QuizStepClient] redirect: assistant-selection')
+      router.replace('/assistant-selection')
       return
     }
-    
-    if (isNaN(stepNumber) || stepNumber < 0 || stepNumber >= totalSteps) {
-      router.push('/quiz/0')
-    } else {
-      goToStep(stepNumber)
-    }
-  }, [stepNumber, goToStep, totalSteps, router, answers.assistant, isHydrated])
 
-  // Route-sync: when store currentStep advances (e.g., after analysis reaches 100%), sync URL
-  useEffect(() => {
-    if (!isHydrated) return
-    if (typeof currentStep === 'number' && currentStep !== stepNumber) {
-      router.push(`/quiz/${currentStep}`)
+    const clampedStep = isNaN(stepNumber) ? 0 : Math.max(0, Math.min(stepNumber, totalSteps - 1))
+    
+    // If URL doesn't match store, update URL to match store
+    if (currentStep !== clampedStep) {
+      console.log('[QuizStepClient] sync URL to store:', currentStep, '(was', stepNumber, ')')
+      router.replace(`/quiz/${currentStep}`)
     }
-  }, [currentStep, isHydrated, stepNumber, router])
+  }, [isHydrated, stepNumber, currentStep, totalSteps, answers.assistant, router])
 
   // Centralized entry sequencing: reset flags and precompute layout to avoid blank delays
   useLayoutEffect(() => {
@@ -445,7 +452,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
 
       {isHydrated ? (
         <>
-          {stepNumber < 34 && stepNumber >= 0 && (
+          {stepNumber < 34 && stepNumber >= 0 && ![30, 31, 32].includes(stepNumber) && (
             <OnboardingAppbar onBackAnimation={startBackAnimation} />
           )}
 

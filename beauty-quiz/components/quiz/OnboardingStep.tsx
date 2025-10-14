@@ -63,10 +63,8 @@ export default function OnboardingStep({
       if (onExitAnimation) {
         onExitAnimation()
       }
-      // Signal transition; navigation will be immediate here.
+      // Signal transition and update store; URL sync happens automatically in QuizStepClient
       setTransitioning(true)
-      const nextStepIndex = currentStep + 1
-      router.push(`/quiz/${nextStepIndex}`)
       nextStep()
     } else if (onDisabledTap) {
       onDisabledTap()
@@ -77,9 +75,7 @@ export default function OnboardingStep({
     if (onSkip) {
       onSkip()
     } else {
-      const nextStepIndex = currentStep + 1
       setTransitioning(true)
-      router.push(`/quiz/${nextStepIndex}`)
       nextStep()
     }
   }
@@ -127,10 +123,11 @@ export default function OnboardingStep({
           <button
             onClick={handleNext}
             disabled={!condition}
+            aria-disabled={!condition}
             className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-200 ${
               condition
                 ? 'bg-primary text-white shadow-lg hover:shadow-xl'
-                : 'bg-gray-200 text-text-secondary cursor-not-allowed'
+                : 'bg-gray-200 text-text-secondary cursor-not-allowed pointer-events-none select-none opacity-70'
             }`}
           >
             {buttonText}

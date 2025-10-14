@@ -21,9 +21,7 @@ export default function ScheduleIntroStep() {
   const { nextStep, currentStep, answers } = useQuizStore()
 
   const handleNext = () => {
-    const nextStepIndex = currentStep + 1
     nextStep()
-    router.push(`/quiz/${nextStepIndex}`)
   }
 
   const assistantImage = answers.assistant === 0 // 0 = max, 1 = ellie

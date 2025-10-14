@@ -322,8 +322,8 @@ export default function AIResultsStep() {
   // Effect to transition when done
   useEffect(() => {
     const allInterludesShown = shownInterludesCountRef.current >= interludes.length
+    // Primary path: success + 100% + all interludes handled
     if (progress >= 100 && status === 'success' && allInterludesShown && !hasNavigatedRef.current) {
-      // A short delay to let the user see 100% before navigating
       if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current)
       navTimeoutRef.current = setTimeout(() => {
         if (!hasNavigatedRef.current) {
@@ -331,6 +331,16 @@ export default function AIResultsStep() {
           nextStep()
         }
       }, 400)
+    }
+    // Fallback: if we reached 100% (or success) but for any reason interludes are not visible/blocked, proceed after a grace period
+    if ((progress >= 100 || status === 'success') && !hasNavigatedRef.current) {
+      if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current)
+      navTimeoutRef.current = setTimeout(() => {
+        if (!hasNavigatedRef.current) {
+          hasNavigatedRef.current = true
+          nextStep()
+        }
+      }, 2000)
     }
     return () => {
       if (navTimeoutRef.current) {
@@ -387,6 +397,10 @@ export default function AIResultsStep() {
         // Ensure we unpause and mark success but don't force 100 until interludes are shown
         setIsPaused(false)
         setStatus('success')
+        // If no interludes remain to be shown, finalize progress to 100%
+        if (shownInterludesCountRef.current >= interludes.length) {
+          setProgress(100)
+        }
       } else {
         throw new Error(json?.error || 'Invalid response from analysis server.')
       }

@@ -45,7 +45,6 @@ export default function SkinProblemsStep() {
     hasTransitioned.current = true
     setTransitioning(true)
     nextStep()
-    router.push(`/quiz/${currentStep + 1}`)
   }
 
 

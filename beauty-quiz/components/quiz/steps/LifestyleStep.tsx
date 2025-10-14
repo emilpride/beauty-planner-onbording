@@ -23,7 +23,6 @@ export default function LifestyleStep() {
     hasTransitioned.current = true
     setTransitioning(true)
     nextStep()
-    router.push(`/quiz/${currentStep + 1}`)
   }
 
   useEffect(() => {

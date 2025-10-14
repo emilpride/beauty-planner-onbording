@@ -26,7 +26,6 @@ export default function WorkEnvironmentStep() {
 
     setTransitioning(true)
     nextStep()
-    router.push(`/quiz/${currentStep + 1}`)
   }
 
 

@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import AnimatedBackground from '@/components/AnimatedBackground'
-import { useTheme, type ThemeVariant } from '@/components/theme/ThemeProvider'
+import { useTheme, type ThemeVariant, type PrimaryColor } from '@/components/theme/ThemeProvider'
 import { Sparkles, Sun, Moon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -11,13 +11,17 @@ import { logQuizStart, logThemeSelected } from '@/lib/quizEvents'
 
 export default function ThemeSelectionPage() {
   const router = useRouter()
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme()
   const [activeTheme, setActiveTheme] = useState<ThemeVariant>(theme)
-  const { sessionId, setAnswer } = useQuizStore()
+  const [activePrimary, setActivePrimary] = useState<PrimaryColor>(primaryColor)
+  const { sessionId, setAnswer, setPrimaryColor: setAnswerPrimaryColor } = useQuizStore()
   const [isContinuing, setIsContinuing] = useState(false)
   useEffect(() => {
     setActiveTheme(theme)
   }, [theme])
+  useEffect(() => {
+    setActivePrimary(primaryColor)
+  }, [primaryColor])
 
 
   // Flag to avoid logging quiz start multiple times
@@ -46,6 +50,12 @@ export default function ThemeSelectionPage() {
       setAnswer('quizStartTime', new Date().toISOString())
     }
     await logThemeSelected(sessionId, activeTheme)
+  // Persist selected primary color in answers and log it
+  setAnswerPrimaryColor(activePrimary)
+    try {
+      const { logEvent } = await import('@/lib/quizEvents')
+      await logEvent(sessionId, { eventName: 'primaryColorSelected', timestamp: new Date().toISOString(), details: { color: activePrimary } })
+    } catch {}
     setAnswer('theme', activeTheme)
     router.push('/welcome')
     // small grace to avoid double taps before navigation completes
@@ -189,6 +199,53 @@ export default function ThemeSelectionPage() {
               </div>
             </motion.div>
 
+            {/* Primary color selection - compact ring swatches */}
+            <div className="mx-auto w-full max-w-md text-center">
+              <div className="mb-2 text-sm font-medium text-text-secondary">Choose your accent color</div>
+              <div className="flex items-center justify-center gap-3">
+                {([
+                  { id: 'purple', label: 'Purple', rgb: '138, 96, 255' },
+                  { id: 'blue', label: 'Blue', rgb: '59, 130, 246' },
+                  { id: 'green', label: 'Green', rgb: '34, 197, 94' },
+                  { id: 'pink', label: 'Pink', rgb: '236, 72, 153' },
+                  { id: 'red', label: 'Red', rgb: '239, 68, 68' },
+                ] as { id: PrimaryColor; label: string; rgb: string }[]).map((opt) => {
+                  const selected = activePrimary === opt.id
+                  return (
+                    <motion.button
+                      key={opt.id}
+                      onClick={() => { setActivePrimary(opt.id); setPrimaryColor(opt.id) }}
+                      className="relative inline-grid h-9 w-9 place-items-center rounded-full"
+                      aria-label={opt.label}
+                      aria-pressed={selected}
+                      whileHover={{ scale: 1.06 }}
+                      whileTap={{ scale: 0.96 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                    >
+                      {/* outer ring */}
+                      <span
+                        className="absolute inset-0 rounded-full"
+                        style={{ background: `rgba(${opt.rgb}, .9)` }}
+                        aria-hidden
+                      />
+                      {/* inner hollow */}
+                      <span className="absolute inset-[6px] rounded-full bg-surface" aria-hidden />
+                      {/* selection indicator subtle border */}
+                      {selected && (
+                        <span
+                          className="absolute -inset-1 rounded-full"
+                          style={{ boxShadow: `0 0 0 3px rgba(${opt.rgb}, 0.45)` }}
+                          aria-hidden
+                        />
+                      )}
+                    </motion.button>
+                  )
+                })}
+              </div>
+
+              {/* Live preview removed per request */}
+            </div>
+
 
             <motion.button
               onClick={handleContinue}
@@ -215,7 +272,7 @@ export default function ThemeSelectionPage() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
               >
-                {isContinuing ? 'Loading…' : `Continue in ${isDark ? 'Dark' : 'Light'} Mode`}
+                {isContinuing ? 'Setting…' : `Continue in ${isDark ? 'Dark' : 'Light'} Mode`}
               </motion.span>
             </motion.button>
           </div>

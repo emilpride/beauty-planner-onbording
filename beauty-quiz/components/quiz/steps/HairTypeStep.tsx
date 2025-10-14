@@ -23,7 +23,6 @@ export default function HairTypeStep() {
 
     setTransitioning(true)
     nextStep()
-    router.push(`/quiz/${currentStep + 1}`)
   }
 
   const handleSkip = () => {
@@ -35,7 +34,6 @@ export default function HairTypeStep() {
 
     setTransitioning(true)
     nextStep()
-    router.push(`/quiz/${currentStep + 1}`)
   }
 
 

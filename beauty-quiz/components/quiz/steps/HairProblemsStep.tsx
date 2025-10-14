@@ -45,7 +45,6 @@ export default function HairProblemsStep() {
 
     setTransitioning(true)
     nextStep()
-    router.push(`/quiz/${currentStep + 1}`)
   }
 
 

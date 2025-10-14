@@ -24,7 +24,6 @@ export default function SkinTypeStep() {
     hasTransitioned.current = true
     setTransitioning(true)
     nextStep()
-    router.push(`/quiz/${currentStep + 1}`)
   }
 
   const handleSkip = () => {
@@ -34,7 +33,6 @@ export default function SkinTypeStep() {
     hasTransitioned.current = true
     setTransitioning(true)
     nextStep()
-    router.push(`/quiz/${currentStep + 1}`)
   }
 
 

@@ -28,7 +28,6 @@ export default function MoodStep() {
 
     setTimeout(() => {
       nextStep()
-      router.push(`/quiz/${currentStep + 1}`)
     }, 800)
   }
 

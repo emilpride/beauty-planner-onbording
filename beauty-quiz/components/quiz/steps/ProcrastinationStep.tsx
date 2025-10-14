@@ -26,7 +26,6 @@ export default function ProcrastinationStep() {
 
     setTransitioning(true)
     nextStep()
-    router.push(`/quiz/${currentStep + 1}`)
   }
 
 

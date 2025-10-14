@@ -178,8 +178,6 @@ export default function PhysicalActivitiesStep() {
           setAnswer('ActivityFrequency', [])
           const newActivities = answers.PhysicalActivities.map(a => ({ ...a, isActive: false }))
           setAnswer('PhysicalActivities', newActivities)
-          const nextIndex = currentStep + 1
-          router.push(`/quiz/${nextIndex}`)
           nextStep()
         }}
       >

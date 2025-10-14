@@ -15,6 +15,7 @@ const influences = [
 
 export default function OrganizationInfluenceStep() {
   const { answers, setAnswer } = useQuizStore()
+  const hasSelection = Array.isArray(answers.Influence) ? answers.Influence.length > 0 : false
 
   const handleToggleInfluence = (influence: string) => {
     const current = Array.isArray(answers.Influence) ? answers.Influence : []
@@ -36,7 +37,21 @@ export default function OrganizationInfluenceStep() {
     <OnboardingStep
       title="What influences your sense of organization and planning the most?"
       subtitle="Select all that apply."
-      condition={Array.isArray(answers.Influence) ? answers.Influence.length > 0 : false}
+      condition={hasSelection}
+      onDisabledTap={() => {
+        // light haptic-like feedback via brief class toggle could be added here in the future
+        if (typeof window !== 'undefined') {
+          const el = document.getElementById('influence-hint')
+          if (el) {
+            el.classList.remove('opacity-0')
+            el.classList.add('opacity-100')
+            setTimeout(() => {
+              el.classList.remove('opacity-100')
+              el.classList.add('opacity-0')
+            }, 1800)
+          }
+        }
+      }}
     >
       <div className="flex flex-wrap gap-2 py-1">
         {influences.map((influence) => (
@@ -53,6 +68,11 @@ export default function OrganizationInfluenceStep() {
           </button>
         ))}
       </div>
+      {!hasSelection && (
+        <div id="influence-hint" className="text-sm text-text-secondary mt-2 transition-opacity duration-300 opacity-0">
+          Please select at least one option to continue.
+        </div>
+      )}
     </OnboardingStep>
   )
 }
