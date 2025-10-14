@@ -218,8 +218,29 @@ export default function PricingStep() {
     setDiscountOffered(false)
   }
 
+  // Prevent background scroll when the payment modal is open
+  useEffect(() => {
+    if (showPayment) {
+      try {
+        document.documentElement.style.overflow = 'hidden'
+        document.body.style.overflow = 'hidden'
+      } catch {}
+    } else {
+      try {
+        document.documentElement.style.overflow = ''
+        document.body.style.overflow = ''
+      } catch {}
+    }
+    return () => {
+      try {
+        document.documentElement.style.overflow = ''
+        document.body.style.overflow = ''
+      } catch {}
+    }
+  }, [showPayment])
+
   return (
-    <div className="relative min-h-screen bg-transparent px-4 py-10 sm:px-6 lg:px-12">
+    <div className="relative min-h-screen bg-transparent overflow-x-hidden px-4 pt-10 pb-[calc(env(safe-area-inset-bottom)+88px)] sm:px-6 md:pb-12 lg:px-12">
       <BackgroundDecor />
       <div className="relative mx-auto flex w-full max-w-[1040px] flex-col gap-10">
         <TopTimerRow
@@ -230,7 +251,7 @@ export default function PricingStep() {
           }}
         />
 
-    <div className="space-y-10">
+    <div className="space-y-6 md:space-y-10">
       <TrustSignals />
 
           <Divider label="Pick your access" />
@@ -240,7 +261,7 @@ export default function PricingStep() {
             discountActive={discountActive}
           />
 
-          <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex flex-col items-center gap-3 text-center md:block">
             <button
               type="button"
               onClick={handleOpenPayment}
@@ -280,6 +301,15 @@ export default function PricingStep() {
           />
         )}
       </AnimatePresence>
+
+      {/* Sticky mobile CTA disabled to match compact mock */}
+      {false && !showPayment && (
+        <StickyMobileCTA
+          selectedPlanId={selectedPlan}
+          onClick={handleOpenPayment}
+          discountActive={discountActive}
+        />
+      )}
     </div>
   )
 }
@@ -351,7 +381,7 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
       </div>
 
       {compact && (
-        <div className="fixed inset-x-0 top-2 z-50" data-compact-timer>
+        <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+8px)] z-50" data-compact-timer>
           <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -401,7 +431,7 @@ function PlansPanel({
   return (
     <div
       id="plans"
-      className="grid gap-2 sm:gap-4 md:grid-cols-2 xl:grid-cols-3 scroll-mt-24"
+      className="grid gap-1.5 sm:gap-4 md:grid-cols-2 xl:grid-cols-3 scroll-mt-24"
     >
       {plans.map((plan) => (
         <PlanCard
@@ -432,62 +462,65 @@ function PlanCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`group relative flex h-full flex-col rounded-2xl sm:rounded-3xl border pl-12 pr-4 py-4 sm:px-5 sm:py-6 text-left transition focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-white ${
+      className={`group relative flex h-full flex-col rounded-2xl sm:rounded-3xl border pl-8 pr-4 py-2.5 sm:px-5 sm:py-6 text-left transition focus:outline-none ${
         active
-          ? "border-primary bg-surface shadow-[0_18px_38px_rgba(124,92,203,0.18)]"
+          ? "border-transparent ring-2 ring-primary bg-surface shadow-[0_16px_28px_rgba(124,92,203,0.18)]"
           : "border-border-subtle bg-surface shadow-sm hover:-translate-y-1 hover:shadow-[0_16px_30px_rgba(91,69,136,0.14)]"
       }`}
     >
-      {/* Mobile radio on the left center */}
-      <span
-        className={`sm:hidden absolute left-3 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 ${
-          active ? "border-primary bg-primary" : "border-[#D6D9EE] bg-transparent"
-        }`}
-        aria-hidden
-      >
-        {active && <CheckIcon className="h-3.5 w-3.5 text-white" />}
-      </span>
       {plan.tag && (
-        <div className="pointer-events-none absolute -top-4 sm:-top-5 left-1/2 z-10 -translate-x-1/2">
-          <div className="rounded-full bg-primary px-3 sm:px-4 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-white shadow-[0_8px_16px_rgba(124,92,203,0.24)]">
-            {plan.tag}
+        <>
+          {/* Mobile: full-width tag bar */}
+          <div className="sm:hidden pointer-events-none absolute -top-2 left-2 right-2 z-10">
+            <div className="w-full rounded-t-2xl bg-primary px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-white text-center shadow-[0_8px_16px_rgba(124,92,203,0.24)]">
+              {plan.tag}
+            </div>
           </div>
-        </div>
+          {/* Desktop/tablet: centered pill */}
+          <div className="hidden sm:block pointer-events-none absolute -top-5 left-1/2 z-10 -translate-x-1/2">
+            <div className="rounded-full bg-primary px-4 py-1 text-[11px] font-extrabold uppercase tracking-widest text-white shadow-[0_8px_16px_rgba(124,92,203,0.24)]">
+              {plan.tag}
+            </div>
+          </div>
+        </>
       )}
-      {/* Mobile layout */}
-      <div className="sm:hidden space-y-2">
+  {/* Mobile layout */}
+  <div className={`sm:hidden space-y-1.5 ${plan.tag ? 'pt-2' : ''}`}>
+        {/* Header: radio + label on the left, price block on the right */}
         <div className="flex items-start justify-between gap-2">
-          <p className="text-lg font-semibold leading-tight text-text-primary">
-            {plan.label}
-          </p>
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                active ? 'border-primary bg-primary' : 'border-[#D6D9EE] bg-transparent'
+              }`}
+              aria-hidden
+            >
+              {active && <span className="h-2.5 w-2.5 rounded-full bg-white" />}
+            </span>
+            <p className="text-[15px] font-semibold leading-tight text-text-primary">{plan.label}</p>
+          </div>
           <div className="text-right leading-none">
             {price.showOriginal && price.originalPerDay !== undefined && (
-              <div className="text-[11px] text-text-secondary line-through opacity-70">{`${CURRENCY}${price.originalPerDay.toFixed(
-                2
-              )}`}</div>
+              <div className="text-[11px] text-text-secondary line-through opacity-70">{`${CURRENCY}${price.originalPerDay.toFixed(2)}`}</div>
             )}
-            <div className="text-[22px] font-extrabold tracking-tight text-text-primary">{`${CURRENCY}${price.currentPerDay.toFixed(
-              2
-            )}`}</div>
-            <div className="text-[10px] text-text-secondary">per day</div>
+            <div className="text-[22px] font-extrabold leading-none tracking-tight text-text-primary">{`${CURRENCY}${price.currentPerDay.toFixed(2)}`}</div>
+            <div className="text-[9px] text-text-secondary">per day</div>
           </div>
         </div>
-        <div className="flex items-start justify-between gap-2">
+        {/* Period pill */}
+        <div className="flex items-center gap-2">
           <span className="inline-flex items-center rounded-md bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-text-secondary">
             {plan.periodLabel}
           </span>
-          <div className="text-right text-text-secondary">
-            {price.showOriginal && price.originalTotal !== undefined && (
-              <div className="text-[11px] line-through opacity-70">{`${CURRENCY}${price.originalTotal.toFixed(
-                2
-              )}`}</div>
-            )}
-            <div className="text-xs font-semibold text-text-primary">{`${CURRENCY}${price.currentTotal.toFixed(
-              2
-            )}`}</div>
-          </div>
         </div>
-        <div className="border-t border-border-subtle" />
+        {/* Totals row under period: original -> discounted */}
+        <div className="text-[11px] text-text-secondary">
+          {price.showOriginal && price.originalTotal !== undefined && (
+            <span className="line-through opacity-70 mr-2">{`${CURRENCY}${price.originalTotal.toFixed(2)}`}</span>
+          )}
+          <span className="mx-0.5">→</span>
+          <span className="font-semibold text-text-primary">{`${CURRENCY}${price.currentTotal.toFixed(2)}`}</span>
+        </div>
       </div>
 
       {/* Desktop / tablet layout */}
@@ -643,7 +676,7 @@ function StickyMobileCTA({
   const plan = plans.find((p) => p.id === selectedPlanId) ?? plans[0]
   const price = computePrice(plan, discountActive)
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle/60 bg-surface/90 px-4 py-3 backdrop-blur md:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle/60 bg-surface/90 px-4 py-3 pb-[max(env(safe-area-inset-bottom),0px)] backdrop-blur md:hidden">
       <div className="mx-auto flex w-full max-w-[1040px] items-center justify-between gap-3">
         <div className="text-left">
           {discountActive ? (
@@ -695,13 +728,13 @@ function PaymentModal({ selectedPlanId, discountOffered, discountActive, promoCo
   const plan = plans.find((item) => item.id === selectedPlanId) ?? plans[0]
   const { currentTotal } = computePrice(plan, discountActive)
   return (
-    <motion.div className="fixed inset-0 z-50 flex items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+    <motion.div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
       <motion.div
-        className="relative mx-4 w-full max-w-[768px] rounded-3xl bg-white px-6 py-6 shadow-[0_32px_64px_rgba(0,0,0,0.24)] sm:px-8 sm:py-8"
-        initial={{ scale: 0.98, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.98, opacity: 0 }}
+        className="relative mx-0 w-full max-w-[768px] rounded-t-3xl sm:rounded-3xl bg-white px-5 py-5 sm:px-8 sm:py-8 shadow-[0_32px_64px_rgba(0,0,0,0.24)] max-h-[85vh] sm:max-h-[88vh] overflow-y-auto"
+        initial={{ y: 24, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 24, opacity: 0 }}
       >
         <button type="button" onClick={onClose} className="absolute left-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-surface-muted text-xl text-text-primary/70 hover:text-text-primary" aria-label="Close">
           ×
