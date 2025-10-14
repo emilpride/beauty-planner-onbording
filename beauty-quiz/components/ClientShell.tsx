@@ -9,7 +9,7 @@ import { useQuizStore } from '@/store/quizStore'
 // Client-only shell rendered within RootLayout to mount global client UI (theme toggle)
 export default function ClientShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
-  const hideBurger = pathname === '/' || pathname.startsWith('/welcome')
+  const hideBurger = pathname === '/' || pathname.startsWith('/welcome') || pathname.startsWith('/procedures')
   const sessionId = useQuizStore((s) => s.sessionId)
 
   // Global error instrumentation: capture runtime errors and send lightweight events

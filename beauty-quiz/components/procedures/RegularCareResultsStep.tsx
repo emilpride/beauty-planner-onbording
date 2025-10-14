@@ -3,32 +3,102 @@
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion, useInView, useMotionValue, useTransform, animate, useScroll, useReducedMotion } from 'framer-motion'
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useMemo } from 'react'
+import { useQuizStore } from '@/store/quizStore'
 
 export default function RegularCareResultsStep() {
   const router = useRouter()
+  const { analysis: aiModel, answers } = useQuizStore()
 
   const handlePricePlans = () => {
     router.push('/payment')
   }
 
-  // Mock data for independent version
-  const mockAnswers = {
-    gender: 1, // female by default
-    name: 'Test User',
+  // ---- BMI helpers (mirrors CurrentConditionAnalysisStep) ----
+  const BMI_CATEGORIES = [
+    { id: 'severely-underweight', range: [0, 15.9], imageLevel: 1 },
+    { id: 'underweight',          range: [16.0, 18.4], imageLevel: 1 },
+    { id: 'healthy',              range: [18.5, 24.9], imageLevel: 2 },
+    { id: 'overweight',           range: [25.0, 29.9], imageLevel: 3 },
+    { id: 'obese-class1',         range: [30.0, 34.9], imageLevel: 4 },
+    { id: 'obese-class2',         range: [35.0, 39.9], imageLevel: 5 },
+    { id: 'obese-class3',         range: [40.0, 100],  imageLevel: 5 },
+  ] as const
+
+  const parseNumber = (value?: string | null) => {
+    if (!value) return null
+    const normalised = value.replace(/[^0-9.,]/g, '').replace(',', '.')
+    const parsed = Number(normalised)
+    return Number.isFinite(parsed) ? parsed : null
   }
 
-  // Get BMI images based on user's gender
-  const getBMIImages = () => {
-    const isFemale = mockAnswers.gender === 1 // 1 = female, 0 = male
-    const prefix = isFemale ? 'bmi_female' : 'bmi_male'
-    return {
-      current: `/images/on_boarding_images/${prefix}_1.png`, // User's current result
-      target: `/images/on_boarding_images/${prefix}_3.png`, // Target goal
+  const parseHeight = (heightValue?: string | null, unit?: 'cm' | 'ft&in' | null): number | null => {
+    if (!heightValue) return null
+    const u = unit || 'cm'
+    if (u === 'cm') {
+      const numeric = parseNumber(heightValue)
+      return numeric ? numeric / 100 : null
     }
+    const match = heightValue.match(/(\d+)[^\d]+(\d+)?/)
+    if (!match) return null
+    const feet = Number(match[1])
+    const inches = Number(match[2] ?? 0)
+    const totalInches = feet * 12 + inches
+    return totalInches * 0.0254
   }
 
-  const bmiImages = getBMIImages()
+  const parseWeight = (weightValue?: string | null, unit?: 'kg' | 'lbs' | null): number | null => {
+    const numeric = parseNumber(weightValue || '')
+    if (!numeric) return null
+    return (unit || 'kg') === 'kg' ? numeric : numeric * 0.453592
+  }
+
+  const heightMeters = useMemo(
+    () => parseHeight(answers?.Height, (answers?.HeightUnit as any) || 'cm'),
+    [answers?.Height, answers?.HeightUnit]
+  )
+  const weightKg = useMemo(
+    () => parseWeight(answers?.Weight, (answers?.WeightUnit as any) || 'kg'),
+    [answers?.Weight, answers?.WeightUnit]
+  )
+  const bmiValue = useMemo(() => {
+    const v = (aiModel as any)?.bmi
+    if (typeof v === 'number' && Number.isFinite(v)) return Number(v)
+    if (heightMeters && weightKg) {
+      const calculated = weightKg / (heightMeters * heightMeters)
+      return Number.isFinite(calculated) ? parseFloat(calculated.toFixed(1)) : null
+    }
+    return null
+  }, [aiModel, heightMeters, weightKg])
+
+  const bmiCategory = useMemo(() => {
+    if (!bmiValue) return BMI_CATEGORIES[1]
+    return (
+      BMI_CATEGORIES.find((cat) => bmiValue >= cat.range[0] && bmiValue <= cat.range[1]) || BMI_CATEGORIES[BMI_CATEGORIES.length - 1]
+    )
+  }, [bmiValue])
+
+  const genderPrefix = (answers as any)?.Gender === 1 ? 'female' : 'male'
+  const bmiImages = useMemo(() => {
+    const current = `/images/on_boarding_images/bmi_${genderPrefix}_${bmiCategory.imageLevel}.png`
+    const target = `/images/on_boarding_images/bmi_${genderPrefix}_2.png` // ideal healthy
+    return { current, target }
+  }, [genderPrefix, bmiCategory])
+
+  // ----- BMS values (from Current Condition Analysis) -----
+  const clamp10 = (v: number) => Math.min(10, Math.max(0, v))
+  const baseBms = useMemo(() => {
+    const v = (aiModel as any)?.bmsScore
+    return clamp10(typeof v === 'number' && Number.isFinite(v) ? Number(v) : 6)
+  }, [aiModel])
+  const baseBmsInt = Math.round(baseBms)
+  const bmsPlus10 = clamp10(baseBms * 1.1)
+  const bmsPlus10Int = Math.round(bmsPlus10)
+  const bmsPlus30 = clamp10(baseBms * 1.3)
+  const bmsPlus30Int = Math.round(bmsPlus30)
+  // For r=30: circumference ≈ 188.495... keep in sync with existing 188.4
+  const CIRC = 2 * Math.PI * 30
+  const dash = (val: number) => `${(val / 10) * CIRC} ${CIRC}`
 
   const benefits = [
     {
@@ -341,9 +411,18 @@ export default function RegularCareResultsStep() {
                 stroke="url(#withoutAppGradientDark)" strokeWidth="4" fill="none" filter="url(#glowDark)"
                 style={{ pathLength }}
               />
+              {/* With app line - light theme */}
               <motion.path 
+                className="dark:hidden"
                 d="M 65 200 C 150 220, 200 100, 315 80" 
                 stroke="url(#withAppGradient)" strokeWidth="3" fill="none" 
+                style={{ pathLength }}
+              />
+              {/* With app line - dark theme with glow */}
+              <motion.path 
+                className="hidden dark:block"
+                d="M 65 200 C 150 220, 200 100, 315 80" 
+                stroke="url(#withAppGradient)" strokeWidth="4" fill="none" filter="url(#glowDark)"
                 style={{ pathLength }}
               />
 
@@ -362,9 +441,9 @@ export default function RegularCareResultsStep() {
                 transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.5 }}
               >
                 <circle r="34" fill="#F0D1C8" />
-                <circle r="30" fill="none" stroke="#84DE54" strokeWidth="6" strokeDasharray="113 188.4" transform="rotate(-90 0 0)" />
+                <circle r="30" fill="none" stroke="#84DE54" strokeWidth="6" strokeDasharray={dash(bmsPlus10)} transform="rotate(-90 0 0)" />
                 <text textAnchor="middle" y="10" fontWeight="700" fontSize="32" fill="#3C7C1A">
-                  6<tspan fontSize="16" dy="-12" dx="2">/10</tspan>
+                  {bmsPlus10Int}<tspan fontSize="16" dy="-12" dx="2">/10</tspan>
                 </text>
               </motion.g>
 
@@ -375,26 +454,26 @@ export default function RegularCareResultsStep() {
                 transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.5 }}
               >
                 <circle r="34" fill="#F9FAFF" />
-                <circle r="30" fill="none" stroke="#2AEA5C" strokeWidth="6" strokeDasharray="150.7 188.4" transform="rotate(-90 0 0)" />
+                <circle r="30" fill="none" stroke="#2AEA5C" strokeWidth="6" strokeDasharray={dash(bmsPlus30)} transform="rotate(-90 0 0)" />
                 <text textAnchor="middle" y="10" fontWeight="700" fontSize="32" fill="#187348">
-                  8<tspan fontSize="16" dy="-12" dx="2">/10</tspan>
+                  {bmsPlus30Int}<tspan fontSize="16" dy="-12" dx="2">/10</tspan>
                 </text>
               </motion.g>
 
               {/* Static 5/10 circle at the start - light */}
               <g transform="translate(65, 200)" className="dark:hidden">
                 <circle r="34" fill="#FFF2E5" />
-                <circle r="30" fill="none" stroke="#FFA64D" strokeWidth="6" strokeDasharray="94.2 188.4" transform="rotate(-90 0 0)" />
+                <circle r="30" fill="none" stroke="#FFA64D" strokeWidth="6" strokeDasharray={dash(baseBms)} transform="rotate(-90 0 0)" />
                 <text textAnchor="middle" y="10" fontWeight="700" fontSize="32" fill="#DA7C1D">
-                  5<tspan fontSize="16" dy="-12" dx="2">/10</tspan>
+                  {baseBmsInt}<tspan fontSize="16" dy="-12" dx="2">/10</tspan>
                 </text>
               </g>
               {/* Static 5/10 circle at the start - dark with glow */}
               <g transform="translate(65, 200)" className="hidden dark:block" filter="url(#glowDark)">
                 <circle r="34" fill="#3A2A22" />
-                <circle r="30" fill="none" stroke="#FF7A4D" strokeWidth="7" strokeDasharray="94.2 188.4" transform="rotate(-90 0 0)" />
+                <circle r="30" fill="none" stroke="#FF7A4D" strokeWidth="7" strokeDasharray={dash(baseBms)} transform="rotate(-90 0 0)" />
                 <text textAnchor="middle" y="10" fontWeight="700" fontSize="32" fill="#FFC46B">
-                  5<tspan fontSize="16" dy="-12" dx="2">/10</tspan>
+                  {baseBmsInt}<tspan fontSize="16" dy="-12" dx="2">/10</tspan>
                 </text>
               </g>
 
@@ -444,63 +523,108 @@ export default function RegularCareResultsStep() {
         >
           {(() => {
             const maxYears = 100
-            const baselineYears = 65
-            const withAppYears = 85
-            const withoutAppYears = 70
-            const h = (years: number) => `${(years / maxYears) * 100}%`
+            // Derive chronological age
+            const parseAge = (): number => {
+              const a = (answers as any)?.Age
+              if (typeof a === 'number' && Number.isFinite(a)) return Math.max(0, Math.min(120, a))
+              const bd = (answers as any)?.BirthDate
+              if (typeof bd === 'string' && bd) {
+                const d = new Date(bd)
+                if (!isNaN(d.getTime())) {
+                  const now = new Date()
+                  let age = now.getFullYear() - d.getFullYear()
+                  const m = now.getMonth() - d.getMonth()
+                  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--
+                  return Math.max(0, Math.min(120, age))
+                }
+              }
+              return 30 // fallback if no age available
+            }
+            const age = parseAge()
+            // Sex 1=female, 0=male, 2=unspecified -> assume male baseline
+            const isFemale = (answers as any)?.Gender === 1
+            // Simple baseline life expectancy by sex (can be refined per region)
+            const baseLifeExpectancy = isFemale ? 84 : 80
+            const remaining = Math.max(0, baseLifeExpectancy - age)
+
+            // Enhancement tied to BMS uplift: base -> +30%
+            const baseBms = (() => {
+              const v = (aiModel as any)?.bmsScore
+              if (typeof v === 'number' && Number.isFinite(v)) return Math.min(10, Math.max(0, Number(v)))
+              return 6
+            })()
+            const bmsPlus30 = Math.min(10, baseBms * 1.3)
+            const uplift = Math.max(0, bmsPlus30 - baseBms) // up to ~3
+            // Map uplift to percent on remaining years: base 8% + up to +4%
+            const enhancementPct = Math.min(0.12, 0.08 + (uplift / 10) * 0.04)
+            // Slight decay without structured plan
+            const decayPct = 0.02
+
+            const clampTot = (v: number) => Math.min(maxYears, Math.max(age, v))
+            const baselineYears = clampTot(baseLifeExpectancy)
+            const withAppYears = clampTot(baseLifeExpectancy + remaining * enhancementPct)
+            const withoutAppYears = clampTot(baseLifeExpectancy - remaining * decayPct)
+            // Display as integers only
+            const baselineYearsInt = Math.round(baselineYears)
+            const withAppYearsInt = Math.round(withAppYears)
+            const withoutAppYearsInt = Math.round(withoutAppYears)
+
+            const SCALE = 0.94
+            const h = (years: number) => `${(years / maxYears) * 100 * SCALE}%`
+            const shownEnhPct = Math.round(enhancementPct * 100)
             return (
               <>
                 <div className="mb-4">
                   <h4 className="text-lg font-bold text-text-primary mb-1">Life Expectancy Enhancement</h4>
-                  <div className="text-2xl font-bold text-text-primary">+8%</div>
+                  <div className="text-2xl font-bold text-text-primary">+{shownEnhPct}%</div>
                 </div>
 
                 {/* Horizontal bar chart (stacked) */}
-                <div className="w-full space-y-3 mb-4 px-2">
-                  {/* Baseline */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-24 text-xs text-text-secondary text-right">Baseline</div>
-                    <div className="flex-1 h-8 rounded-r-full bg-border-subtle/30 relative overflow-visible">
+                <div className="w-full space-y-4 mb-4">
+                  {/* Baseline (expected total lifespan) */}
+                  <div className="w-full">
+                    <div className="text-xs text-text-secondary mb-1">Baseline</div>
+                    <div className="w-full h-8 rounded-r-full rounded-l-sm bg-border-subtle/30 relative overflow-visible">
                       <motion.div
-                        className="h-8 rounded-r-full relative shadow-[0_6px_14px_rgba(0,0,0,0.12)]"
-                        style={{ width: h(baselineYears), background: 'linear-gradient(90deg, rgba(138,96,255,0.95) 0%, rgba(163,133,233,0.75) 100%)' }}
+                        className="h-8 rounded-r-full rounded-l-sm relative shadow-[0_6px_14px_rgba(0,0,0,0.12)]"
+                        style={{ width: h(baselineYears), backgroundImage: 'linear-gradient(90deg, rgba(138,96,255,0.95) 0%, rgba(163,133,233,0.75) 100%)' }}
                         initial={{ width: 0 }}
                         animate={{ width: h(baselineYears) }}
                         transition={{ duration: 0.8, delay: 0.2 }}
                       >
-                        <div className="absolute -right-10 top-1/2 -translate-y-1/2 text-sm font-semibold text-text-primary">{baselineYears} yrs</div>
+                        <div className="absolute -right-10 top-1/2 -translate-y-1/2 text-sm font-semibold text-text-primary">{baselineYearsInt} yrs</div>
                       </motion.div>
                     </div>
                   </div>
 
-                  {/* With App */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-24 text-xs text-text-secondary text-right">With App</div>
-                    <div className="flex-1 h-8 rounded-r-full bg-border-subtle/30 relative overflow-visible">
+                  {/* With App (enhanced total lifespan) */}
+                  <div className="w-full">
+                    <div className="text-xs text-text-secondary mb-1">With App</div>
+                    <div className="w-full h-8 rounded-r-full rounded-l-sm bg-border-subtle/30 relative overflow-visible">
                       <motion.div
-                        className="h-8 rounded-r-full relative shadow-[0_6px_14px_rgba(0,0,0,0.12)]"
-                        style={{ width: h(withAppYears), background: 'linear-gradient(90deg, rgba(110,214,130,0.95) 0%, rgba(138,96,255,0.35) 100%)' }}
+                        className="h-8 rounded-r-full rounded-l-sm relative shadow-[0_6px_14px_rgba(0,0,0,0.12)]"
+                        style={{ width: h(withAppYears), backgroundImage: 'linear-gradient(90deg, rgba(46,125,50,0.95) 0%, rgba(111,221,141,0.85) 100%)' }}
                         initial={{ width: 0 }}
                         animate={{ width: h(withAppYears) }}
-                        transition={{ duration: 0.8, delay: 0.4 }}
+                        transition={{ duration: 0.8, delay: 0.35 }}
                       >
-                        <div className="absolute -right-10 top-1/2 -translate-y-1/2 text-sm font-semibold text-text-primary">{withAppYears} yrs</div>
+                        <div className="absolute -right-10 top-1/2 -translate-y-1/2 text-sm font-semibold text-text-primary">{withAppYearsInt} yrs</div>
                       </motion.div>
                     </div>
                   </div>
 
-                  {/* Without App */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-24 text-xs text-text-secondary text-right">Without App</div>
-                    <div className="flex-1 h-8 rounded-r-full bg-border-subtle/30 relative overflow-visible">
+                  {/* Without App (no structured plan) */}
+                  <div className="w-full">
+                    <div className="text-xs text-text-secondary mb-1">Without App</div>
+                    <div className="w-full h-8 rounded-r-full rounded-l-sm bg-border-subtle/30 relative overflow-visible">
                       <motion.div
-                        className="h-8 rounded-r-full relative shadow-[0_6px_14px_rgba(0,0,0,0.12)]"
-                        style={{ width: h(withoutAppYears), background: 'linear-gradient(90deg, rgba(255,138,80,0.95) 0%, rgba(138,96,255,0.25) 100%)' }}
+                        className="h-8 rounded-r-full rounded-l-sm relative shadow-[0_6px_14px_rgba(0,0,0,0.12)]"
+                        style={{ width: h(withoutAppYears), backgroundImage: 'linear-gradient(90deg, rgba(255,166,77,0.95) 0%, rgba(254,108,108,0.85) 100%)' }}
                         initial={{ width: 0 }}
                         animate={{ width: h(withoutAppYears) }}
-                        transition={{ duration: 0.8, delay: 0.6 }}
+                        transition={{ duration: 0.8, delay: 0.5 }}
                       >
-                        <div className="absolute -right-10 top-1/2 -translate-y-1/2 text-sm font-semibold text-text-primary">{withoutAppYears} yrs</div>
+                        <div className="absolute -right-10 top-1/2 -translate-y-1/2 text-sm font-semibold text-text-primary">{withoutAppYearsInt} yrs</div>
                       </motion.div>
                     </div>
                   </div>
@@ -511,17 +635,17 @@ export default function RegularCareResultsStep() {
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(90deg, #8A60FF, #A385E9)' }}></div>
                     <span className="text-sm text-text-secondary flex-1">Current lifestyle baseline</span>
-                    <span className="text-sm font-semibold text-text-primary">{baselineYears} yrs</span>
+                    <span className="text-sm font-semibold text-text-primary">{baselineYearsInt} yrs</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(90deg, #6ED682, #A385E9)' }}></div>
                     <span className="text-sm text-text-secondary flex-1">With beauty & wellness app</span>
-                    <span className="text-sm font-semibold text-text-primary">{withAppYears} yrs</span>
+                    <span className="text-sm font-semibold text-text-primary">{withAppYearsInt} yrs</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(90deg, #FF8A50, #8A60FF)' }}></div>
                     <span className="text-sm text-text-secondary flex-1">Without structured care</span>
-                    <span className="text-sm font-semibold text-text-primary">{withoutAppYears} yrs</span>
+                    <span className="text-sm font-semibold text-text-primary">{withoutAppYearsInt} yrs</span>
                   </div>
                 </div>
               </>
@@ -537,9 +661,37 @@ export default function RegularCareResultsStep() {
         >
           {(() => {
             const maxYears = 100
-            const currentAge = 31
-            const biologicalAge = 33
-            const withAppAge = 28
+            // Derive chronological age
+            const parseAge = (): number => {
+              const a = (answers as any)?.Age
+              if (typeof a === 'number' && Number.isFinite(a)) return Math.max(0, Math.min(120, a))
+              const bd = (answers as any)?.BirthDate
+              if (typeof bd === 'string' && bd) {
+                const d = new Date(bd)
+                if (!isNaN(d.getTime())) {
+                  const now = new Date()
+                  let age = now.getFullYear() - d.getFullYear()
+                  const m = now.getMonth() - d.getMonth()
+                  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--
+                  return Math.max(0, Math.min(120, age))
+                }
+              }
+              return 30
+            }
+            const currentAge = Math.round(parseAge())
+            // Biological age based on BMS (lower BMS -> older biological age)
+            // zero point near BMS=6 (neutral), ~1.2 years per point deviation
+            const bioDelta = Math.round((6 - baseBms) * 1.2)
+            const maxBio = 100
+            const rawBiological = Math.min(maxBio, Math.max(14, currentAge + bioDelta))
+            // Ensure Biological is always slightly above Current
+            const biologicalAge = Math.max(currentAge + 1, rawBiological)
+            // Projected biological age with app (using BMS +30%)
+            const projBms = Math.min(10, baseBms * 1.3)
+            const projBioDelta = Math.round((6 - projBms) * 1.2)
+            const rawWithApp = Math.min(maxBio, Math.max(14, currentAge + projBioDelta))
+            // Ensure With App is always slightly below Current
+            const withAppAge = Math.max(14, Math.min(currentAge - 1, rawWithApp))
             // Slight height boost to raise bars visually
             const h = (years: number) => `${Math.min((years / maxYears) * 100 * 1.3, 100)}%`
             return (
@@ -568,7 +720,7 @@ export default function RegularCareResultsStep() {
                         animate={{ height: h(currentAge), transformOrigin: 'bottom' }}
                         transition={{ duration: 0.8, delay: 0.2 }}
                       >
-                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-sm font-semibold text-text-primary">{currentAge} yrs</div>
+                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-sm font-semibold text-text-primary">{Math.round(currentAge)} yrs</div>
                         <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[12px] pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 100%)' }} />
                       </motion.div>
                     </div>
@@ -582,7 +734,7 @@ export default function RegularCareResultsStep() {
                         animate={{ height: h(biologicalAge), transformOrigin: 'bottom' }}
                         transition={{ duration: 0.8, delay: 0.4 }}
                       >
-                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-sm font-semibold text-text-primary">{biologicalAge} yrs</div>
+                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-sm font-semibold text-text-primary">{Math.round(biologicalAge)} yrs</div>
                         <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[12px] pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 100%)' }} />
                       </motion.div>
                     </div>
@@ -596,7 +748,7 @@ export default function RegularCareResultsStep() {
                         animate={{ height: h(withAppAge), transformOrigin: 'bottom' }}
                         transition={{ duration: 0.8, delay: 0.6 }}
                       >
-                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-sm font-semibold text-text-primary">{withAppAge} yrs</div>
+                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-sm font-semibold text-text-primary">{Math.round(withAppAge)} yrs</div>
                         <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[12px] pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 100%)' }} />
                       </motion.div>
                     </div>
@@ -615,17 +767,17 @@ export default function RegularCareResultsStep() {
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(90deg, #8A60FF, #A385E9)' }}></div>
                     <span className="text-sm text-text-secondary flex-1">Current chronological age</span>
-                    <span className="text-sm font-semibold text-text-primary">{currentAge} yrs</span>
+                    <span className="text-sm font-semibold text-text-primary">{Math.round(currentAge)} yrs</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(90deg, #FF8A50, #8A60FF)' }}></div>
                     <span className="text-sm text-text-secondary flex-1">Current biological age</span>
-                    <span className="text-sm font-semibold text-text-primary">{biologicalAge} yrs</span>
+                    <span className="text-sm font-semibold text-text-primary">{Math.round(biologicalAge)} yrs</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(90deg, #6ED682, #A385E9)' }}></div>
                     <span className="text-sm text-text-secondary flex-1">Biological age with app</span>
-                    <span className="text-sm font-semibold text-text-primary">{withAppAge} yrs</span>
+                    <span className="text-sm font-semibold text-text-primary">{Math.round(withAppAge)} yrs</span>
                   </div>
                 </div>
               </>
