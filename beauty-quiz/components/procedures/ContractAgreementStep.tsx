@@ -34,29 +34,38 @@ export default function ContractAgreementStep() {
   const pointsRef = useRef<Array<{ x: number; y: number }>>([])
   const drewAnythingRef = useRef(false)
   const { theme } = useTheme()
+  // Store initializer so we can re-run after clearing
+  const initCanvasRef = useRef<() => void>(() => {})
+  // Touch fallback state
+  const touchActiveRef = useRef(false)
+  const activeTouchIdRef = useRef<number | null>(null)
+  // Track last point for smoothing
+  const lastPtRef = useRef<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Instrumentation to ensure new code really loaded in user's environment
+      console.info('[Signature] ContractAgreementStep mounted v3.3 (instrumented)')
+    }
     const canvas = canvasRef.current
     if (!canvas) return
-
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
     const setCanvasSize = () => {
       const dpr = window.devicePixelRatio || 1
-      // Measure the explicit signature container for reliable CSS size
       const rect = (containerRef.current ?? canvas).getBoundingClientRect()
       if (rect.width <= 0 || rect.height <= 0) return
       const cssW = Math.round(rect.width)
       const cssH = Math.round(rect.height)
-      canvas.width = Math.round(cssW * dpr)
-      canvas.height = Math.round(cssH * dpr)
-      canvas.style.width = cssW + 'px'
-      canvas.style.height = cssH + 'px'
-      // Reset any previous transforms before scaling
+      if (canvas.width !== Math.round(cssW * dpr) || canvas.height !== Math.round(cssH * dpr)) {
+        canvas.width = Math.round(cssW * dpr)
+        canvas.height = Math.round(cssH * dpr)
+        canvas.style.width = cssW + 'px'
+        canvas.style.height = cssH + 'px'
+      }
       ctx.setTransform(1, 0, 0, 1, 0, 0)
       ctx.scale(dpr, dpr)
-
       ctx.imageSmoothingEnabled = true
       ctx.imageSmoothingQuality = 'high'
       ctx.strokeStyle = theme === 'dark' ? '#FAFAFA' : '#212121'
@@ -65,10 +74,15 @@ export default function ContractAgreementStep() {
       ctx.lineJoin = 'round'
     }
 
-    // Set size on mount and when theme changes
+    const init = () => {
+      setCanvasSize()
+      ctx.beginPath()
+    }
+    initCanvasRef.current = init
+    // Initial sizing (with retry if zero)
     let rafId: number | null = null
     const ensureSized = () => {
-      setCanvasSize()
+      init()
       const rect = (containerRef.current ?? canvas).getBoundingClientRect()
       if (rect.width <= 0 || rect.height <= 0) {
         rafId = requestAnimationFrame(ensureSized)
@@ -77,16 +91,12 @@ export default function ContractAgreementStep() {
     ensureSized()
 
     const handleResize = () => {
-      setCanvasSize()
+      init()
     }
-
-    // Observe container size changes
     const obsTarget = containerRef.current ?? canvas
-    const ro = new ResizeObserver(() => setCanvasSize())
+    const ro = new ResizeObserver(() => init())
     try { ro.observe(obsTarget) } catch {}
-
     window.addEventListener('resize', handleResize)
-
     return () => {
       if (rafId) cancelAnimationFrame(rafId)
       try { ro.disconnect() } catch {}
@@ -94,65 +104,202 @@ export default function ContractAgreementStep() {
     }
   }, [theme])
 
+  // Native touch fallback for mobile browsers that throttle pointer events
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const getPos = (clientX: number, clientY: number) => {
+      const rect = canvas.getBoundingClientRect()
+      return { x: clientX - rect.left, y: clientY - rect.top }
+    }
+
+    const onTouchStart = (ev: TouchEvent) => {
+      if (!canvas) return
+      ev.preventDefault()
+      if (ev.changedTouches.length === 0) return
+      const t = ev.changedTouches[0]
+      activeTouchIdRef.current = t.identifier
+      touchActiveRef.current = true
+      const { x, y } = getPos(t.clientX, t.clientY)
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        ctx.beginPath()
+        ctx.moveTo(x, y)
+      }
+      pointsRef.current = [{ x, y }]
+      lastPtRef.current = { x, y }
+      drewAnythingRef.current = false
+      setIsDrawing(true)
+      // keep touch action disabled while drawing
+      canvas.style.touchAction = 'none'
+    }
+
+    const onTouchMove = (ev: TouchEvent) => {
+      if (!touchActiveRef.current) return
+      if (!canvas) return
+      ev.preventDefault()
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      const id = activeTouchIdRef.current
+      let targetTouch: Touch | undefined
+      if (id != null) {
+        for (let i = 0; i < ev.touches.length; i++) {
+          const tt = ev.touches[i]
+          if (tt.identifier === id) { targetTouch = tt; break }
+        }
+      }
+      const t = targetTouch ?? ev.touches[0]
+      if (!t) return
+      const { x, y } = getPos(t.clientX, t.clientY)
+      pointsRef.current.push({ x, y })
+      // Draw smoothed segment using quadratic curve to midpoint
+      const last = lastPtRef.current
+      if (last) {
+        const mx = (last.x + x) / 2
+        const my = (last.y + y) / 2
+        ctx.quadraticCurveTo(last.x, last.y, mx, my)
+        ctx.stroke()
+      } else {
+        ctx.lineTo(x, y)
+        ctx.stroke()
+      }
+      lastPtRef.current = { x, y }
+      drewAnythingRef.current = true
+      setHasSignature(true)
+      if ((window as any).__SIG_DEBUG__) {
+        console.log('[Signature][touch] points', pointsRef.current.length)
+      }
+    }
+
+    const finishTouch = () => {
+      // Draw a dot if no movement
+      if (isDrawing && !drewAnythingRef.current) {
+        const ctx = canvas.getContext('2d')
+        if (ctx && pointsRef.current[0]) {
+          const p = pointsRef.current[0]
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, ctx.lineWidth / 2, 0, Math.PI * 2)
+          const prev = ctx.strokeStyle as string
+          ctx.fillStyle = typeof prev === 'string' ? prev : '#000'
+          ctx.fill()
+          setHasSignature(true)
+        }
+      }
+      pointsRef.current = []
+      lastPtRef.current = null
+      setIsDrawing(false)
+      touchActiveRef.current = false
+      activeTouchIdRef.current = null
+      // keep canvas non-scrollable to avoid gesture interference
+      if (canvas) canvas.style.touchAction = 'none'
+    }
+
+    const onTouchEnd = (ev: TouchEvent) => {
+      if (!touchActiveRef.current) return
+      ev.preventDefault()
+      finishTouch()
+    }
+    const onTouchCancel = (ev: TouchEvent) => {
+      if (!touchActiveRef.current) return
+      ev.preventDefault()
+      finishTouch()
+    }
+
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false })
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false })
+    canvas.addEventListener('touchend', onTouchEnd, { passive: false })
+    canvas.addEventListener('touchcancel', onTouchCancel, { passive: false })
+    return () => {
+      canvas.removeEventListener('touchstart', onTouchStart)
+      canvas.removeEventListener('touchmove', onTouchMove)
+      canvas.removeEventListener('touchend', onTouchEnd)
+      canvas.removeEventListener('touchcancel', onTouchCancel)
+    }
+  }, [isDrawing])
+
   const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if ((e as any).pointerType === 'touch') return // use touch handlers on mobile
     e.preventDefault()
     const canvas = canvasRef.current
     if (!canvas) return
+    // Re-initialize in case DPR or theme changed silently since last stroke or after clear
+    initCanvasRef.current?.()
     const rect = canvas.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
 
     // capture pointer to continue receiving events
     e.currentTarget.setPointerCapture?.(e.pointerId)
+    // Start a fresh path
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+    }
 
     pointsRef.current = [{ x, y }]
+    lastPtRef.current = { x, y }
     drewAnythingRef.current = false
     setIsDrawing(true)
   }
 
+  const DEBUG = false
+  const drawSegment = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+    // Continuous path drawing using lineTo for robustness
+    ctx.lineTo(x, y)
+    ctx.stroke()
+    drewAnythingRef.current = true
+    setHasSignature(true)
+  }
+
   const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if ((e as any).pointerType === 'touch') return // handled by touch handlers
     if (!isDrawing) return
     e.preventDefault()
-
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
     const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    const pts = pointsRef.current
-    pts.push({ x, y })
+    const processPoint = (clientX: number, clientY: number) => {
+      const x = clientX - rect.left
+      const y = clientY - rect.top
+      pointsRef.current.push({ x, y })
+      // Smooth with quadratic curve to midpoint
+      const last = lastPtRef.current
+      if (last) {
+        const mx = (last.x + x) / 2
+        const my = (last.y + y) / 2
+        ctx.quadraticCurveTo(last.x, last.y, mx, my)
+        ctx.stroke()
+      } else {
+        ctx.lineTo(x, y)
+        ctx.stroke()
+      }
+      lastPtRef.current = { x, y }
+      drewAnythingRef.current = true
+      setHasSignature(true)
+    }
 
-    // Smooth using quadratic Bezier between midpoints
-    if (pts.length >= 3) {
-      const p0 = pts[pts.length - 3]
-      const p1 = pts[pts.length - 2]
-      const p2 = pts[pts.length - 1]
-      const mid1 = { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 }
-      const mid2 = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }
-      ctx.beginPath()
-      ctx.moveTo(mid1.x, mid1.y)
-      ctx.quadraticCurveTo(p1.x, p1.y, mid2.x, mid2.y)
-      ctx.stroke()
-      drewAnythingRef.current = true
-      setHasSignature(true)
-    } else if (pts.length === 2) {
-      // draw a tiny segment for the first movement to avoid a sharp start
-      const p0 = pts[0]
-      const p1 = pts[1]
-      ctx.beginPath()
-      ctx.moveTo(p0.x, p0.y)
-      ctx.lineTo(p1.x, p1.y)
-      ctx.stroke()
-      drewAnythingRef.current = true
-      setHasSignature(true)
+    // Use coalesced events (if supported) for smoother line, otherwise fallback
+    const coalesced = (e.nativeEvent as any).getCoalescedEvents?.() as PointerEvent[] | undefined
+    if (coalesced && coalesced.length > 0) {
+      for (const ev of coalesced) {
+        processPoint(ev.clientX, ev.clientY)
+      }
+    } else {
+      processPoint(e.clientX, e.clientY)
+    }
+    if ((window as any).__SIG_DEBUG__) {
+      console.log('[Signature] points', pointsRef.current.length)
     }
   }
 
   const stopDrawing = (e?: React.PointerEvent<HTMLCanvasElement>) => {
     if (e) {
+      if ((e as any).pointerType === 'touch') return // handled by touch handlers
       e.preventDefault()
       e.currentTarget.releasePointerCapture?.(e.pointerId)
     }
@@ -172,11 +319,10 @@ export default function ContractAgreementStep() {
         }
       }
     }
-    // restore scrolling on canvas
-    if (canvasRef.current) {
-      canvasRef.current.style.touchAction = 'auto'
-    }
+    // Keep touch action disabled to avoid mobile gesture interference
+    if (canvasRef.current) canvasRef.current.style.touchAction = 'none'
     pointsRef.current = []
+    lastPtRef.current = null
     setIsDrawing(false)
   }
 
@@ -186,9 +332,20 @@ export default function ContractAgreementStep() {
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-
+    // Full reset: clear, reset path data & internal refs so next stroke is fresh
     ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.beginPath()
+    // Re-apply stylistic settings (in case any were mutated)
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.lineWidth = 2.5
+    ctx.strokeStyle = theme === 'dark' ? '#FAFAFA' : '#212121'
+    pointsRef.current = []
+    drewAnythingRef.current = false
+    setIsDrawing(false)
     setHasSignature(false)
+    // Re-run full initialization (resizing + smoothing flags) to be extra safe
+    initCanvasRef.current?.()
   }
 
   const handleFinish = () => {
@@ -250,6 +407,7 @@ export default function ContractAgreementStep() {
             <p className="text-sm font-semibold text-text-secondary mb-2 flex-shrink-0">
               Sign using your finger:
             </p>
+            <div className="mb-1 -mt-1 text-[10px] uppercase tracking-wider text-text-secondary/50 select-none">Signature v3.3</div>
             <div className="rounded-lg border border-border-subtle bg-surface-muted p-3 flex-none flex flex-col">
               <div
                 className="relative w-full h-[28vh] sm:h-[24vh] md:h-[22vh]" 
