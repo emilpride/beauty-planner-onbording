@@ -1,7 +1,7 @@
 ﻿'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useMemo, useState, useRef } from 'react'
+import { motion, type Variants, useInView } from 'framer-motion'
 import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -13,56 +13,56 @@ const BMI_CATEGORIES = [
     id: 'severely-underweight',
     label: 'Severely Underweight',
     range: [0, 15.9],
-    description: 'Very low weight. Medical supervision recommended for safe weight gain.',
-    accent: '#0066CC',
+    description: 'Very low weight. Medical supervision recommended for safe weight gain.', // Blue
+    accent: '#0D47A1',
     imageLevel: 1,
   },
   {
     id: 'underweight',
     label: 'Underweight',
     range: [16.0, 18.4],
-    description: 'Below the healthy range. Focus on nutrient-dense meals and light strength work.',
-    accent: '#43B7FF',
+    description: 'Below the healthy range. Focus on nutrient-dense meals and light strength work.', // Light Blue
+    accent: '#2196F3',
     imageLevel: 1,
   },
   {
     id: 'healthy',
     label: 'Normal Weight',
     range: [18.5, 24.9],
-    description: 'Right on track. Balanced meals, hydration, and activity keep you here.',
-    accent: '#33C75A',
+    description: 'Right on track. Balanced meals, hydration, and activity keep you here.', // Green
+    accent: '#2E7D32',
     imageLevel: 2,
   },
   {
     id: 'overweight',
     label: 'Overweight',
     range: [25.0, 29.9],
-    description: 'Slightly above normal. Mindful eating plus regular movement will help.',
-    accent: '#FBF447',
+    description: 'Slightly above normal. Mindful eating plus regular movement will help.', // Yellow
+    accent: '#FFEB3B',
     imageLevel: 3,
   },
   {
     id: 'obese-class1',
     label: 'Obesity (Class I)',
     range: [30.0, 34.9],
-    description: 'Increased risk of diabetes, high blood pressure, etc.',
-    accent: '#FFA64D',
+    description: 'Increased risk of diabetes, high blood pressure, etc.', // Orange
+    accent: '#FF9800',
     imageLevel: 4,
   },
   {
     id: 'obese-class2',
     label: 'Obesity (Class II)',
     range: [35.0, 39.9],
-    description: 'High risk of serious health conditions.',
-    accent: '#FF7D7E',
+    description: 'High risk of serious health conditions.', // Red
+    accent: '#E53935',
     imageLevel: 5,
   },
   {
     id: 'obese-class3',
     label: 'Obesity (Class III)',
     range: [40.0, 100],
-    description: 'Very high risk. Medical advice strongly recommended.',
-    accent: '#8B0000',
+    description: 'Very high risk. Medical advice strongly recommended.', // Burgundy
+    accent: '#6A1B09',
     imageLevel: 5,
   },
 ] as const
@@ -149,6 +149,17 @@ const colorAt = (stops: { pos: number; color: string }[], t: number) => {
   return rgbToHex(r, g, bch)
 }
 
+// Discrete score color mapping based on provided scale screenshots:
+// BMS / general 0-10 scale bands:
+// 0–3 Red, 4–5 Orange, 6–7 Yellow, 8–10 Green (requested adjustment: 6 & 7 in yellow band)
+const getBandColor = (score: number | null | undefined): string => {
+  if (score == null || isNaN(score)) return '#999999'
+  if (score <= 3) return '#FF4D4F'        // Red
+  if (score <= 5) return '#FF9800'        // Orange
+  if (score <= 7) return '#FBF447'        // Yellow (updated hex per provided reference)
+  return '#33C75A'                        // Green
+}
+
 const ScoreBadge = ({ value, accent = 'rgb(var(--color-primary))' }: { value: number; accent?: string }) => (
   <div className="flex items-center gap-1 text-sm font-semibold text-text-primary">
     <span className="h-8 w-8 rounded-full border-2 border-current/15 bg-white text-center leading-8 shadow-soft dark:bg-surface/90" style={{ color: accent }}>
@@ -171,14 +182,17 @@ function CircularScore({
   gradientId?: string
   colors?: [string, string, string] | string[]
 }) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const inView = useInView(ref, { once: true, amount: 0.6 })
   const radius = size / 2 - thickness / 2
   const circumference = 2 * Math.PI * radius
   const clamped = Math.max(0, Math.min(value, 10))
   const progress = clamped / 10
   const [display, setDisplay] = useState(0)
 
-  // Animate the numeric label from 0 to value
+  // Animate the numeric label from 0 to value when in view
   useEffect(() => {
+    if (!inView) return
     let raf: number | null = null
     const duration = 800
     const start = performance.now()
@@ -193,12 +207,11 @@ function CircularScore({
     }
     raf = requestAnimationFrame(tick)
     return () => { if (raf) cancelAnimationFrame(raf) }
-  }, [clamped])
+  }, [clamped, inView])
 
   return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
-        className="block">
+    <div ref={ref} className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="block">
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={colors[0] ?? '#8A60FF'} />
@@ -206,7 +219,6 @@ function CircularScore({
             <stop offset="100%" stopColor={colors[2] ?? '#FF99CC'} />
           </linearGradient>
         </defs>
-        {/* Track */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -216,7 +228,6 @@ function CircularScore({
           className="dark:stroke-white/15"
           strokeWidth={thickness}
         />
-        {/* Progress */}
         <motion.circle
           cx={size / 2}
           cy={size / 2}
@@ -227,7 +238,7 @@ function CircularScore({
           strokeWidth={thickness}
           strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: circumference * (1 - progress) }}
+          animate={inView ? { strokeDashoffset: circumference * (1 - progress) } : { strokeDashoffset: circumference }}
           transition={{ duration: 1.0, ease: 'easeOut' }}
           style={{ transform: `rotate(-90deg)`, transformOrigin: '50% 50%' }}
         />
@@ -242,6 +253,11 @@ function CircularScore({
 export default function CurrentConditionAnalysisStep() {
   const router = useRouter()
   const { answers, analysis: aiModel } = useQuizStore()
+  // Scroll reveal variants
+  const fadeSlide: Variants = {
+    hidden: { opacity: 0, y: 32 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: 'easeOut' } },
+  }
 
   // ---- Age computation ----
   const chronologicalAge = useMemo(() => {
@@ -283,13 +299,7 @@ export default function CurrentConditionAnalysisStep() {
     return () => { if (raf) cancelAnimationFrame(raf) }
   }, [biologicalAgeTarget])
 
-  const bioAgeColor = useMemo(() => {
-    if (chronologicalAge == null) return '#33C75A'
-      if (typeof biologicalAgeTarget !== 'number') return '#33C75A'
-      if (biologicalAgeTarget <= chronologicalAge - 1) return '#33C75A'
-      if (biologicalAgeTarget >= chronologicalAge + 1) return '#FF7D7E'
-    return '#FFA64D' // about the same -> amber
-  }, [chronologicalAge, biologicalAgeTarget])
+  const bioAgeColor = useMemo(() => getBandColor(chronologicalAge ? 7 : 5), [chronologicalAge])
 
   const heightMeters = useMemo(
     () => null, // parseHeight(answers.Height, answers.HeightUnit || 'cm'),
@@ -307,20 +317,27 @@ export default function CurrentConditionAnalysisStep() {
     return Number.isFinite(calculated) ? parseFloat(calculated.toFixed(1)) : null
   }, [heightMeters, weightKg])
 
+  // Prefer AI-provided BMI value for UI indicators if available
+  const bmiValue = useMemo(() => {
+    const v = aiModel?.bmi
+    if (typeof v === 'number' && Number.isFinite(v)) return Number(v)
+    return bmi
+  }, [aiModel?.bmi, bmi])
+
   const bmiCategory = useMemo(() => {
-    if (!bmi) return BMI_CATEGORIES[1]
+    if (!bmiValue) return BMI_CATEGORIES[1]
     return (
-      BMI_CATEGORIES.find((category) => bmi >= category.range[0] && bmi <= category.range[1]) ??
+      BMI_CATEGORIES.find((category) => bmiValue >= category.range[0] && bmiValue <= category.range[1]) ??
       BMI_CATEGORIES[BMI_CATEGORIES.length - 1]
     )
-  }, [bmi])
+  }, [bmiValue])
 
   const bmiPosition = useMemo(() => {
-    if (!bmi) return 0.4
+    if (!bmiValue) return 0.4
     const min = 15
     const max = 45
-    return clamp((bmi - min) / (max - min), 0, 1)
-  }, [bmi])
+    return clamp((bmiValue - min) / (max - min), 0, 1)
+  }, [bmiValue])
 
   // Animated BMI number and color based on category
   const [bmiAnimated, setBmiAnimated] = useState(0)
@@ -353,13 +370,22 @@ export default function CurrentConditionAnalysisStep() {
   }
 
   const overallScore = baseScores.overall
+  // BMS value (prefer AI score, fallback to overallScore) + horizontal indicator position
+  const bmsValue = useMemo(() => {
+    const v = aiModel?.bmsScore
+    if (typeof v === 'number' && Number.isFinite(v)) return Number(v)
+    return overallScore
+  }, [aiModel?.bmsScore, overallScore])
+  const bmsPosition = useMemo(() => clamp(bmsValue / 10, 0, 1), [bmsValue])
   const [bmsAnimated, setBmsAnimated] = useState(0)
+  const [bmsInView, setBmsInView] = useState(false)
   useEffect(() => {
+    if (!bmsInView) return
     let raf: number | null = null
     const duration = 900
     const start = performance.now()
     const from = 0
-    const to = overallScore
+    const to = bmsValue
     const tick = (t: number) => {
       const p = Math.min(1, (t - start) / duration)
       const eased = 1 - Math.pow(1 - p, 3)
@@ -368,18 +394,11 @@ export default function CurrentConditionAnalysisStep() {
     }
     raf = requestAnimationFrame(tick)
     return () => { if (raf) cancelAnimationFrame(raf) }
-  }, [overallScore])
+  }, [bmsValue, bmsInView])
   // Compute BMS number color from horizontal gradient at current animated position
-  const bmsColor = useMemo(() => {
-    const stops = [
-      { pos: 0.0, color: '#FF7D7E' },
-      { pos: 0.4, color: '#FFA64D' },
-      { pos: 0.6, color: '#FBF447' },
-      { pos: 1.0, color: '#33C75A' },
-    ]
-    const t = Math.min(1, Math.max(0, bmsAnimated / 10))
-    return colorAt(stops, t)
-  }, [bmsAnimated])
+  const bmsColor = useMemo(() => getBandColor(bmsAnimated), [bmsAnimated])
+
+  // bmsValue & bmsPosition moved above to satisfy ordering for effects
 
   // No BMI gradient/scale – we only show the numeric BMI returned by Gemini
   const bmiGradient = ''
@@ -387,20 +406,34 @@ export default function CurrentConditionAnalysisStep() {
   // colorAt helpers moved to module scope above
 
   // Compute BMI number color from gradient at the indicator position
-  const bmiNumberColor = useMemo(() => {
-    // Stops for the vertical BMI gradient (top=0 -> bottom=1)
-    const stops = [
-      { pos: 0.0, color: '#FF7D7E' },
-      { pos: 0.2, color: '#FFA64D' },
-      { pos: 0.4, color: '#FBF447' },
-      { pos: 0.6, color: '#33C75A' },
-      { pos: 0.8, color: '#53E5FF' },
-      { pos: 1.0, color: '#0066CC' },
-    ]
-    // Handle is placed at top = (1 - bmiPosition)
-    const t = 1 - bmiPosition
-    return colorAt(stops, t)
-  }, [bmiPosition])
+  // Animate BMI number from 0 to target (aiModel.bmi) and derive color dynamically during the animation
+  const [bmiAnimatedDisplay, setBmiAnimatedDisplay] = useState(0)
+  const [bmiInView, setBmiInView] = useState(false)
+  useEffect(() => {
+    const target = (typeof aiModel?.bmi === 'number' && Number.isFinite(aiModel.bmi)) ? Number(aiModel.bmi) : null
+    if (target == null || !bmiInView) {
+      setBmiAnimatedDisplay(0)
+      return
+    }
+    let raf: number | null = null
+    const duration = 900
+    const start = performance.now()
+    const from = 0
+    const to = target
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / duration)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setBmiAnimatedDisplay(from + (to - from) * eased)
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => { if (raf) cancelAnimationFrame(raf) }
+  }, [aiModel?.bmi, bmiInView])
+
+  const bmiNumberColorAnimated = useMemo(() => {
+    // Use BMI category accent color (see BMI_CATEGORIES accents updated below to match scale) instead of gradient mapping.
+    return bmiCategory?.accent || '#33C75A'
+  }, [bmiCategory])
 
 
   return (
@@ -479,28 +512,64 @@ export default function CurrentConditionAnalysisStep() {
               {/* BMI block */}
               <motion.article 
                 className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.4 }}
+                variants={fadeSlide}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ amount: 0.5, once: true }}
+                onViewportEnter={() => setBmiInView(true)}
               >
                 <div className="flex items-start gap-4">
-                  {/* Gradient bar like screenshot */}
-                  <div className="h-24 w-3 rounded-full" style={{
-                    background: 'linear-gradient(180deg,#FF7D7E 0%,#FFA64D 25%,#FBF447 50%,#33C75A 75%,#53E5FF 100%)'
-                  }} />
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-text-primary">Your BMI is:</p>
-                      <p className="text-sm font-semibold text-blue-600">{aiModel.bmiCategory || '—'}</p>
+                      <p className="text-sm font-semibold text-text-primary">Your BMI Is:</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-violet-600">{aiModel.bmiCategory || '—'}</p>
+                        {/** Apply same 0-10 band color logic to BMI converted overallScore */}
+                        <CircularScore 
+                          value={overallScore} 
+                          size={40} 
+                          thickness={6} 
+                          gradientId="grad-bmi-card" 
+                          colors={((): string[] => {
+                            const c = getBandColor(overallScore)
+                            return [c, c, c]
+                          })()} 
+                        />
+                      </div>
                     </div>
                     <p className="mt-1 text-sm text-text-secondary">{aiModel.bmiDescription || ''}</p>
-                    <div className="mt-3 flex items-center gap-4">
-                      <span className="text-3xl font-bold text-text-primary">{typeof aiModel.bmi === 'number' ? Number(aiModel.bmi).toFixed(1) : '—'}</span>
-                      <img
-                        src={`/images/on_boarding_images/bmi_${(answers.Gender === 2 ? 'female' : 'male')}_2.png`}
-                        alt="BMI reference"
-                        className="w-16 h-16 rounded-xl object-contain bg-white/80"
-                      />
+                    <div className="mt-3 flex items-center gap-6">
+                      <div className="flex items-center gap-6">
+                        {/* Gradient bar matches image height and sits left to image */}
+                        <div
+                          className="relative h-80 w-[22px] shrink-0 rounded-full"
+                          style={{
+                            width: '22px',
+                            minWidth: '22px',
+                            maxWidth: '22px',
+                            background: 'linear-gradient(180deg,#FF7D7E 0%,#FFA64D 25%,#FBF447 50%,#33C75A 75%,#53E5FF 100%)'
+                          }}
+                        >
+                          <motion.div
+                            className="absolute left-1/2"
+                            initial={{ top: '100%' }}
+                            animate={{ top: `${(1 - bmiPosition) * 100}%` }}
+                            transition={{ duration: 0.9, ease: 'easeOut' }}
+                            style={{ transform: 'translate(-50%, -50%)' }}
+                          >
+                            <div className="w-8 h-8 rounded-full bg-white shadow-soft ring-1 ring-black/10" />
+                          </motion.div>
+                        </div>
+                        {/* BMI number placed between bar and image */}
+                        <span className="text-3xl font-bold" style={{ color: bmiNumberColorAnimated }}>
+                          {Number.isFinite(bmiAnimatedDisplay) ? bmiAnimatedDisplay.toFixed(1) : '—'}
+                        </span>
+                        <img
+                          src={getPersonImage(answers.Gender === 2 ? 'female' : 'male', bmiCategory)}
+                          alt="BMI reference"
+                          className="w-80 h-80 rounded-xl object-contain bg-white/80"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -511,15 +580,16 @@ export default function CurrentConditionAnalysisStep() {
                 const aiForId = id === 'skin' ? aiModel.skinCondition : id === 'hair' ? aiModel.hairCondition : id === 'physic' ? aiModel.physicalCondition : aiModel.mentalCondition
                 if (!aiForId) return null
                 const score = typeof aiForId.score === 'number' ? Number(aiForId.score) : null
-                const scoreColor = score != null ? (score >= 7 ? '#33C75A' : score >= 4 ? '#FFA64D' : '#FF7D7E') : 'rgb(var(--color-primary))'
+                const scoreColor = score != null ? getBandColor(score) : getBandColor(null)
                 const explanation = typeof aiForId.explanation === 'string' ? aiForId.explanation : ''
                 return (
                   <motion.article 
                     key={id} 
                     className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 + index * 0.05, duration: 0.4 }}
+                    variants={fadeSlide}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ amount: 0.4, once: true }}
                   >
                     <div className="flex items-center justify-between">
                       <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
@@ -533,15 +603,29 @@ export default function CurrentConditionAnalysisStep() {
               {/* BMS card with prominent number */}
               <motion.article 
                 className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35, duration: 0.4 }}
+                variants={fadeSlide}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ amount: 0.5, once: true }}
+                onViewportEnter={() => setBmsInView(true)}
               >
                 <div className="text-center mb-2">
                   <h2 className="text-lg font-semibold text-text-primary">Beauty Mirror Score (BMS)</h2>
                 </div>
                 <div className="flex items-center justify-center">
-                  <span className="text-5xl font-semibold text-[#33C75A]">{Number(aiModel.bmsScore ?? 0).toFixed(1)}</span>
+                  <span className="text-5xl font-semibold" style={{ color: bmsColor }}>{bmsInView ? bmsAnimated.toFixed(1) : '0.0'}</span>
+                </div>
+                {/* Horizontal gradient bar (rotated version of BMI bar) with animated indicator */}
+                <div className="relative mx-auto mt-4 h-6 w-full max-w-md rounded-full" style={{ background: 'linear-gradient(90deg,#FF7D7E 0%,#FFA64D 25%,#FBF447 50%,#33C75A 75%,#53E5FF 100%)' }}>
+                  <motion.div
+                    className="absolute top-1/2"
+                    initial={{ left: '0%' }}
+                    animate={{ left: bmsInView ? `${bmsPosition * 100}%` : '0%' }}
+                    transition={{ duration: 0.9, ease: 'easeOut' }}
+                    style={{ transform: 'translate(-50%, -50%)' }}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-white shadow-soft ring-1 ring-black/10" />
+                  </motion.div>
                 </div>
               </motion.article>
 

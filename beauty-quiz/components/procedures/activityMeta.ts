@@ -63,13 +63,24 @@ export const ACTIVITY_META: Record<string, ActivityMeta> = {
 }
 
 export const getActivityMeta = (activityId: string, fallbackName?: string): ResolvedActivityMeta => {
-  const base = activityId.startsWith('custom-')
+  const isCustom = activityId.startsWith('custom-')
+  const curated = ACTIVITY_META[activityId]
+
+  // Choose base meta:
+  // - custom: default meta with fallback name if provided
+  // - curated: use curated meta as-is
+  // - unknown non-custom: default meta with fallback or generic name
+  const base: ActivityMeta = isCustom
     ? { ...DEFAULT_META, name: fallbackName || DEFAULT_META.name }
-    : ACTIVITY_META[activityId] || { ...DEFAULT_META, name: fallbackName || `Activity ${activityId}` }
+    : curated
+      ? curated
+      : { ...DEFAULT_META, name: fallbackName || `Activity ${activityId}` }
 
   const iconEntry = getIconById(base.iconId) || getIconById(DEFAULT_ICON_ID)
   const iconPath = iconEntry?.path ?? DEFAULT_ICON_PATH
-  const name = fallbackName ?? base.name
+
+  // Only use fallbackName to override when there is no curated entry (custom/unknown).
+  const name = (!curated ? (fallbackName || base.name) : base.name)
 
   return { ...base, name, iconPath }
 }
