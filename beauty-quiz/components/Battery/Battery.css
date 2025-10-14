@@ -1,0 +1,67 @@
+/* Главный контейнер, чтобы центрировать и задать размеры */
+.battery-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  -webkit-user-select: none; /* Отключаем выделение текста */
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  width: 250px; /* Можно изменить */
+  height: 100px; /* Можно изменить */
+}
+
+/* Внешний контур батареи */
+.battery-outline {
+  width: 100%;
+  height: 100%;
+  border: 6px solid #483D8B; /* Темно-фиолетовый */
+  border-radius: 20px;
+  padding: 6px;
+  box-sizing: border-box;
+  position: relative;
+  background-color: #E0E0E0; /* Фон "пустой" части */
+  overflow: hidden; /* Скрываем все, что выходит за скругленные углы */
+}
+
+/* Полоса уровня заряда */
+
+.battery-level {
+  height: 100%;
+  border-radius: 12px;
+  /* Анимация по умолчанию только для цвета */
+  transition: background-color 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+/* Применяем анимацию ширины ТОЛЬКО когда нет класса no-transition */
+.battery-level:not(.no-transition) {
+  transition-property: width, background-color;
+  transition-duration: 0.2s, 0.3s;
+}
+
+/* Новый класс, который отключает любую анимацию */
+.battery-level.no-transition {
+  transition: none;
+}
+
+/* Визуальные разделители внутри батареи */
+.battery-separator {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 4px; /* Ширина разделителя */
+  background-color: #E0E0E0; /* Цвет фона, чтобы создать эффект "пробела" */
+  transform: translateX(-50%);
+  z-index: 2; /* Поверх уровня заряда */
+}
+
+/* "Клемма" батареи справа */
+.battery-terminal {
+  width: 20px;
+  height: 50%;
+  background-color: #483D8B; /* Темно-фиолетовый */
+  border-radius: 0 8px 8px 0;
+  margin-left: 2px;
+}

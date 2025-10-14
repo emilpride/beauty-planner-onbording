@@ -1,125 +1,98 @@
 'use client'
 
 import OnboardingStep from '@/components/quiz/OnboardingStep'
-import { useQuizStore } from '@/store/quizStore'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Battery from '../../Battery/Battery.js'
 
-type EnergyLevel = 1 | 2 | 3 | 4 | 5
-
+import { useState, useRef, useCallback, useEffect } from 'react'
 
 export default function EnergyLevelStep() {
-  const { answers, setAnswer } = useQuizStore()
+  // const { setAnswer } = useQuizStore() // Раскомментируйте для интеграции со стором
+  const [level, setLevel] = useState(3)
+  const [fillPercent, setFillPercent] = useState(60)
+  const [isDragging, setIsDragging] = useState(false)
   const batteryRef = useRef<HTMLDivElement>(null)
-  const draggingRef = useRef(false)
-  const [currentLevel, setCurrentLevel] = useState<EnergyLevel>(3)
-  const containerRef = useRef<HTMLDivElement>(null)
 
-  // Плавное обновление уровня энергии по всей высоте батарейки
-  const updateLevel = useCallback(
-    (level: EnergyLevel) => {
-      setCurrentLevel(level)
-      setAnswer('EnergyLevel', level)
-    },
-    [setAnswer]
-  )
+  // Цвет от красного к зеленому
+  const getColor = (percent: number) => {
+    const hue = (percent / 100) * 120;
+    return `hsl(${hue}, 80%, 50%)`;
+  };
 
-  // Плавное определение уровня по позиции пальца
-  const measureLevel = useCallback(
-    (clientY: number): EnergyLevel => {
-      const battery = batteryRef.current
-      if (!battery) return currentLevel
-      const rect = battery.getBoundingClientRect()
-      const relY = clientY - rect.top
-      // Позволяет плавно менять уровень по всей высоте
-      let percent = 1 - relY / rect.height
-      if (percent < 0) percent = 0
-      if (percent > 1) percent = 1
-      // 1 = низ, 5 = верх
-      let level = Math.round(percent * 4) + 1
-      if (level < 1) level = 1
-      if (level > 5) level = 5
-      return level as EnergyLevel
-    },
-    [currentLevel]
-  )
+  const handleInteractionMove = useCallback((clientX: number) => {
+  if (!batteryRef.current) return;
+  const rect = batteryRef.current.getBoundingClientRect();
+    const relativeX = clientX - rect.left;
+    const newPercent = Math.max(0, Math.min(100, (relativeX / rect.width) * 100));
+    setFillPercent(newPercent);
+    const newLevel = newPercent > 99 ? 5 : Math.floor(newPercent / 20) + 1;
+    setLevel(newLevel);
+  }, []);
+
+  const handleInteractionStart = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    setIsDragging(true);
+    let clientX: number;
+    if (typeof TouchEvent !== 'undefined' && e instanceof TouchEvent) {
+      clientX = e.touches[0].clientX;
+    } else if (e instanceof MouseEvent) {
+      clientX = e.clientX;
+    } else {
+      return;
+    }
+    handleInteractionMove(clientX);
+  };
 
   useEffect(() => {
-    const stored = Number(answers.EnergyLevel)
-    if (stored >= 1 && stored <= 5) {
-      setCurrentLevel(stored as EnergyLevel)
-    } else {
-      updateLevel(3)
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      if (isDragging) {
+        let clientX: number;
+        if (typeof TouchEvent !== 'undefined' && e instanceof TouchEvent) {
+          clientX = e.touches[0].clientX;
+        } else if (e instanceof MouseEvent) {
+          clientX = e.clientX;
+        } else {
+          return;
+        }
+        handleInteractionMove(clientX);
+      }
+    };
+    const handleInteractionEnd = () => {
+      if (isDragging) {
+        setIsDragging(false);
+        // setAnswer('EnergyLevel', level); // Для интеграции со стором
+        console.log(`Final level selected: ${level}`);
+      }
+    };
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMove);
+      document.addEventListener('touchmove', handleMove);
+      document.addEventListener('mouseup', handleInteractionEnd);
+      document.addEventListener('touchend', handleInteractionEnd);
     }
-  }, [answers.EnergyLevel, updateLevel])
-
-  // Обработка pointer событий для плавного свайпа
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    draggingRef.current = true
-    batteryRef.current?.setPointerCapture(e.pointerId)
-    updateLevel(measureLevel(e.clientY))
-  }
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!draggingRef.current) return
-    e.preventDefault()
-    updateLevel(measureLevel(e.clientY))
-  }
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    draggingRef.current = false
-    batteryRef.current?.releasePointerCapture(e.pointerId)
-  }
-  // Цвет батарейки в зависимости от уровня
-  const getBatteryColor = (level: number) => {
-    if (level <= 2) return 'bg-orange-400'
-    if (level === 3) return 'bg-yellow-300'
-    if (level === 4) return 'bg-green-400'
-    return 'bg-green-600'
-  }
+    return () => {
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('mouseup', handleInteractionEnd);
+      document.removeEventListener('touchend', handleInteractionEnd);
+    };
+  }, [isDragging, handleInteractionMove]);
 
   return (
     <OnboardingStep
-      title="Daily energy"
-      condition={(answers.EnergyLevel || 0) > 0}
+      title="How's Your Daily Energy Level?"
+      condition={true}
       onNext={() => {}}
     >
       <div
-        ref={containerRef}
-        className="flex flex-col items-center justify-center w-full h-full"
-        style={{ minHeight: 320 }}
+        className="flex flex-col items-center justify-center w-full h-full py-8 select-none"
+        onMouseDown={handleInteractionStart}
+        onTouchStart={handleInteractionStart}
+        ref={batteryRef}
       >
-        <div
-          ref={batteryRef}
-          className="relative select-none touch-none flex flex-col justify-end"
-          style={{
-            width: 64,
-            height: 240,
-            paddingTop: 'clamp(24px, 8vw, 40px)',
-            paddingBottom: 'clamp(24px, 8vw, 40px)',
-            boxSizing: 'content-box',
-          }}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerUp}
-        >
-          {/* Батарейка: 5 сегментов */}
-          <div className="absolute left-1/2 -top-3 w-8 h-3 -translate-x-1/2 rounded-t bg-gray-300" />
-          <div className="flex flex-col-reverse h-full w-full gap-1">
-            {[1, 2, 3, 4, 5].map((level) => (
-              <div
-                key={level}
-                className={`transition-colors duration-150 rounded ${level <= currentLevel ? getBatteryColor(level) : 'bg-gray-200'}`}
-                style={{ flex: '1 1 0%' }}
-                onClick={() => updateLevel(level as EnergyLevel)}
-                role="button"
-                tabIndex={0}
-              />
-            ))}
-          </div>
-        </div>
-        {/* Можно добавить подписи или подсказки ниже */}
+        <Battery
+          chargePercent={fillPercent}
+          color={getColor(fillPercent)}
+          isDragging={isDragging}
+        />
       </div>
     </OnboardingStep>
   )
