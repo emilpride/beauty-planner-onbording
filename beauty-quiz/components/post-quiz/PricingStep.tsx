@@ -250,7 +250,12 @@ export default function PricingStep() {
         />
 
     <div className="space-y-6 md:space-y-10">
-      <TrustSignals />
+      {/* Big headline replacing trust section (moved below) */}
+      <div className="text-center">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-text-primary">
+          Get your plan with a big discount and a 30-day money-back guarantee
+        </h2>
+      </div>
 
           <Divider label="Pick your access" />
           <PlansPanel
@@ -274,6 +279,9 @@ export default function PricingStep() {
             </button>
             <DynamicBillingNotice selectedPlanId={selectedPlan} />
           </div>
+
+          {/* Trust signals moved here, just before membership perks */}
+          <TrustSignals />
 
           <Divider label="Membership perks" />
           <FeaturesGrid items={features} />
@@ -361,7 +369,7 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
           className={`flex w-full items-center justify-between gap-4 rounded-2xl bg-surface px-4 py-3 shadow-sm ${compact ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
         >
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-text-primary">{expired ? 'Offer ended' : 'Discount is reserved for:'}</span>
+            <span className="hidden sm:inline text-sm font-semibold text-text-primary">{expired ? 'Offer ended' : 'Discount is reserved for:'}</span>
             <div className="flex items-center gap-3">
               <TimerUnit value={minutes} label="minutes" compact={false} />
               <span className="text-[22px] font-extrabold leading-none text-primary">:</span>
@@ -592,11 +600,11 @@ function FAQSection() {
   const items = [
     {
       q: "When will I be charged?",
-      a: "You won't be charged today. If you keep premium past the 7‑day trial, your first payment will be charged automatically at the end of your trial for the plan you selected. You'll see the price before confirming, and we also send a reminder in the app so there are no surprises.",
+  a: "You won't be charged today. If you keep premium past the 7-day trial, your first payment will be charged automatically at the end of your trial for the plan you selected. You'll see the price before confirming, and we also send a reminder in the app so there are no surprises.",
     },
     {
       q: "Can I cancel anytime?",
-      a: "Yes. You can cancel anytime from your account settings in the app or website with a single tap. You'll keep access to premium features until the end of your current billing period—no penalties or hidden fees.",
+  a: "Yes. You can cancel anytime from your account settings in the app or website with a single tap. You'll keep access to premium features until the end of your current billing period, with no penalties or hidden fees.",
     },
     {
       q: "Do you offer refunds?",
@@ -890,22 +898,44 @@ function FeatureRow({ feature }: { feature: FeatureItem }) {
 
 function TrustSignals() {
   return (
-    <div className="grid gap-2.5 sm:gap-3 sm:grid-cols-3">
-      <TrustPill title="Expert crafted" description="Designed alongside dermatologists and estheticians." />
-      <TrustPill title="Secure payments" description="Protected checkout with Stripe and Apple/Google Pay." />
-      <TrustPill title="30‑day guarantee" description="Not in love? Full refund within 30 days." />
-    </div>
+    <>
+      {/* Mobile: ultra-compact chips */}
+      <div className="sm:hidden">
+        <div className="flex items-center justify-center gap-1.5">
+          <TrustChip label="Experts" ariaDesc="Designed alongside dermatologists and estheticians." />
+          <TrustChip label="Secure" ariaDesc="Protected checkout with Stripe and Apple/Google Pay." />
+          <TrustChip label="30d refund" ariaDesc="Not in love? Full refund within 30 days." />
+        </div>
+      </div>
+
+      {/* Tablet/Desktop: detailed pills */}
+      <div className="hidden sm:grid gap-3 sm:grid-cols-3">
+        <TrustPill title="Expert crafted" description="Designed alongside dermatologists and estheticians." />
+        <TrustPill title="Secure payments" description="Protected checkout with Stripe and Apple/Google Pay." />
+  <TrustPill title="30-day guarantee" description="Not in love? Full refund within 30 days." />
+      </div>
+    </>
   )
 }
 
 function TrustPill({ title, description }: { title: string; description: string }) {
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-border-subtle bg-surface px-4 py-3">
-      <MiniCheckIcon className="mt-0.5 h-4 w-4 text-[#2BAE70]" />
-      <div>
-        <p className="text-sm font-semibold text-text-primary">{title}</p>
-        <p className="text-xs text-text-secondary">{description}</p>
+    <div className="flex flex-col items-center text-center gap-1 rounded-xl px-2 py-2 sm:flex-row sm:items-start sm:text-left sm:gap-3 sm:rounded-2xl sm:border sm:border-border-subtle sm:bg-surface sm:px-4 sm:py-3">
+      <MiniCheckIcon className="mb-1 h-4 w-4 text-[#2BAE70] sm:mb-0 sm:mt-0.5" />
+      <div className="min-w-0">
+        <p className="text-[12px] leading-tight font-semibold text-text-primary sm:text-sm">{title}</p>
+        <p className="hidden text-xs text-text-secondary sm:block">{description}</p>
       </div>
+    </div>
+  )
+}
+
+function TrustChip({ label, ariaDesc }: { label: string; ariaDesc: string }) {
+  return (
+    <div className="inline-flex items-center gap-1.5 rounded-full bg-surface-muted px-2.5 py-1 text-[10px] font-semibold text-text-primary border border-border-subtle">
+      <MiniCheckIcon className="h-3.5 w-3.5 text-[#2BAE70]" />
+      <span>{label}</span>
+  <span className="sr-only"> {ariaDesc}</span>
     </div>
   )
 }
@@ -945,7 +975,7 @@ function TestimonialStrip() {
           <p className="text-sm text-text-primary leading-relaxed text-center sm:text-left">
             “The routines and reminders keep me consistent. I saw real improvements in a few weeks.”
           </p>
-          <span className="mt-1 block text-center sm:text-left text-xs text-text-secondary">— Verified member</span>
+          <span className="mt-1 block text-center sm:text-left text-xs text-text-secondary">Verified member</span>
         </div>
       </div>
     </div>
