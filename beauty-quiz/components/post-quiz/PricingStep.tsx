@@ -220,27 +220,25 @@ export default function PricingStep() {
 
   // Prevent background scroll when the payment modal is open
   useEffect(() => {
+    const htmlElement = document.documentElement
+    const bodyElement = document.body
+
     if (showPayment) {
-      try {
-        document.documentElement.style.overflow = 'hidden'
-        document.body.style.overflow = 'hidden'
-      } catch {}
+      htmlElement.classList.add('modal-open')
+      bodyElement.classList.add('modal-open')
     } else {
-      try {
-        document.documentElement.style.overflow = ''
-        document.body.style.overflow = ''
-      } catch {}
+      htmlElement.classList.remove('modal-open')
+      bodyElement.classList.remove('modal-open')
     }
+
     return () => {
-      try {
-        document.documentElement.style.overflow = ''
-        document.body.style.overflow = ''
-      } catch {}
+      htmlElement.classList.remove('modal-open')
+      bodyElement.classList.remove('modal-open')
     }
   }, [showPayment])
 
   return (
-    <div className="relative min-h-screen bg-transparent overflow-x-hidden px-4 pt-10 pb-[calc(env(safe-area-inset-bottom)+88px)] sm:px-6 md:pb-12 lg:px-12">
+    <div className="relative flex flex-col min-h-screen bg-transparent px-4 pt-10 pb-[calc(env(safe-area-inset-bottom)+88px)] sm:px-6 md:pb-12 lg:px-12">
       <BackgroundDecor />
       <div className="relative mx-auto flex w-full max-w-[1040px] flex-col gap-10">
         <TopTimerRow
@@ -381,7 +379,7 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
       </div>
 
       {compact && (
-        <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+8px)] z-50" data-compact-timer>
+        <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+8px)] z-50 pointer-events-none" data-compact-timer>
           <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -389,7 +387,7 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
             transition={{ duration: 0.18, ease: 'easeOut' }}
             className="mx-auto w-[min(92vw,1040px)] px-0"
           >
-            <div className="flex w-full items-center justify-center gap-4 rounded-2xl border border-border-subtle/70 bg-surface px-3 py-2 shadow-sm backdrop-blur">
+            <div className="flex w-full items-center justify-center gap-4 rounded-2xl border border-border-subtle/70 bg-surface px-3 py-2 shadow-sm backdrop-blur pointer-events-auto">
               <div className="flex items-center gap-3">
                 <TimerUnit value={minutes} label="minutes" compact={true} />
                 <span className="text-base font-extrabold leading-none text-primary">:</span>
@@ -431,7 +429,7 @@ function PlansPanel({
   return (
     <div
       id="plans"
-      className="grid gap-1.5 sm:gap-4 md:grid-cols-2 xl:grid-cols-3 scroll-mt-24"
+      className="grid gap-1.5 sm:gap-4 md:grid-cols-2 xl:grid-cols-3 scroll-mt-24 overflow-visible"
     >
       {plans.map((plan) => (
         <PlanCard
@@ -462,22 +460,22 @@ function PlanCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`group relative flex h-full flex-col rounded-2xl sm:rounded-3xl border pl-8 pr-4 py-2.5 sm:px-5 sm:py-6 text-left transition focus:outline-none ${
+      className={`group relative flex h-full flex-col overflow-hidden sm:overflow-visible rounded-2xl sm:rounded-3xl border pl-8 pr-4 py-2.5 sm:px-5 sm:py-6 ${plan.tag ? 'sm:pt-8' : ''} text-left transition focus:outline-none ${
         active
-          ? "border-transparent ring-2 ring-primary bg-surface shadow-[0_16px_28px_rgba(124,92,203,0.18)]"
-          : "border-border-subtle bg-surface shadow-sm hover:-translate-y-1 hover:shadow-[0_16px_30px_rgba(91,69,136,0.14)]"
+          ? "border-2 border-primary bg-surface shadow-[0_12px_22px_rgba(124,92,203,0.16)]"
+          : "border border-border-subtle bg-surface shadow-sm"
       }`}
     >
       {plan.tag && (
         <>
-          {/* Mobile: full-width tag bar */}
-          <div className="sm:hidden pointer-events-none absolute -top-2 left-2 right-2 z-10">
-            <div className="w-full rounded-t-2xl bg-primary px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-white text-center shadow-[0_8px_16px_rgba(124,92,203,0.24)]">
+          {/* Mobile: full-width tag bar attached to card top */}
+          <div className="sm:hidden pointer-events-none absolute top-0 left-0 right-0 z-10">
+            <div className="w-full rounded-t-2xl bg-primary px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-widest text-white text-center shadow-[0_8px_16px_rgba(124,92,203,0.24)]">
               {plan.tag}
             </div>
           </div>
-          {/* Desktop/tablet: centered pill */}
-          <div className="hidden sm:block pointer-events-none absolute -top-5 left-1/2 z-10 -translate-x-1/2">
+          {/* Desktop/tablet: centered pill (attached inside top edge) */}
+          <div className="hidden sm:block pointer-events-none absolute top-0 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
             <div className="rounded-full bg-primary px-4 py-1 text-[11px] font-extrabold uppercase tracking-widest text-white shadow-[0_8px_16px_rgba(124,92,203,0.24)]">
               {plan.tag}
             </div>
@@ -485,9 +483,19 @@ function PlanCard({
         </>
       )}
   {/* Mobile layout */}
-  <div className={`sm:hidden space-y-1.5 ${plan.tag ? 'pt-2' : ''}`}>
-        {/* Header: radio + label on the left, price block on the right */}
-        <div className="flex items-start justify-between gap-2">
+  <div className={`sm:hidden space-y-1.5 ${plan.tag ? 'pt-5' : ''}`}>
+        {/* Floating price block (independent) */}
+        <div className="pointer-events-none absolute right-3 top-1/2 z-10 -translate-y-1/2 translate-x-[-8px] scale-[1.3] origin-top-right">
+          <div className="text-right leading-none">
+            {price.showOriginal && price.originalPerDay !== undefined && (
+              <div className="text-[12px] text-text-secondary line-through opacity-70">{`${CURRENCY}${price.originalPerDay.toFixed(2)}`}</div>
+            )}
+            <div className="text-[24px] font-extrabold leading-none tracking-tight text-text-primary">{`${CURRENCY}${price.currentPerDay.toFixed(2)}`}</div>
+            <div className="text-[10px] text-text-secondary">per day</div>
+          </div>
+        </div>
+        {/* Header: only radio + label (price is floating overlay) */}
+        <div className="flex items-center justify-start gap-2 pr-24">
           <div className="flex items-center gap-2">
             <span
               className={`inline-flex h-5 w-5 items-center justify-center rounded-full border-2 ${
@@ -498,13 +506,6 @@ function PlanCard({
               {active && <span className="h-2.5 w-2.5 rounded-full bg-white" />}
             </span>
             <p className="text-[15px] font-semibold leading-tight text-text-primary">{plan.label}</p>
-          </div>
-          <div className="text-right leading-none">
-            {price.showOriginal && price.originalPerDay !== undefined && (
-              <div className="text-[11px] text-text-secondary line-through opacity-70">{`${CURRENCY}${price.originalPerDay.toFixed(2)}`}</div>
-            )}
-            <div className="text-[22px] font-extrabold leading-none tracking-tight text-text-primary">{`${CURRENCY}${price.currentPerDay.toFixed(2)}`}</div>
-            <div className="text-[9px] text-text-secondary">per day</div>
           </div>
         </div>
         {/* Period pill */}
@@ -706,7 +707,7 @@ function DynamicBillingNotice({ selectedPlanId }: { selectedPlanId: string }) {
   const everyLabel = plan.billingWeeks === 1 ? "1 week" : `${plan.billingWeeks} weeks`
   const { currentTotal } = computePrice(plan, false) // Always inform regular billing at full price
   return (
-    <div className="mt-2 max-w-3xl rounded-2xl border border-border-subtle bg-surface px-4 py-3 text-xs text-text-secondary">
+    <div className="mt-2 w-full max-w-3xl mx-auto text-center rounded-2xl border border-border-subtle bg-surface px-4 py-3 text-xs sm:text-[13px] text-text-secondary">
       Without cancellation, before the selected plan ends, you accept that Beauty Mirror will automatically charge
       <span className="mx-1 font-semibold text-text-primary">{`${CURRENCY}${currentTotal.toFixed(2)}`}</span>
       every <span className="font-semibold text-text-primary">{everyLabel}</span> until I cancel. Cancel online via the account page on the website or app.
@@ -731,7 +732,7 @@ function PaymentModal({ selectedPlanId, discountOffered, discountActive, promoCo
     <motion.div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
       <motion.div
-        className="relative mx-0 w-full max-w-[768px] rounded-t-3xl sm:rounded-3xl bg-white px-5 py-5 sm:px-8 sm:py-8 shadow-[0_32px_64px_rgba(0,0,0,0.24)] max-h-[85vh] sm:max-h-[88vh] overflow-y-auto"
+  className="relative mx-0 w-full max-w-[768px] rounded-t-3xl sm:rounded-3xl bg-white px-5 py-5 sm:px-8 sm:py-8 shadow-[0_32px_64px_rgba(0,0,0,0.24)] max-h-[85vh] sm:max-h-[88vh] overflow-y-auto scrollbar-none"
         initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 24, opacity: 0 }}
