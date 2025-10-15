@@ -78,7 +78,8 @@ export default function RegularCareResultsStep() {
     )
   }, [bmiValue])
 
-  const genderPrefix = (answers as any)?.Gender === 1 ? 'female' : 'male'
+  // Keep gender mapping consistent across app: 2 = female, else male
+  const genderPrefix = (answers as any)?.Gender === 2 ? 'female' : 'male'
   const bmiImages = useMemo(() => {
     const current = `/images/on_boarding_images/bmi_${genderPrefix}_${bmiCategory.imageLevel}.png`
     const target = `/images/on_boarding_images/bmi_${genderPrefix}_2.png` // ideal healthy

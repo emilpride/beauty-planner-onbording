@@ -305,7 +305,8 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95">
-      <div className="relative w-full max-w-sm aspect-[3/4] bg-black rounded-xl overflow-hidden flex flex-col items-center sm:w-screen sm:h-screen sm:max-w-none sm:aspect-auto sm:rounded-none sm:justify-center sm:items-center">
+      <div className="relative bg-black rounded-xl overflow-hidden flex flex-col items-center sm:rounded-none sm:justify-center sm:items-center"
+           style={{ width: 'min(90vw, 56vmin)', height: 'min(90vh, 74vmin)', aspectRatio: '3 / 4' }}>
         {error ? (
           <div className="text-white p-8">{error}</div>
         ) : (
@@ -314,7 +315,7 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
             autoPlay
             playsInline
             muted
-            className={`w-full h-full object-cover bg-black sm:absolute sm:inset-0 ${facingMode === 'user' ? 'scale-x-[-1]' : ''} ${previewUrl && previewBlob ? 'opacity-0' : 'opacity-100'}`}
+            className={`w-full h-full object-cover bg-black ${facingMode === 'user' ? 'scale-x-[-1]' : ''} ${previewUrl && previewBlob ? 'opacity-0' : 'opacity-100'}`}
             style={{ transform: facingMode === 'user' ? 'scaleX(-1)' as any : undefined }}
           />
         )}
