@@ -36,6 +36,12 @@ body {
   transition: background 0.4s ease, color 0.4s ease;
 }
 
+/* Prevent background scroll when modal is open */
+html.modal-open,
+body.modal-open {
+  overflow: hidden;
+}
+
 body::before,
 body::after {
   content: '';

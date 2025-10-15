@@ -193,11 +193,13 @@ export default function PricingStep() {
     setAnswer("PaymentCompleted", true);
 
     // Save to Firestore
-    const answers = useQuizStore.getState().answers;
-    await saveUserToFirestore(answers);
+  const answers = useQuizStore.getState().answers;
+  // Sanitize before saving: exclude Body image fields
+  const { BodyImageUrl, BodyImageSkipped, ...sanitizedAnswers } = answers as any;
+  await saveUserToFirestore(sanitizedAnswers);
     // Fire-and-forget: trigger analyzeUserData after saving. Don't block navigation.
     try {
-      const payload = { userId: answers.Id, answers, photoUrls: { face: answers.FaceImageUrl, hair: answers.HairImageUrl, body: answers.BodyImageUrl } }
+  const payload = { userId: answers.Id, answers: sanitizedAnswers, photoUrls: { face: answers.FaceImageUrl, hair: answers.HairImageUrl } }
       fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(e => console.warn('Analyze trigger failed', e))
     } catch (e) {
       console.warn('Failed to trigger analysis', e)

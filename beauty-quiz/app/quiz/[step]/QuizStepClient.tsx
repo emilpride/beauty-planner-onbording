@@ -43,7 +43,6 @@ import OrganizationInfluenceStep from '@/components/quiz/steps/OrganizationInflu
 import AnalysisIntroStep from '@/components/quiz/steps/AnalysisIntroStep'
 import PhotoUploadFaceStep from '@/components/quiz/steps/PhotoUploadFaceStep'
 import PhotoUploadHairStep from '@/components/quiz/steps/PhotoUploadHairStep'
-import PhotoUploadBodyStep from '@/components/quiz/steps/PhotoUploadBodyStep'
 import AIResultsStep from '@/components/quiz/steps/AIResultsStep'
 
 // Post-quiz screens (remaining ones)
@@ -84,11 +83,10 @@ const stepComponents: { [key: number]: React.ComponentType } = {
   29: AnalysisIntroStep,
   30: PhotoUploadFaceStep,
   31: PhotoUploadHairStep,
-  32: PhotoUploadBodyStep,
-  33: AIResultsStep,
-  34: CurrentConditionAnalysisStep,
-  35: ChoosePlanStep,
-  36: PricingStep,
+  32: AIResultsStep,
+  33: CurrentConditionAnalysisStep,
+  34: ChoosePlanStep,
+  35: PricingStep,
 }
 // Card heights from Flutter design
 const cardHeights = [
@@ -288,11 +286,10 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   29: 'onboarding_img_analyze_your_face',  // AnalysisIntroStep
   30: null,  // PhotoUploadFaceStep - no character
   31: null,  // PhotoUploadHairStep - no character
-  32: null,  // PhotoUploadBodyStep - no character
-  33: null,  // AIResultsStep - no character/image on top
-  34: null,  // CurrentConditionAnalysisStep (no character)
-  35: null,  // ChoosePlanStep (no character)
-  36: null,  // PricingStep (no character)
+  32: null,  // AIResultsStep - no character/image on top
+  33: null,  // CurrentConditionAnalysisStep (no character)
+  34: null,  // ChoosePlanStep (no character)
+  35: null,  // PricingStep (no character)
 };
 
     const imageName = stepToImageMap[step];
@@ -334,7 +331,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
 
   // Step 25 (PhotoUploadStep) doesn't need assistant character
 
-  const isFullScreen = stepNumber >= 34; // Post-quiz screens start from CurrentConditionAnalysis (now index 34)
+  const isFullScreen = stepNumber >= 33; // Post-quiz screens start from CurrentConditionAnalysis (now index 33)
   const isAutoTransitionScreen = false; // AI Analysis Intro was removed
 
   // ===== ALL HOOKS MUST BE BEFORE ANY CONDITIONAL RETURNS =====
@@ -452,7 +449,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
 
       {isHydrated ? (
         <>
-          {stepNumber < 34 && stepNumber >= 0 && ![30, 31, 32].includes(stepNumber) && (
+          {stepNumber < 33 && stepNumber >= 0 && ![30, 31, 32].includes(stepNumber) && (
             <OnboardingAppbar onBackAnimation={startBackAnimation} />
           )}
 

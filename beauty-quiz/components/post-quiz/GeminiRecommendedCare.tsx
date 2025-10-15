@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { motion, type Variants, easeOut } from 'framer-motion'
 import Image from 'next/image'
-import { getActivityMeta } from '@/components/procedures/activityMeta'
+import { getActivityMeta, ACTIVITY_META } from '@/components/procedures/activityMeta'
 
 // Local catalog mappings (duplicated from RecommendedCare for now). TODO: centralize.
 const ACTIVITY_CATEGORY: Record<string, 'Skin' | 'Hair' | 'Physical health' | 'Mental Wellness'> = {
@@ -193,9 +193,14 @@ export default function GeminiRecommendedCare({ aiModel }: { aiModel: any }) {
   const resolved = useMemo(() => {
     const seen = new Set<string>()
     return rawRecos.map((r) => {
+      const rawLower = (r.label || '').toLowerCase().trim()
       const key = normalize(r.label)
-      const id = NAME_TO_ID[key] || NAME_TO_ID[key.replace(/ care$/, '')] || null
-      const activityId = id ?? `custom-${key.replace(/\s+/g, '-')}`
+      // 1) If Gemini sent a known curated ID (slug), use it directly (e.g., 'cleanse-hydrate')
+      const directId = ACTIVITY_META[rawLower] ? rawLower : null
+      // 2) Try name→id mapping for natural language labels
+      const mappedId = NAME_TO_ID[key] || NAME_TO_ID[key.replace(/ care$/, '')] || null
+      // 3) Fallback: custom-
+      const activityId = directId ?? mappedId ?? `custom-${key.replace(/\s+/g, '-')}`
       const meta = getActivityMeta(activityId, r.label)
       const category = ACTIVITY_CATEGORY[activityId] || r.source
       const freq = RECO_FREQ[activityId] || ''

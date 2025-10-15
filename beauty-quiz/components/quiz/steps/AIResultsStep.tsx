@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import React, { memo, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuizStore } from '@/store/quizStore'
 import Image from 'next/image'
 import { motion, useMotionValue, useReducedMotion } from 'framer-motion'
@@ -143,7 +144,8 @@ const TestimonialsScroller = memo(function TestimonialsScroller() {
 })
 
 export default function AIResultsStep() {
-  const { answers: storeAnswers, setAnalysis, nextStep } = useQuizStore()
+  const router = useRouter()
+  const { answers: storeAnswers, setAnalysis } = useQuizStore()
   const effectiveUserId =
     normalizeIdentifier(storeAnswers.Id) ||
     normalizeIdentifier(storeAnswers.sessionId) ||
@@ -328,7 +330,7 @@ export default function AIResultsStep() {
       navTimeoutRef.current = setTimeout(() => {
         if (!hasNavigatedRef.current) {
           hasNavigatedRef.current = true
-          nextStep()
+          router.push('/signup')
         }
       }, 400)
     }
@@ -338,7 +340,7 @@ export default function AIResultsStep() {
       navTimeoutRef.current = setTimeout(() => {
         if (!hasNavigatedRef.current) {
           hasNavigatedRef.current = true
-          nextStep()
+          router.push('/signup')
         }
       }, 2000)
     }
@@ -348,7 +350,7 @@ export default function AIResultsStep() {
         navTimeoutRef.current = null
       }
     }
-  }, [progress, status, nextStep])
+  }, [progress, status, router])
 
   const runAnalysis = async () => {
     setStatus('running')
@@ -365,15 +367,15 @@ export default function AIResultsStep() {
           continueWithBasicAnalysis()
         }
       }, 25000)
+      const { BodyImageUrl, BodyImageSkipped, ...sanitizedAnswers } = storeAnswers as any;
       const payload = {
         userId: effectiveUserId,
         sessionId: storeAnswers.sessionId,
         events: storeAnswers.events,
-        answers: storeAnswers,
+        answers: sanitizedAnswers,
         photoUrls: {
           face: storeAnswers.FaceImageUrl,
           hair: storeAnswers.HairImageUrl,
-          body: storeAnswers.BodyImageUrl,
         },
       }
       const resp = await fetch('/api/analyze', {

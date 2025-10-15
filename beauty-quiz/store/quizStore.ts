@@ -66,6 +66,8 @@ export interface UserModel {
   WakeUp: string;
   EndDay: string;
   TimeFormat: '12h' | '24h' | null;
+  // Work environment
+  WorkEnvironment: '' | 'office' | 'remote' | 'part-time' | 'jobless';
 
   // Mental health
   EnergyLevel: 1 | 2 | 3 | 4 | 5 | null;
@@ -158,8 +160,16 @@ function queueAnalyticsSend(getState: () => QuizStore, newEvents: UserModel['eve
       const state = getState();
       const sid = ensureSessionIdValue(state.answers.sessionId);
       const uid = state.answers.Id;
+      // Privacy: strip any events referencing Body image fields before sending to server
+      const sanitizedEvents = eventsToSend.filter((ev) => {
+        try {
+          const field = (ev as any)?.details?.field as string | undefined;
+          if (!field) return true;
+          return !(field === 'BodyImageUrl' || field === 'BodyImageSkipped');
+        } catch { return true }
+      });
       if (!isBlankSessionId(sid)) {
-        Promise.resolve(saveOnboardingSession(sid, eventsToSend, uid)).catch((error) => {
+        Promise.resolve(saveOnboardingSession(sid, sanitizedEvents, uid)).catch((error) => {
           console.warn('Non-blocking: failed to send batched onboarding events', error);
         });
       }
@@ -311,6 +321,7 @@ export const initialAnswers: UserModel = {
   WakeUp: '',
   EndDay: '',
   TimeFormat: null,
+  WorkEnvironment: '',
   EnergyLevel: null,
   Focus: '',
   Procrastination: '',
@@ -471,7 +482,7 @@ export const useQuizStore = create<QuizStore>()(
       analysis: null,
       uiSnapshots: {},
       currentStep: 0,
-      totalSteps: 37, // Reduced by 1 after removing Gender step
+  totalSteps: 36, // Reduced by 1 after removing Body photo step
       isTransitioning: false,
       get sessionId() {
         return getOrCreateSessionId();

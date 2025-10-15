@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth'
 import { saveOnboardingSession } from '@/lib/firebase'
 import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { useQuizStore } from '@/store/quizStore'
 
 // Initialize firebase client (safe to call multiple times)
 const firebaseConfig = {
@@ -33,6 +34,7 @@ export default function SignUpStep() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const { nextStep, currentStep, totalSteps } = useQuizStore()
 
   const isValidEmail = (e: string) => /\S+@\S+\.\S+/.test(e)
 
@@ -57,7 +59,9 @@ export default function SignUpStep() {
         console.warn('Failed to save user to Firestore:', saveErr)
       }
 
-      router.push('/premium-intro')
+  const target = Math.min(currentStep + 1, totalSteps - 1)
+  nextStep()
+  router.push(`/quiz/${target}`)
     } catch (err: any) {
       console.error('Sign up error', err)
       setError(err?.message || 'Failed to create account')
@@ -83,7 +87,9 @@ export default function SignUpStep() {
         } catch (saveErr) {
           console.warn('Failed to save social user to Firestore:', saveErr)
         }
-        router.push('/premium-intro')
+  const target = Math.min(currentStep + 1, totalSteps - 1)
+  nextStep()
+  router.push(`/quiz/${target}`)
         return
       }
 
@@ -107,7 +113,9 @@ export default function SignUpStep() {
     } catch (e) {
       console.warn('Failed to record skip event', e)
     } finally {
-      router.push('/premium-intro')
+      const target = Math.min(currentStep + 1, totalSteps - 1)
+      nextStep()
+      router.push(`/quiz/${target}`)
     }
   }
 
@@ -116,7 +124,10 @@ export default function SignUpStep() {
       {/* Back Button */}
       <div className="absolute top-8 left-6 z-20">
         <button
-          onClick={() => router.push('/quiz/27')}
+          onClick={() => {
+            const target = Math.max(0, Math.min(totalSteps - 1, currentStep))
+            router.push(`/quiz/${target}`)
+          }}
           className="w-10 h-10 bg-surface/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg"
         >
           <svg
@@ -155,11 +166,16 @@ export default function SignUpStep() {
           {/* Sign Up Card */}
           <div className="w-full max-w-sm bg-surface rounded-2xl p-6 space-y-6 border border-border-subtle/60 shadow-soft">
             {/* Header */}
-            <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold text-text-primary">Create your account</h2>
+            <div className="text-center space-y-3">
+              <h2 className="text-xl font-bold text-text-primary">Save your personalized beauty analysis</h2>
               <p className="text-text-secondary text-sm leading-relaxed">
-                Don’t lose your progress — create an account to keep everything in sync.
+                Create your account to keep your results safe and synced across devices.
               </p>
+              <ul className="mt-1 space-y-1 text-xs text-text-secondary">
+                <li>• Access your AI analysis anytime</li>
+                <li>• Get gentle daily reminders</li>
+                <li>• Track your progress over time</li>
+              </ul>
             </div>
 
             {/* Email Input */}
