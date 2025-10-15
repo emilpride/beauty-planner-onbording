@@ -283,6 +283,9 @@ export default function PricingStep() {
           {/* Trust signals moved here, just before membership perks */}
           <TrustSignals />
 
+          {/* Cross-platform availability block */}
+          <PlatformAvailability />
+
           <Divider label="Membership perks" />
           <FeaturesGrid items={features} />
 
@@ -915,6 +918,95 @@ function TrustSignals() {
   <TrustPill title="30-day guarantee" description="Not in love? Full refund within 30 days." />
       </div>
     </>
+  )
+}
+
+function PlatformAvailability() {
+  return (
+    <div className="mt-2 sm:mt-3">
+      <div className="rounded-2xl border border-border-subtle bg-surface px-4 py-4 sm:px-6 sm:py-5 shadow-sm">
+        {/* Headline */}
+        <div className="text-center mb-3 sm:mb-4">
+          <h3 className="text-lg sm:text-xl font-extrabold tracking-tight text-text-primary">
+            Use your plan anywhere
+          </h3>
+          <p className="mt-1 text-xs sm:text-sm text-text-secondary">
+            Seamless on iPhone, Android, and the web — switch devices anytime.
+          </p>
+        </div>
+
+        {/* Mobile: compact chips */}
+        <div className="grid grid-cols-3 gap-2 sm:hidden">
+          <PlatformChip
+            icon={<PlatformIcon light="/custom-icons/platforms/android-icon-light.svg" dark="/custom-icons/platforms/android-icon-dark.svg" />}
+            label="Android"
+          />
+          <PlatformChip
+            icon={<PlatformIcon light="/custom-icons/platforms/apple-icon-light.svg" dark="/custom-icons/platforms/apple-icon-dark.svg" />}
+            label="Apple"
+          />
+          <PlatformChip
+            icon={<PlatformIcon light="/custom-icons/platforms/web-icon-light.svg" dark="/custom-icons/platforms/web-icon-dark.svg" />}
+            label="Web"
+          />
+        </div>
+
+        {/* sm+ : pill row */}
+        <div className="hidden sm:flex items-center justify-center gap-3">
+          <PlatformPill
+            icon={<PlatformIcon light="/custom-icons/platforms/android-icon-light.svg" dark="/custom-icons/platforms/android-icon-dark.svg" size={22} />}
+            label="Android"
+          />
+          <PlatformPill
+            icon={<PlatformIcon light="/custom-icons/platforms/apple-icon-light.svg" dark="/custom-icons/platforms/apple-icon-dark.svg" size={22} />}
+            label="Apple"
+          />
+          <PlatformPill
+            icon={<PlatformIcon light="/custom-icons/platforms/web-icon-light.svg" dark="/custom-icons/platforms/web-icon-dark.svg" size={22} />}
+            label="Web"
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PlatformPill({ icon, label }: { icon: React.ReactNode | string; label: string }) {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-white/50 px-4 py-2 shadow-sm">
+      {typeof icon === 'string' ? (
+        <Image src={icon} alt="" width={20} height={20} className="rounded-sm" />
+      ) : (
+        icon
+      )}
+      <span className="text-sm font-semibold text-text-primary">{label}</span>
+    </div>
+  )
+}
+
+function PlatformChip({ icon, label }: { icon: React.ReactNode | string; label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-1 rounded-xl border border-border-subtle bg-white/60 py-2">
+      {typeof icon === 'string' ? (
+        <Image src={icon} alt="" width={22} height={22} className="rounded-sm" />
+      ) : (
+        icon
+      )}
+      <span className="text-[11px] font-semibold text-text-secondary">{label}</span>
+    </div>
+  )
+}
+
+function PlatformIcon({ light, dark, size = 22 }: { light: string; dark?: string; size?: number }) {
+  return (
+    <span className="relative inline-flex" aria-hidden>
+      {/* Light theme */}
+      <Image src={light} alt="" width={size} height={size} className={`block ${dark ? 'dark:hidden' : ''}`} />
+      {/* Dark theme (optional) */}
+      {dark && (
+        <Image src={dark} alt="" width={size} height={size} className="hidden dark:block" />
+      )}
+    </span>
   )
 }
 
