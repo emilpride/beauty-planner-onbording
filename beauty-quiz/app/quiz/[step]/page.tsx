@@ -2,7 +2,7 @@ import ClientOnly from './ClientOnly'
 
 // Generate static params for all quiz steps and post-quiz screens
 export async function generateStaticParams() {
-  const steps = Array.from({ length: 36 }, (_, i) => i)
+  const steps = Array.from({ length: 33 }, (_, i) => i) // 0..32 inclusive
   return steps.map((step) => ({
     step: step.toString(),
   }))

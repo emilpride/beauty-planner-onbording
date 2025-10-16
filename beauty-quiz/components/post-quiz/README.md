@@ -5,7 +5,6 @@ The post-quiz flow introduces Beauty Mirror Premium, explains the generated rout
 ## Available Screens
 
 - **CurrentConditionAnalysisStep** – summarizes the AI analysis preview
-- **ChoosePlanStep** – allows users to compare plan tiers
 - **PricingStep** – displays price breakdowns and FAQs
 - **PremiumIntroStep** – highlights premium perks before procedures
 - **ScheduleIntroStep** – introduces the procedure builder

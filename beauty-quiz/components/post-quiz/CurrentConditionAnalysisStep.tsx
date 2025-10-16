@@ -523,20 +523,7 @@ export default function CurrentConditionAnalysisStep() {
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold text-text-primary">Your BMI Is:</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-violet-600">{aiModel.bmiCategory || '—'}</p>
-                        {/** Apply same 0-10 band color logic to BMI converted overallScore */}
-                        <CircularScore 
-                          value={overallScore} 
-                          size={40} 
-                          thickness={6} 
-                          gradientId="grad-bmi-card" 
-                          colors={((): string[] => {
-                            const c = getBandColor(overallScore)
-                            return [c, c, c]
-                          })()} 
-                        />
-                      </div>
+                      <p className="text-sm font-semibold text-violet-600">{aiModel.bmiCategory || '—'}</p>
                     </div>
                     <p className="mt-1 text-sm text-text-secondary">{aiModel.bmiDescription || ''}</p>
                     <div className="mt-3 flex items-center gap-6">
@@ -616,7 +603,8 @@ export default function CurrentConditionAnalysisStep() {
                 <div className="flex items-center justify-center">
                   <BmsRing
                     size={240}
-                    thickness={14}
+                    thickness={28}
+                    gapDeg={18}
                     overall={bmsInView ? bmsAnimated : 0}
                     scores={{
                       skin: aiModel?.skinCondition?.score ?? 6,
@@ -629,6 +617,12 @@ export default function CurrentConditionAnalysisStep() {
                       hair: '/icons/misc/hair.svg',
                       physic: '/icons/misc/physic.svg',
                       mental: '/icons/misc/psychology.svg',
+                    }}
+                    colors={{
+                      skin: '#6EE7B7',     // teal/green for Skin
+                      hair: '#60A5FA',     // blue for Hair
+                      physic: '#FBBF24',   // amber/yellow for Physical
+                      mental: '#F472B6',   // pink for Mental
                     }}
                   />
                 </div>

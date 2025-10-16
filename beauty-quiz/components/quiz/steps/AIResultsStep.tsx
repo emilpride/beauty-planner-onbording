@@ -43,12 +43,13 @@ const TestimonialsScroller = memo(function TestimonialsScroller() {
   useEffect(() => {
     let raf = 0
     let last = performance.now()
-    const speed = 12 // px/sec auto drift to the left (slower for stability)
+  const speed = 12 // px/sec auto drift to the left (slower for stability)
 
     const tick = (now: number) => {
       const dt = (now - last) / 1000
       last = now
-      if (!draggingRef.current && !reducedMotion) {
+  // Always animate unless dragging; ignore reduced motion here to keep the marquee moving as requested
+  if (!draggingRef.current) {
         const current = x.get()
         const nextRaw = current - speed * dt
         // Round to device pixels to avoid sub-pixel jitter
@@ -67,7 +68,7 @@ const TestimonialsScroller = memo(function TestimonialsScroller() {
   }, [totalWidth, x, reducedMotion])
 
   return (
-    <motion.div className="w-full overflow-hidden relative cursor-grab active:cursor-grabbing">
+  <motion.div className="w-full overflow-hidden relative cursor-grab active:cursor-grabbing">
       <div
         className="pointer-events-none absolute inset-y-0 left-0 w-8 z-10"
         style={{ background: 'linear-gradient(90deg, rgb(var(--color-surface)) 0%, rgba(255,255,255,0) 100%)' }}
@@ -78,7 +79,7 @@ const TestimonialsScroller = memo(function TestimonialsScroller() {
       />
       <motion.div
         className="flex flex-row items-start gap-2.5"
-        style={{ width: 'max-content', x, willChange: 'transform', transform: 'translateZ(0)' }}
+        style={{ width: 'max-content', x, willChange: 'transform' }}
         drag="x"
         dragConstraints={{ left: -2 * totalWidth, right: 0 }}
         dragElastic={0.04}
@@ -330,16 +331,18 @@ export default function AIResultsStep() {
       navTimeoutRef.current = setTimeout(() => {
         if (!hasNavigatedRef.current) {
           hasNavigatedRef.current = true
+          // Navigate to signup first; after signup we redirect to analysis summary (quiz/32)
           router.push('/signup')
         }
       }, 400)
     }
-    // Fallback: if we reached 100% (or success) but for any reason interludes are not visible/blocked, proceed after a grace period
-    if ((progress >= 100 || status === 'success') && !hasNavigatedRef.current) {
+    // Fallback: only after full load (100%), proceed after a grace period in case interludes are blocked
+    if (progress >= 100 && !hasNavigatedRef.current) {
       if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current)
       navTimeoutRef.current = setTimeout(() => {
         if (!hasNavigatedRef.current) {
           hasNavigatedRef.current = true
+          // Safety fallback to signup if something blocks interludes
           router.push('/signup')
         }
       }, 2000)

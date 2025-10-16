@@ -246,13 +246,13 @@ export default function RecommendedCare({ baseScores }: { baseScores: BaseScores
 
       <motion.button
         type="button"
-        onClick={() => router.push('/signup')}
+        onClick={() => router.push('/premium-intro')}
         className="mt-6 w-full rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-soft transition hover:brightness-110"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       >
-        Set Up My Care Plan
+        Continue to Your Plan
       </motion.button>
     </motion.section>
   )

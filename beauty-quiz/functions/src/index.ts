@@ -106,17 +106,8 @@ function calculateBMI(height: number, heightUnit: string, weight: number, weight
 	return Math.round((weightInKg / (heightInMeters * heightInMeters)) * 10) / 10
 }
 
-// Convert BMI to 0-10 scale for BMS calculation
-function bmiToScore(bmi: number | null): number {
-	if (bmi === null) return 5 // Default middle score
-	
-	if (bmi < 16) return 2
-	if (bmi < 18.5) return 4
-	if (bmi >= 18.5 && bmi < 25) return 9 // Healthy range gets high score
-	if (bmi >= 25 && bmi < 30) return 6
-	if (bmi >= 30 && bmi < 35) return 4
-	return 2 // BMI >= 35
-}
+// BMI is NOT converted into a 0-10 score for BMS. It is reported separately and
+// already reflected within physicalCondition coming from the model.
 
 // Get BMI category and description
 function getBMIInfo(bmi: number | null, gender: number): { category: string; description: string; imageId: string } {
@@ -368,15 +359,14 @@ function buildCompleteAnalysis(geminiResponse: any, answers: any): AIAnalysisMod
 	// Get BMI info
 	const bmiInfo = getBMIInfo(calculatedBMI, answers.Gender || 0)
 	
-	// Calculate BMS as average of 4 Gemini scores + BMI score
+	// Calculate BMS strictly as the average of the four Gemini scores (skin, hair, physical, mental)
 	const geminiScores = [
 		geminiResponse.skinCondition?.score || 5,
 		geminiResponse.hairCondition?.score || 5,
 		geminiResponse.physicalCondition?.score || 5,
 		geminiResponse.mentalCondition?.score || 5
 	]
-	const bmiScore = bmiToScore(calculatedBMI)
-	const bmsScore = Math.round(([...geminiScores, bmiScore].reduce((a, b) => a + b, 0) / 5) * 10) / 10
+	const bmsScore = Math.round((geminiScores.reduce((a, b) => a + b, 0) / geminiScores.length) * 10) / 10
 	
 	// Get BMS info
 	const bmsInfo = getBMSInfo(bmsScore)

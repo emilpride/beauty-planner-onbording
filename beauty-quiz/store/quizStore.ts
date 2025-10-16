@@ -483,8 +483,8 @@ export const useQuizStore = create<QuizStore>()(
       })(),
       analysis: null,
       uiSnapshots: {},
-      currentStep: 0,
-  totalSteps: 35, // Reduced by 1 after removing SleepStep
+    currentStep: 0,
+  totalSteps: 33, // Reduced by 1 after removing PricingStep from /quiz/33
       isTransitioning: false,
       get sessionId() {
         return getOrCreateSessionId();

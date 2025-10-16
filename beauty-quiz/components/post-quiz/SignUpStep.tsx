@@ -34,7 +34,7 @@ export default function SignUpStep() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const { nextStep, currentStep, totalSteps } = useQuizStore()
+  const { goToStep, currentStep, totalSteps } = useQuizStore()
 
   const isValidEmail = (e: string) => /\S+@\S+\.\S+/.test(e)
 
@@ -59,9 +59,9 @@ export default function SignUpStep() {
         console.warn('Failed to save user to Firestore:', saveErr)
       }
 
-  const target = Math.min(currentStep + 1, totalSteps - 1)
-  nextStep()
-  router.push(`/quiz/${target}`)
+  // After successful signup, take the user to Current Condition Analysis
+  goToStep(32)
+  router.push('/quiz/32')
     } catch (err: any) {
       console.error('Sign up error', err)
       setError(err?.message || 'Failed to create account')
@@ -87,9 +87,9 @@ export default function SignUpStep() {
         } catch (saveErr) {
           console.warn('Failed to save social user to Firestore:', saveErr)
         }
-  const target = Math.min(currentStep + 1, totalSteps - 1)
-  nextStep()
-  router.push(`/quiz/${target}`)
+  // After social signup, take the user to Current Condition Analysis
+  goToStep(32)
+  router.push('/quiz/32')
         return
       }
 
@@ -113,9 +113,9 @@ export default function SignUpStep() {
     } catch (e) {
       console.warn('Failed to record skip event', e)
     } finally {
-      const target = Math.min(currentStep + 1, totalSteps - 1)
-      nextStep()
-      router.push(`/quiz/${target}`)
+  // If user skips signup, go to Current Condition Analysis as well
+  goToStep(32)
+  router.push('/quiz/32')
     }
   }
 

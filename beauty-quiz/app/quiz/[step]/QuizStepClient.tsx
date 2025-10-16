@@ -45,8 +45,6 @@ import AIResultsStep from '@/components/quiz/steps/AIResultsStep'
 
 // Post-quiz screens
 import CurrentConditionAnalysisStep from '@/components/post-quiz/CurrentConditionAnalysisStep'
-import ChoosePlanStep from '@/components/post-quiz/ChoosePlanStep'
-import PricingStep from '@/components/post-quiz/PricingStep'
 
 const stepComponents: { [key: number]: React.ComponentType } = {
   0: GoalStep,
@@ -83,8 +81,6 @@ const stepComponents: { [key: number]: React.ComponentType } = {
   30: PhotoUploadHairStep,
   31: AIResultsStep,
   32: CurrentConditionAnalysisStep,
-  33: ChoosePlanStep,
-  34: PricingStep,
 }
 // Card heights from Flutter design
 // Updated card heights after removing SleepStep and reordering SleepRhythm
@@ -95,7 +91,7 @@ const cardHeights = [
   0.6,  // SleepRhythmInsightStep (was index 9)
   0.5, 0.8, 0.5, 0.5, 0.5, 0.58, 0.6, 0.6,
   0.8, 0.6, 0.6, 0.6, 0.8, /* 19 PhysicalActivities */ 0.78, 0.6, 0.6, 0.6,
-  0.6, 0.6, 0.6, 0.6, 0.6
+  0.6, 0.6, 0.6, 0.6
 ];
 interface QuizStepClientProps { stepNumber: number }
 
@@ -244,8 +240,6 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   30: null,  // PhotoUploadHairStep - no character
   31: null,  // AIResultsStep - no character/image on top
   32: null,  // CurrentConditionAnalysisStep (no character)
-  33: null,  // ChoosePlanStep (no character)
-  34: null,  // PricingStep (no character)
 };
 
     const imageName = stepToImageMap[step];

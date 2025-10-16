@@ -12,7 +12,7 @@ const progressSections = [
   { name: 'Skin', steps: 2 },        // 16-17
   { name: 'Hair', steps: 2 },        // 18-19
   { name: 'Wellness', steps: 10 },   // 20-29 (activities, diet, momentum, mood, energy, focus, organization)
-  { name: 'AI', steps: 8 },          // 30-37 (AnalysisIntro + 3 uploads + AI + 3 post-quiz)
+  { name: 'AI', steps: 3 },          // 30-32 (hair upload + AI results + analysis summary)
 ]
 
 interface OnboardingAppbarProps {
@@ -48,7 +48,7 @@ export default function OnboardingAppbar({ onBackAnimation }: OnboardingAppbarPr
   return (
     <header className="absolute top-0 left-0 right-0 z-30 p-4 max-w-lg mx-auto">
   <div className="flex items-center space-x-4">
-        {currentStep === 33 ? null : (
+        {true ? (
         <button
           onClick={() => {
             if (onBackAnimation) {
@@ -75,7 +75,7 @@ export default function OnboardingAppbar({ onBackAnimation }: OnboardingAppbarPr
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
         </button>
-        )}
+  ) : null}
 
         <div className="flex-1">
           <ProgressBar sections={progressSections} currentStep={currentStep} />
