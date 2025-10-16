@@ -142,6 +142,20 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   // Reset transitioning flag when step changes
   useEffect(() => { setTransitioning(false) }, [stepNumber, setTransitioning])
 
+  // Mark that user entered the quiz funnel
+  useEffect(() => {
+    try {
+      const firstStep = 0
+      if (stepNumber === firstStep) {
+        const event = { eventName: 'quizEntered', timestamp: new Date().toISOString(), step: stepNumber }
+        // Fire-and-forget via store batching
+        useQuizStore.getState().addEvent(event.eventName, event.step, undefined)
+      }
+    } catch {}
+    // run once per step 0 mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepNumber])
+
   
   // Simplified sync: store is source of truth, URL follows store
   // Keep URL in sync with store and guard assistant selection

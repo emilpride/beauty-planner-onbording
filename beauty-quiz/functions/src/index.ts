@@ -245,12 +245,23 @@ function classifySource(opts: { referrer?: string | null; utmSource?: string | n
 	return 'organic'
 }
 
-function extractTrafficMeta(req: any): { ip: string | null; device: 'android' | 'ios' | 'web'; source: 'google' | 'facebook' | 'direct' | 'organic'; country: string | null; platformOS: 'iOS' | 'Android' | 'Windows' | 'macOS' | 'Linux' | 'Unknown'; formFactor: 'mobile' | 'tablet' | 'desktop' } {
+	async function geoLookup(ip: string): Promise<string | null> {
+		if (!ip) return null
+		try {
+			// Best-effort free lookup; do not block or throw
+			const resp = await axios.get(`https://ipapi.co/${encodeURIComponent(ip)}/country/`, { timeout: 1200 })
+			const country = (resp.data || '').toString().trim().toUpperCase()
+			return country && country.length === 2 ? country : null
+		} catch { return null }
+	}
+
+function extractTrafficMetaSync(req: any): { ip: string | null; device: 'android' | 'ios' | 'web'; source: 'google' | 'facebook' | 'direct' | 'organic'; country: string | null; platformOS: 'iOS' | 'Android' | 'Windows' | 'macOS' | 'Linux' | 'Unknown'; formFactor: 'mobile' | 'tablet' | 'desktop'; utm?: any; referrer?: string | null; pageUrl?: string | null } {
 	const ip = getClientIp(req)
 	const ua = (req.headers['user-agent'] as string) || ''
 	const device = detectDeviceFromUA(ua)
 	const bodyMeta = (req.body && req.body.meta) || {}
-	const utmSource: string | null = (bodyMeta.utmSource as string) || null
+	const utm = bodyMeta.utm || null
+	const utmSource: string | null = (utm?.source as string) || null
 	const referrerHeader: string | null = (req.headers['referer'] as string) || (req.headers['referrer'] as string) || null
 	const source = classifySource({ referrer: referrerHeader, utmSource })
 	// Country via Google headers if available (Cloud Run/Functions sometimes set x-appengine-country)
@@ -258,7 +269,8 @@ function extractTrafficMeta(req: any): { ip: string | null; device: 'android' | 
 	const country = gaeCountry && gaeCountry !== 'ZZ' ? gaeCountry.toUpperCase() : null
 	const platformOS = detectPlatformOS(ua)
 	const formFactor = detectFormFactor(ua)
-	return { ip, device, source, country, platformOS, formFactor }
+	const pageUrl: string | null = (bodyMeta.pageUrl as string) || null
+	return { ip, device, source, country, platformOS, formFactor, utm, referrer: referrerHeader, pageUrl }
 }
 
 async function accessGeminiKey(): Promise<string> {
@@ -399,7 +411,7 @@ export const analyzeUserData = onRequest({
 		if (!userId) { res.status(400).send({ error: 'userId required' }); return }
 
 		// Extract traffic meta for session doc (ip/device/source)
-		const meta = extractTrafficMeta(req)
+		const meta = extractTrafficMetaSync(req)
 
 		// Retrieve API key and sanitize (trim + remove newlines) to avoid invalid header characters
 		let apiKey: any = await accessGeminiKey()
@@ -877,7 +889,7 @@ Cleaned text:\n', cleaned)
 					formFactor: meta.formFactor
 				})
 			} else {
-				const updates: Record<string, any> = { endTime: now, status: 'completed' }
+				const updates: Record<string, any> = { endTime: now }
 				if (sanitizedEvents && sanitizedEvents.length > 0) {
 					updates.events = admin.firestore.FieldValue.arrayUnion(...sanitizedEvents)
 				}
@@ -889,6 +901,9 @@ Cleaned text:\n', cleaned)
 				if (!data.country && meta.country) updates.country = meta.country
 				if (!data.platformOS && meta.platformOS) updates.platformOS = meta.platformOS
 				if (!data.formFactor && meta.formFactor) updates.formFactor = meta.formFactor
+				if (!data.utm && (meta as any).utm) (updates as any).utm = (meta as any).utm
+				if (!data.referrer && (meta as any).referrer) (updates as any).referrer = (meta as any).referrer
+				if (!data.pageUrl && (meta as any).pageUrl) (updates as any).pageUrl = (meta as any).pageUrl
 				await sessionDocRef.update(updates)
 			}
 		}
@@ -914,7 +929,7 @@ export const saveOnboardingSession = onRequest(async (req, res) => {
 		if (!sessionId) { res.status(400).send({ error: 'sessionId required' }); return }
 
 		// Extract traffic meta once per incoming event batch
-		const meta = extractTrafficMeta(req)
+		const meta = extractTrafficMetaSync(req)
 
 		// sanitize incoming events for storage
 		let sanitizedEvents: any[] = []
@@ -931,7 +946,7 @@ export const saveOnboardingSession = onRequest(async (req, res) => {
 
 		if (!doc.exists) {
 			// Create new
-			await docRef.set({
+			const base: any = {
 				sessionId,
 				userId: userId || null,
 				startTime: now,
@@ -942,11 +957,21 @@ export const saveOnboardingSession = onRequest(async (req, res) => {
 				source: meta.source,
 				country: meta.country,
 				platformOS: meta.platformOS,
-				formFactor: meta.formFactor
-			})
+				formFactor: meta.formFactor,
+				utm: meta.utm || null,
+				referrer: meta.referrer || null,
+				pageUrl: meta.pageUrl || null,
+			}
+			try {
+				if (!base.country && base.ip) {
+					const geo = await geoLookup(base.ip)
+					if (geo) base.country = geo
+				}
+			} catch {}
+			await docRef.set(base)
 		} else {
 			// Update existing
-			const updates: Record<string, any> = { endTime: now, status: 'completed' }
+			const updates: Record<string, any> = { endTime: now }
 			if (sanitizedEvents && sanitizedEvents.length > 0) {
 				updates.events = admin.firestore.FieldValue.arrayUnion(...sanitizedEvents)
 			}
@@ -958,6 +983,34 @@ export const saveOnboardingSession = onRequest(async (req, res) => {
 			if (!data.country && meta.country) updates.country = meta.country
 			if (!data.platformOS && meta.platformOS) updates.platformOS = meta.platformOS
 			if (!data.formFactor && meta.formFactor) updates.formFactor = meta.formFactor
+			if (!data.utm && meta.utm) updates.utm = meta.utm
+			if (!data.referrer && meta.referrer) updates.referrer = meta.referrer
+			if (!data.pageUrl && meta.pageUrl) updates.pageUrl = meta.pageUrl
+
+			// Geo lookup fallback for country
+			try {
+				const ip = (data.ip as string) || meta.ip || null
+				if (!('country' in data) && !updates.country && ip) {
+					const geo = await geoLookup(ip)
+					if (geo) updates.country = geo
+				}
+			} catch {}
+
+			// Compute quiz progress metrics
+			try {
+				const currentEvents: any[] = Array.isArray(data.events) ? data.events : []
+				const incoming: any[] = Array.isArray(sanitizedEvents) ? sanitizedEvents : []
+				const all = [...currentEvents, ...incoming]
+				const answered = all.filter(e => e && e.eventName === 'answerChanged').length
+				const stepsCompleted = all.filter(e => e && e.eventName === 'stepCompleted').length
+				const lastStep = all.reduce((max, e) => typeof e?.step === 'number' ? Math.max(max, e.step) : max, -1)
+				updates.progress = {
+					answered,
+					stepsCompleted,
+					lastStep,
+					updatedAt: now,
+				}
+			} catch {}
 			await docRef.update(updates)
 		}
 

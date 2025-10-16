@@ -72,13 +72,23 @@ function detectClientDevice(): 'android' | 'ios' | 'web' {
   return 'web'
 }
 
-function getUtmSource(): string | null {
+function getUtmParams(): {
+  source: string | null;
+  medium: string | null;
+  campaign: string | null;
+  term: string | null;
+  content: string | null;
+} {
   try {
-    if (typeof window === 'undefined') return null
+    if (typeof window === 'undefined') return { source: null, medium: null, campaign: null, term: null, content: null }
     const params = new URLSearchParams(window.location.search)
-    const utm = params.get('utm_source') || params.get('utmSource')
-    return utm
-  } catch { return null }
+    const source = params.get('utm_source') || params.get('utmSource')
+    const medium = params.get('utm_medium') || params.get('utmMedium')
+    const campaign = params.get('utm_campaign') || params.get('utmCampaign')
+    const term = params.get('utm_term') || params.get('utmTerm')
+    const content = params.get('utm_content') || params.get('utmContent')
+    return { source, medium, campaign, term, content }
+  } catch { return { source: null, medium: null, campaign: null, term: null, content: null } }
 }
 
 export async function saveOnboardingSession(sessionId: string, events: any[], userId?: string) {
@@ -99,10 +109,11 @@ export async function saveOnboardingSession(sessionId: string, events: any[], us
     events,
     userId,
     meta: {
-      utmSource: getUtmSource(),
+      utm: getUtmParams(),
       device: detectClientDevice(),
       // Referrer helps server classify source; header also typically carries it
       referrer: typeof document !== 'undefined' ? document.referrer || null : null,
+      pageUrl: typeof location !== 'undefined' ? location.href : null,
     }
   }
   const opts: RequestInit = {

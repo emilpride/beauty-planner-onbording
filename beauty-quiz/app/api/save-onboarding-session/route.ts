@@ -8,9 +8,22 @@ const TARGET_URL =
 export async function POST(request: Request) {
   try {
     const payload = await request.json()
+    // Forward key headers so backend can determine IP, UA, and referrer correctly
+    const forwardedHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    try {
+      const hdr = (name: string) => request.headers.get(name)
+      const ua = hdr('user-agent')
+      const ref = hdr('referer') || hdr('referrer')
+      const ip = hdr('x-forwarded-for') || hdr('x-real-ip')
+      if (ua) forwardedHeaders['user-agent'] = ua
+      if (ref) forwardedHeaders['referer'] = ref
+      if (ip) forwardedHeaders['x-forwarded-for'] = ip
+    } catch {}
     const upstreamResponse = await fetch(TARGET_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: forwardedHeaders,
       body: JSON.stringify(payload),
     })
 
