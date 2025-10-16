@@ -518,9 +518,12 @@ export const analyzeUserData = onRequest({
 				if (diet) optimized.diet_preferences = diet
 			}
 			
-			// Sleep - descriptive times
-			if (answers.SleepTime) optimized.sleep_time = extractText(answers.SleepTime)
-			if (answers.WakeUpTime) optimized.wake_up_time = extractText(answers.WakeUpTime)
+			// Sleep - descriptive times and derived hours (from UI)
+			if (answers.EndDay) optimized.sleep_time = extractText(answers.EndDay)
+			if (answers.WakeUp) optimized.wake_up_time = extractText(answers.WakeUp)
+			if ((answers as any).sleepHours) {
+				optimized.sleep_hours = (answers as any).sleepHours
+			}
 			
 			// Mental state - clear descriptive names
 			if (answers.Mood) optimized.current_mood = extractText(answers.Mood)

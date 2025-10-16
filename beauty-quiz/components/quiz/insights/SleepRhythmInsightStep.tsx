@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore } from '@/store/quizStore'
+import Image from 'next/image'
 
 const sleepVisuals = {
   '<6': {
@@ -69,8 +70,55 @@ const pulseTransition = {
   ease: [0.4, 0, 0.2, 1] as [number, number, number, number],
 }
 
+function parseHHMM(value: string | undefined): number | null {
+  if (!value) return null
+  const parts = value.split(':')
+  if (parts.length !== 2) return null
+  const hh = Number(parts[0])
+  const mm = Number(parts[1])
+  if (isNaN(hh) || isNaN(mm)) return null
+  return ((hh % 24 + 24) % 24) * 60 + ((mm % 60 + 60) % 60)
+}
+
+function minutesToHoursLabel(mins: number): string {
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  if (m === 0) return `${h}`
+  // round to nearest 0.5 for clean UI
+  const half = Math.round((mins / 60) * 2) / 2
+  return `${half}`
+}
+
+function bucketSleep(mins: number): '<6' | '6-7' | '7-8' | '8-9' | '>9' {
+  const h = mins / 60
+  if (h < 6) return '<6'
+  if (h < 7) return '6-7'
+  if (h < 8) return '7-8'
+  if (h < 9) return '8-9'
+  return '>9'
+}
+
 export default function SleepRhythmInsightStep() {
-  const { answers } = useQuizStore()
+  const { answers, setAnswer } = useQuizStore()
+  // Compute sleep duration from EndDay -> WakeUp across midnight if needed
+  const totalMinutes = useMemo(() => {
+    const wake = parseHHMM(answers.WakeUp)
+    const end = parseHHMM(answers.EndDay)
+    if (wake === null || end === null) return null
+    let diff = wake - end
+    if (diff <= 0) diff += 24 * 60
+    return diff
+  }, [answers.WakeUp, answers.EndDay])
+
+  // Persist derived bucket into SleepDuration for downstream UI that references it
+  useEffect(() => {
+    if (totalMinutes !== null) {
+      const bucket = bucketSleep(totalMinutes)
+      if (answers.SleepDuration !== bucket) {
+        setAnswer('SleepDuration', bucket)
+      }
+    }
+  }, [totalMinutes, setAnswer, answers.SleepDuration])
   const prefersReducedMotion = useReducedMotion()
 
   const visual = useMemo(() => {
@@ -123,6 +171,7 @@ export default function SleepRhythmInsightStep() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
       >
+        {/** No standalone illustration here anymore; we'll embed it in the card below */}
         <motion.div
           className="relative overflow-hidden rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
           initial={{ opacity: 0, y: 40 }}
@@ -140,10 +189,26 @@ export default function SleepRhythmInsightStep() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2, ease: 'easeOut' }}
           >
-            <div className="max-w-xs space-y-3">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-text-secondary">Sleep Insights</p>
-              <h3 className="text-lg font-semibold text-text-primary">{visual.title}</h3>
-              <p className="text-sm leading-relaxed text-text-secondary">{visual.message}</p>
+            <div className="flex items-center gap-4 max-w-md">
+              {/* Circular sleep illustration (assistant-specific) */}
+              <div className="relative h-16 w-16 rounded-full overflow-hidden ring-2 ring-primary/30 shadow-soft shrink-0">
+                <Image
+                  src={answers.assistant === 2
+                    ? '/images/on_boarding_images/onboarding_img_How_long_do_you_usually_sleep_ellie.png'
+                    : '/images/on_boarding_images/onboarding_img_How_long_do_you_usually_sleep_max.png'}
+                  alt="Sleep illustration"
+                  fill
+                  className="object-cover"
+                  sizes="64px"
+                  priority
+                />
+              </div>
+              {/* Text content */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary">Sleep Insights</p>
+                <h3 className="text-base sm:text-lg font-semibold text-text-primary">{visual.title}</h3>
+                <p className="text-sm leading-relaxed text-text-secondary">{visual.message}</p>
+              </div>
             </div>
             <div className="relative flex h-28 w-28 items-center justify-center">
               {/* Optional subtle pulses */}
@@ -190,7 +255,7 @@ export default function SleepRhythmInsightStep() {
               <div className="absolute inset-0 flex items-center justify-center flex-col">
                 <span className="text-[10px] uppercase tracking-[0.3em] text-text-secondary">Avg</span>
                 <span className="text-xl font-semibold text-text-primary">
-                  {answers.SleepDuration ? answers.SleepDuration : '?'}
+                  {totalMinutes !== null ? minutesToHoursLabel(totalMinutes) : '?'}
                 </span>
                 <span className="text-[10px] uppercase tracking-[0.3em] text-text-secondary">hours</span>
               </div>
@@ -198,21 +263,7 @@ export default function SleepRhythmInsightStep() {
           </motion.div>
         </motion.div>
 
-        <motion.div
-          className="grid gap-3 rounded-3xl border border-border-subtle/60 bg-surface/95 p-4 shadow-soft sm:grid-cols-2"
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.25, ease: 'easeOut' }}
-        >
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">Bedtime window</p>
-            <p className="text-sm font-semibold text-text-primary">{answers.EndDay || 'Not set'} {answers.TimeFormat === '24h' ? '' : answers.TimeFormat}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">Wake window</p>
-            <p className="text-sm font-semibold text-text-primary">{answers.WakeUp || 'Not set'} {answers.TimeFormat === '24h' ? '' : answers.TimeFormat}</p>
-          </div>
-        </motion.div>
+        {/** Removed Bedtime/Wake window summary block per request */}
 
         {/* Actionable tips tailored to rhythm */}
         <motion.div

@@ -17,7 +17,6 @@ import StatisticStep from '@/components/quiz/steps/StatisticStep'
 import PrivacyStep from '@/components/quiz/steps/PrivacyStep'
 import GeneralStep from '@/components/quiz/steps/GeneralStep'
 import LifestyleStep from '@/components/quiz/steps/LifestyleStep'
-import SleepStep from '@/components/quiz/steps/SleepStep'
 import SleepRhythmInsightStep from '@/components/quiz/insights/SleepRhythmInsightStep'
 import PersonalityInsightStep from '@/components/quiz/insights/PersonalityInsightStep'
 import EnergyVisualizationStep from '@/components/quiz/insights/EnergyVisualizationStep'
@@ -59,41 +58,45 @@ const stepComponents: { [key: number]: React.ComponentType } = {
   5: PrivacyStep,
   6: GeneralStep,
   7: LifestyleStep,
-  8: SleepStep,
-  9: SleepRhythmInsightStep,
-  10: WakeUpStep,
-  11: EndDayStep,
-  12: StressStep,
-  13: StressCopingInsightStep, // After stress – coping insight (no character)
-  14: WorkEnvironmentStep,
-  15: SkinTypeStep,
-  16: SkinProblemsStep,
-  17: SkinGlowInsightStep,
-  18: HairTypeStep,
-  19: HairProblemsStep,
-  20: PhysicalActivitiesStep,
-  21: DietStep,
-  22: MomentumInsightStep,
-  23: MomentumCheckStep, // After activities - momentum check
-  24: MoodStep,
-  25: EnergyLevelStep,
-  26: ProcrastinationStep,
-  27: FocusStep,
-  28: OrganizationInfluenceStep,
-  29: AnalysisIntroStep,
-  30: PhotoUploadFaceStep,
-  31: PhotoUploadHairStep,
-  32: AIResultsStep,
-  33: CurrentConditionAnalysisStep,
-  34: ChoosePlanStep,
-  35: PricingStep,
+  // SleepStep removed. Reorder to: WakeUp -> EndDay -> SleepRhythm
+  8: WakeUpStep,
+  9: EndDayStep,
+  10: SleepRhythmInsightStep,
+  11: StressStep,
+  12: StressCopingInsightStep, // After stress – coping insight (no character)
+  13: WorkEnvironmentStep,
+  14: SkinTypeStep,
+  15: SkinProblemsStep,
+  16: SkinGlowInsightStep,
+  17: HairTypeStep,
+  18: HairProblemsStep,
+  19: PhysicalActivitiesStep,
+  20: DietStep,
+  21: MomentumInsightStep,
+  22: MomentumCheckStep, // After activities - momentum check
+  23: MoodStep,
+  24: EnergyLevelStep,
+  25: ProcrastinationStep,
+  26: FocusStep,
+  27: OrganizationInfluenceStep,
+  28: AnalysisIntroStep,
+  29: PhotoUploadFaceStep,
+  30: PhotoUploadHairStep,
+  31: AIResultsStep,
+  32: CurrentConditionAnalysisStep,
+  33: ChoosePlanStep,
+  34: PricingStep,
 }
 // Card heights from Flutter design
+// Updated card heights after removing SleepStep and reordering SleepRhythm
 const cardHeights = [
-  0.42, 0.8, 0.4, 0.44, 0.45, 0.43, 0.82, 0.48, 0.6,
-  0.6, 0.55, 0.55, 0.5, 0.8, 0.5, 0.5, 0.5, 0.58, 0.6, 0.6,
-  0.8, 0.6, 0.6, 0.6, 0.8, 0.6, 0.6, 0.6, 0.6, 0.6,
-  0.6, 0.6, 0.6, 0.6, 0.6, 0.6
+  0.42, 0.8, 0.4, 0.44, 0.45, 0.43, 0.82, 0.48,
+  0.55, // WakeUpStep (was index 10)
+  0.55, // EndDayStep (was index 11)
+  0.6,  // SleepRhythmInsightStep (was index 9)
+  0.5, 0.8, 0.5, 0.5, 0.5, 0.58, 0.6, 0.6,
+  0.8, 0.6, 0.6, 0.6, 0.8, 0.6, 0.6, 0.6, 0.6,
+  0.6, 0.6, 0.6, 0.6, 0.6
 ];
 
 interface QuizStepClientProps {
@@ -262,34 +265,33 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   5: 'onboarding_img_We_care_about_your_privacy',  // PrivacyStep
   6: null,  // GeneralStep (no character)
   7: 'onboarding_img_Whats_the_rhythm_of_your_life',  // LifestyleStep
-  8: 'onboarding_img_How_long_do_you_usually_sleep',  // SleepStep
-  9: null,  // SleepRhythmInsightStep (insight - no character)
-  10: 'onboarding_img_usually_wake_up',  // WakeUpStep
-  11: 'onboarding_img_usually_end_your_day',  // EndDayStep
-  12: 'onboarding_img_get_stressed',  // StressStep
-  13: null,  // StressCopingInsightStep (insight - no character)
-  14: 'onboarding_img_work_environment',  // WorkEnvironmentStep
-  15: 'onboarding_img_skin_type',  // SkinTypeStep
-  16: 'onboarding_img_Skin_problems',  // SkinProblemsStep
-  17: null,  // SkinGlowInsightStep (insight - no character)
-  18: 'onboarding_img_hair_type',  // HairTypeStep
-  19: 'onboarding_img_Hair_problems',  // HairProblemsStep
-  20: 'onboarding_img_physical_activities',  // PhysicalActivitiesStep
-  21: 'onboarding_img_diet',  // DietStep
-  22: null,  // MomentumInsightStep (insight - no character)
-  23: null,  // MomentumCheckStep (insight - no character)
-  24: 'onboarding_img_mood',  // MoodStep
-  25: 'onboarding_img_energy',  // EnergyLevelStep
-  26: 'onboarding_img_procrastinate',  // ProcrastinationStep
-  27: 'onboarding_img_hard_to_focus',  // FocusStep
-  28: 'onboarding_img_become_organized',  // OrganizationInfluenceStep
-  29: 'onboarding_img_analyze_your_face',  // AnalysisIntroStep
-  30: null,  // PhotoUploadFaceStep - no character
-  31: null,  // PhotoUploadHairStep - no character
-  32: null,  // AIResultsStep - no character/image on top
-  33: null,  // CurrentConditionAnalysisStep (no character)
-  34: null,  // ChoosePlanStep (no character)
-  35: null,  // PricingStep (no character)
+  8: 'onboarding_img_usually_wake_up',  // WakeUpStep
+  9: 'onboarding_img_usually_end_your_day',  // EndDayStep
+  10: null,  // SleepRhythmInsightStep (insight - no character)
+  11: 'onboarding_img_get_stressed',  // StressStep
+  12: null,  // StressCopingInsightStep (insight - no character)
+  13: 'onboarding_img_work_environment',  // WorkEnvironmentStep
+  14: 'onboarding_img_skin_type',  // SkinTypeStep
+  15: 'onboarding_img_Skin_problems',  // SkinProblemsStep
+  16: null,  // SkinGlowInsightStep (insight - no character)
+  17: 'onboarding_img_hair_type',  // HairTypeStep
+  18: 'onboarding_img_Hair_problems',  // HairProblemsStep
+  19: 'onboarding_img_physical_activities',  // PhysicalActivitiesStep
+  20: 'onboarding_img_diet',  // DietStep
+  21: null,  // MomentumInsightStep (insight - no character)
+  22: null,  // MomentumCheckStep (insight - no character)
+  23: 'onboarding_img_mood',  // MoodStep
+  24: 'onboarding_img_energy',  // EnergyLevelStep
+  25: 'onboarding_img_procrastinate',  // ProcrastinationStep
+  26: 'onboarding_img_hard_to_focus',  // FocusStep
+  27: 'onboarding_img_become_organized',  // OrganizationInfluenceStep
+  28: 'onboarding_img_analyze_your_face',  // AnalysisIntroStep
+  29: null,  // PhotoUploadFaceStep - no character
+  30: null,  // PhotoUploadHairStep - no character
+  31: null,  // AIResultsStep - no character/image on top
+  32: null,  // CurrentConditionAnalysisStep (no character)
+  33: null,  // ChoosePlanStep (no character)
+  34: null,  // PricingStep (no character)
 };
 
     const imageName = stepToImageMap[step];
@@ -331,7 +333,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
 
   // Step 25 (PhotoUploadStep) doesn't need assistant character
 
-  const isFullScreen = stepNumber >= 33; // Post-quiz screens start from CurrentConditionAnalysis (now index 33)
+  const isFullScreen = stepNumber >= 32; // Post-quiz screens start from CurrentConditionAnalysis (now index 32)
   const isAutoTransitionScreen = false; // AI Analysis Intro was removed
 
   // ===== ALL HOOKS MUST BE BEFORE ANY CONDITIONAL RETURNS =====

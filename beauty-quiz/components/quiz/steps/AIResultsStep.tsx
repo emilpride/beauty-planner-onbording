@@ -368,11 +368,26 @@ export default function AIResultsStep() {
         }
       }, 25000)
       const { BodyImageUrl, BodyImageSkipped, ...sanitizedAnswers } = storeAnswers as any;
+      // Provide explicit numeric sleepHours to Gemini based on WakeUp/EndDay
+      const parseHHMM = (v?: string) => {
+        if (!v) return null
+        const [hh, mm] = v.split(':').map(Number)
+        if (Number.isNaN(hh) || Number.isNaN(mm)) return null
+        return hh * 60 + mm
+      }
+      const wakeMin = parseHHMM(storeAnswers.WakeUp)
+      const endMin = parseHHMM(storeAnswers.EndDay)
+      let sleepHours: number | null = null
+      if (wakeMin !== null && endMin !== null) {
+        let diff = wakeMin - endMin
+        if (diff <= 0) diff += 24 * 60
+        sleepHours = Math.round((diff / 60) * 10) / 10
+      }
       const payload = {
         userId: effectiveUserId,
         sessionId: storeAnswers.sessionId,
         events: storeAnswers.events,
-        answers: sanitizedAnswers,
+        answers: { ...sanitizedAnswers, sleepHours },
         photoUrls: {
           face: storeAnswers.FaceImageUrl,
           hair: storeAnswers.HairImageUrl,

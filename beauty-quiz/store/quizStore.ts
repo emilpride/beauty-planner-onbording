@@ -482,7 +482,7 @@ export const useQuizStore = create<QuizStore>()(
       analysis: null,
       uiSnapshots: {},
       currentStep: 0,
-  totalSteps: 36, // Reduced by 1 after removing Body photo step
+  totalSteps: 35, // Reduced by 1 after removing SleepStep
       isTransitioning: false,
       get sessionId() {
         return getOrCreateSessionId();
