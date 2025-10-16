@@ -8,15 +8,15 @@ export default function CameraOverlay({ mode, ok }: { mode: Mode; ok: boolean })
   const color = ok ? 'rgba(16,185,129,0.9)' : 'rgba(255,255,255,0.8)'
 
   return (
-    <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4 sm:p-8">
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3 md:p-6">
       {/* darken edges */}
-      <div className="absolute inset-0 bg-black/24" />
+      <div className="absolute inset-0 bg-black/20" />
       {mode === 'face' && (
         <div
           aria-label="face-guide"
           className="relative"
           style={{
-            width: 'clamp(240px, 68vmin, 520px)',
+            width: 'min(82vw, 70vmin)',
             aspectRatio: '3 / 4',
           }}
         >
@@ -27,7 +27,7 @@ export default function CameraOverlay({ mode, ok }: { mode: Mode; ok: boolean })
         </div>
       )}
       {mode === 'hair' && (
-        <div aria-label="hair-guide" className="relative" style={{ width: 'clamp(240px, 64vmin, 500px)', aspectRatio: '3 / 4' }}>
+  <div aria-label="hair-guide" className="relative" style={{ width: 'min(82vw, 66vmin)', aspectRatio: '3 / 4' }}>
           <svg viewBox="0 0 300 400" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
             {/* Top focus arc */}
             <path d="M40 120 C150 30, 150 30, 260 120" fill="none" stroke={color} strokeWidth={4} />
@@ -38,7 +38,7 @@ export default function CameraOverlay({ mode, ok }: { mode: Mode; ok: boolean })
         </div>
       )}
       {mode === 'body' && (
-        <div aria-label="body-guide" className="relative" style={{ width: 'clamp(260px, 58vmin, 520px)', aspectRatio: '9 / 16' }}>
+  <div aria-label="body-guide" className="relative" style={{ width: 'min(86vw, 60vmin)', aspectRatio: '9 / 16' }}>
           <svg viewBox="0 0 300 533" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
             {/* Head */}
             <circle cx="150" cy="70" r="32" fill="none" stroke={color} strokeWidth={3} />

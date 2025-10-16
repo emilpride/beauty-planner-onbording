@@ -299,16 +299,17 @@ export default function RegularCareResultsStep() {
   };
 
   return (
-    <motion.div
-      className="w-full h-[100dvh] bg-surface flex flex-col overflow-hidden"
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
-    >
+    <div className="w-full h-[100dvh] bg-surface flex flex-col overflow-hidden">
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scrollbar-hide min-h-0">
         <div className="max-w-md mx-auto p-6 pb-28 space-y-6">
           {/* Header */}
-          <motion.div className="text-center" variants={itemVariants}>
+          <motion.div
+            className="text-center"
+            variants={itemVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.4 }}
+          >
             <h1 className="text-3xl font-bold text-text-primary mb-3">Regular Care = Better Results!</h1>
             <p className="text-text-secondary">
               On average, our users improve their well-being by 30% within the first month!
@@ -322,6 +323,9 @@ export default function RegularCareResultsStep() {
               background: 'linear-gradient(135deg, rgba(var(--color-card-muted), 1) 0%, rgba(var(--color-primary), 0.08) 100%)',
             }}
             variants={itemVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.35 }}
           >
             {/* Legend: clarify it's BMS with/without app */}
             <div className="mb-3 flex items-center gap-4">
@@ -521,6 +525,9 @@ export default function RegularCareResultsStep() {
           className="w-full rounded-xl p-4 border border-border-subtle/60 shadow-soft"
           style={{ background: 'linear-gradient(135deg, rgba(var(--color-card-muted), 1) 0%, rgba(var(--color-primary), 0.06) 100%)' }}
           variants={itemVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.35 }}
         >
           {(() => {
             const maxYears = 100
@@ -659,6 +666,9 @@ export default function RegularCareResultsStep() {
           className="w-full rounded-xl p-4 border border-border-subtle/60 shadow-soft mt-6"
           style={{ background: 'linear-gradient(135deg, rgba(var(--color-card-muted), 1) 0%, rgba(var(--color-primary), 0.06) 100%)' }}
           variants={itemVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.35 }}
         >
           {(() => {
             const maxYears = 100
@@ -786,10 +796,14 @@ export default function RegularCareResultsStep() {
           })()}
         </motion.div>
 
-          {/* Before/After Images - unified width */}
+          {/* Before/After Images - unified width (hidden when BMI is already healthy) */}
+          {bmiCategory?.id !== 'healthy' && (
           <motion.div 
             className="w-full rounded-xl p-4 border border-border-subtle/60 shadow-soft" style={{ backgroundColor: 'rgb(var(--color-card-muted))' }}
             variants={itemVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.35 }}
           >
             <div className="flex items-center justify-center gap-2 sm:gap-3">
               {/* User's Current Result */}
@@ -846,9 +860,16 @@ export default function RegularCareResultsStep() {
               </motion.div>
             </div>
           </motion.div>
+          )}
 
           {/* Motivational Text */}
-          <motion.div className="text-center" variants={itemVariants}>
+          <motion.div
+            className="text-center"
+            variants={itemVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.35 }}
+          >
             <p className="text-text-primary text-lg">
               The more consistently you follow your routine, the better your beauty level becomes. See the difference for yourself!
             </p>
@@ -937,7 +958,13 @@ export default function RegularCareResultsStep() {
           </motion.div>
 
           {/* Testimonials with infinite drag loop */}
-          <motion.div className="w-full overflow-hidden relative cursor-grab active:cursor-grabbing" variants={itemVariants}>
+          <motion.div
+            className="w-full overflow-hidden relative cursor-grab active:cursor-grabbing"
+            variants={itemVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.35 }}
+          >
             <div className="pointer-events-none absolute inset-y-0 left-0 w-8 z-10" style={{background: 'linear-gradient(90deg, rgb(var(--color-surface)) 0%, rgba(255,255,255,0) 100%)'}} />
             <div className="pointer-events-none absolute inset-y-0 right-0 w-8 z-10" style={{background: 'linear-gradient(270deg, rgb(var(--color-surface)) 0%, rgba(255,255,255,0) 100%)'}} />
             <motion.div
@@ -1021,6 +1048,6 @@ export default function RegularCareResultsStep() {
           </motion.button>
         </div>
       </motion.div>
-    </motion.div>
+    </div>
   )
 }

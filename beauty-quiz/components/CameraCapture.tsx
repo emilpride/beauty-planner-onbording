@@ -30,11 +30,30 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
   const [flash, setFlash] = useState(false)
   const [finalizing, setFinalizing] = useState(false)
 
+  // Choose sensible mobile-first constraints to reduce letterboxing
+  const buildConstraints = (fm: 'user' | 'environment'): MediaStreamConstraints => {
+    // Match the stream aspect to the current viewport to avoid heavy cropping/zoom on mobile.
+    const w = typeof window !== 'undefined' ? Math.max(360, Math.min(1280, window.innerWidth)) : 720
+    const h = typeof window !== 'undefined' ? Math.max(640, Math.min(1920, window.innerHeight)) : 1280
+    const screenAR = typeof window !== 'undefined' && window.innerHeight > 0
+      ? window.innerWidth / window.innerHeight
+      : 3 / 4
+    return {
+      audio: false,
+      video: {
+        facingMode: fm,
+        width: { ideal: w },
+        height: { ideal: h },
+        aspectRatio: { ideal: screenAR },
+      },
+    }
+  }
+
   // Request camera with the desired facingMode
   const startCamera = async (mode: 'user' | 'environment') => {
     try {
       setVideoReady(false)
-      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: mode } })
+      const s = await navigator.mediaDevices.getUserMedia(buildConstraints(mode))
       // Stop any existing tracks before swapping streams
       if (activeStreamRef.current) {
         activeStreamRef.current.getTracks().forEach((track) => track.stop())
@@ -305,8 +324,10 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95">
-      <div className="relative bg-black rounded-xl overflow-hidden flex flex-col items-center sm:rounded-none sm:justify-center sm:items-center"
-           style={{ width: 'min(90vw, 56vmin)', height: 'min(90vh, 74vmin)', aspectRatio: '3 / 4' }}>
+      {/* Full-bleed camera on mobile; centered card on larger screens */}
+      <div
+        className="relative w-screen h-screen overflow-hidden bg-black md:w-[56vmin] md:h-[74vmin] md:max-w-[90vw] md:max-h-[90vh] md:aspect-[3/4] md:rounded-xl md:flex md:flex-col md:items-center md:justify-center"
+      >
         {error ? (
           <div className="text-white p-8">{error}</div>
         ) : (
@@ -315,7 +336,7 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
             autoPlay
             playsInline
             muted
-            className={`w-full h-full object-cover bg-black ${facingMode === 'user' ? 'scale-x-[-1]' : ''} ${previewUrl && previewBlob ? 'opacity-0' : 'opacity-100'}`}
+            className={`absolute inset-0 w-full h-full object-cover bg-black [transform:translateZ(0)] md:object-contain ${facingMode === 'user' ? 'scale-x-[-1]' : ''} ${previewUrl && previewBlob ? 'opacity-0' : 'opacity-100'}`}
             style={{ transform: facingMode === 'user' ? 'scaleX(-1)' as any : undefined }}
           />
         )}
@@ -323,7 +344,7 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
         <CameraOverlay mode={mode} ok={guideOk} />
         {/* Top instructions */}
         {!error && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-black/55 text-white text-sm font-medium shadow">
+          <div className="absolute top-3 md:top-4 left-1/2 -translate-x-1/2 px-2.5 py-1.5 md:px-3 rounded-full bg-black/55 text-white text-xs md:text-sm font-medium shadow">
             {topInstruction}
           </div>
         )}
@@ -332,27 +353,27 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
         <button
           onClick={handleCapture}
           disabled={!!error || capturing || !!previewUrl || !!previewBlob || finalizing}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur text-black rounded-full w-20 h-20 flex items-center justify-center shadow-xl border-4 border-white active:scale-95 transition"
+          className="absolute bottom-5 md:bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur text-black rounded-full w-16 h-16 md:w-20 md:h-20 flex items-center justify-center shadow-xl border-4 border-white active:scale-95 transition"
           aria-label="Take a photo"
         >
           {capturing ? (
             <span className="text-lg animate-pulse">•••</span>
           ) : (
-            <div className="w-14 h-14 rounded-full bg-white border-2 border-zinc-300 shadow-inner" />
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white border-2 border-zinc-300 shadow-inner" />
           )}
         </button>
         {!guideOk && !capturing && !error && (
-          <div className="absolute bottom-28 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-black/55 text-white text-sm font-medium shadow">
+          <div className="absolute bottom-24 md:bottom-28 left-1/2 -translate-x-1/2 px-2.5 py-1.5 md:px-3 rounded-full bg-black/55 text-white text-xs md:text-sm font-medium shadow">
             {hint || (mode === 'body' ? 'Step back a bit · keep centered' : 'Move closer · center your face')}
           </div>
         )}
         <button
           onClick={handleSwitchCamera}
-          className="absolute bottom-6 right-6 bg-black/60 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-black/80 border border-white/30"
+          className="absolute bottom-5 md:bottom-6 right-5 md:right-6 bg-black/60 text-white rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center hover:bg-black/80 border border-white/30"
           title="Switch camera"
           aria-label="Switch camera"
         >
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="24" height="24" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M7 14a7 7 0 0 1 7-7h2.17l-1.59-1.59a1 1 0 1 1 1.42-1.42l3.3 3.3a1 1 0 0 1 0 1.42l-3.3 3.3a1 1 0 1 1-1.42-1.42L16.17 9H14a5 5 0 0 0-5 5 1 1 0 1 1-2 0Zm14 0a1 1 0 1 1-2 0 7 7 0 0 1-7 7h-2.17l1.59 1.59a1 1 0 1 1-1.42 1.42l-3.3-3.3a1 1 0 0 1 0-1.42l3.3-3.3a1 1 0 1 1 1.42 1.42L11.83 19H14a5 5 0 0 0 5-5 1 1 0 1 1 2 0Z" fill="#fff"/>
           </svg>
         </button>
@@ -369,7 +390,7 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
             }
             onCancel()
           }}
-          className="absolute top-3 right-3 bg-black/60 text-white rounded-full w-9 h-9 flex items-center justify-center hover:bg-black/80"
+          className="absolute top-2.5 right-2.5 md:top-3 md:right-3 bg-black/60 text-white rounded-full w-9 h-9 flex items-center justify-center hover:bg-black/80"
           aria-label="Close"
         >
           <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">

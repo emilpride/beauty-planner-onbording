@@ -109,9 +109,20 @@ export default function ContractAgreementStep() {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const getPos = (clientX: number, clientY: number) => {
+    const getNormalizedPos = (clientX: number, clientY: number) => {
+      // Map client coordinates to canvas drawing coordinates in CSS pixels,
+      // independent of DPR and CSS scaling.
       const rect = canvas.getBoundingClientRect()
-      return { x: clientX - rect.left, y: clientY - rect.top }
+      const dpr = window.devicePixelRatio || 1
+      const cssX = clientX - rect.left
+      const cssY = clientY - rect.top
+      // If canvas backing size != rect size (due to DPR/resize), compensate.
+      const scaleX = rect.width > 0 ? canvas.width / rect.width : dpr
+      const scaleY = rect.height > 0 ? canvas.height / rect.height : dpr
+      // Our ctx is scaled by dpr (see init), so convert back to CSS space.
+      const x = cssX * (scaleX / dpr)
+      const y = cssY * (scaleY / dpr)
+      return { x, y }
     }
 
     const onTouchStart = (ev: TouchEvent) => {
@@ -121,7 +132,7 @@ export default function ContractAgreementStep() {
       const t = ev.changedTouches[0]
       activeTouchIdRef.current = t.identifier
       touchActiveRef.current = true
-      const { x, y } = getPos(t.clientX, t.clientY)
+      const { x, y } = getNormalizedPos(t.clientX, t.clientY)
       const ctx = canvas.getContext('2d')
       if (ctx) {
         ctx.beginPath()
@@ -151,7 +162,7 @@ export default function ContractAgreementStep() {
       }
       const t = targetTouch ?? ev.touches[0]
       if (!t) return
-      const { x, y } = getPos(t.clientX, t.clientY)
+      const { x, y } = getNormalizedPos(t.clientX, t.clientY)
       pointsRef.current.push({ x, y })
       // Draw smoothed segment using quadratic curve to midpoint
       const last = lastPtRef.current
@@ -226,8 +237,11 @@ export default function ContractAgreementStep() {
     // Re-initialize in case DPR or theme changed silently since last stroke or after clear
     initCanvasRef.current?.()
     const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    const dpr = window.devicePixelRatio || 1
+    const scaleX = rect.width > 0 ? canvas.width / rect.width : dpr
+    const scaleY = rect.height > 0 ? canvas.height / rect.height : dpr
+    const x = (e.clientX - rect.left) * (scaleX / dpr)
+    const y = (e.clientY - rect.top) * (scaleY / dpr)
 
     // capture pointer to continue receiving events
     e.currentTarget.setPointerCapture?.(e.pointerId)
@@ -263,9 +277,12 @@ export default function ContractAgreementStep() {
     if (!ctx) return
 
     const rect = canvas.getBoundingClientRect()
+    const dpr = window.devicePixelRatio || 1
+    const scaleX = rect.width > 0 ? canvas.width / rect.width : dpr
+    const scaleY = rect.height > 0 ? canvas.height / rect.height : dpr
     const processPoint = (clientX: number, clientY: number) => {
-      const x = clientX - rect.left
-      const y = clientY - rect.top
+      const x = (clientX - rect.left) * (scaleX / dpr)
+      const y = (clientY - rect.top) * (scaleY / dpr)
       pointsRef.current.push({ x, y })
       // Smooth with quadratic curve to midpoint
       const last = lastPtRef.current

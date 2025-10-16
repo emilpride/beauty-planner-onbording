@@ -246,6 +246,7 @@ export default function LoadingAnimation({ onComplete, duration = 3000 }: Loadin
             {Math.round(progress)}%
           </p>
         </div>
+        {/* No testimonials here per request */}
       </div>
     </div>
   )
