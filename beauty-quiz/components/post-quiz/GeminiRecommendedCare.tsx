@@ -242,8 +242,8 @@ export default function GeminiRecommendedCare({ aiModel }: { aiModel: any }) {
       viewport={{ once: true, amount: 0.2 }}
       variants={containerVariants}
     >
-      <motion.h3 className="text-lg font-semibold text-text-primary mb-1">Recommended Care</motion.h3>
-      <motion.p className="text-sm text-text-secondary mb-4">Based on Gemini analysis, here’s your tailored plan.</motion.p>
+  <motion.h3 className="text-lg font-semibold text-text-primary mb-1">Recommended Care</motion.h3>
+  <motion.p className="text-sm text-text-secondary mb-4">Personalized activities to improve your wellness.</motion.p>
 
       <div className="space-y-6">
         {grouped.map((group) => (

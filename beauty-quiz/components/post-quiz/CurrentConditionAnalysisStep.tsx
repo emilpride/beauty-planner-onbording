@@ -628,6 +628,144 @@ export default function CurrentConditionAnalysisStep() {
                 </div>
               </motion.article>
 
+              
+
+              {/* Age Snapshot — duplicated from Regular Care */}
+              <motion.div
+                className="w-full rounded-3xl p-6 border border-border-subtle/60 shadow-soft mt-6 bg-surface/95"
+                variants={fadeSlide}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ amount: 0.4, once: true }}
+              >
+                {(() => {
+                  const maxYears = 100
+                  // Derive chronological age
+                  const parseAge = (): number => {
+                    const a = (answers as any)?.Age
+                    if (typeof a === 'number' && Number.isFinite(a)) return Math.max(0, Math.min(120, Math.floor(a)))
+                    const bd = (answers as any)?.BirthDate
+                    if (typeof bd === 'string' && bd) {
+                      const d = new Date(bd)
+                      if (!isNaN(d.getTime())) {
+                        const now = new Date()
+                        let age = now.getFullYear() - d.getFullYear()
+                        const m = now.getMonth() - d.getMonth()
+                        if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--
+                        return Math.max(0, Math.min(120, age))
+                      }
+                    }
+                    return 30
+                  }
+                  const currentAge = Math.round(parseAge())
+                  // Base BMS value from AI model (fallback 6)
+                  const baseBms = (() => {
+                    const v = (aiModel as any)?.bmsScore
+                    if (typeof v === 'number' && Number.isFinite(v)) return Math.min(10, Math.max(0, Number(v)))
+                    return 6
+                  })()
+                  // Biological age based on BMS (lower BMS -> older biological age)
+                  // zero point near BMS=6 (neutral), ~1.2 years per point deviation
+                  const bioDelta = Math.round((6 - baseBms) * 1.2)
+                  const maxBio = 100
+                  const rawBiological = Math.min(maxBio, Math.max(14, currentAge + bioDelta))
+                  // Ensure Biological is always slightly above Current
+                  const biologicalAge = Math.max(currentAge + 1, rawBiological)
+
+                  // Projected Life Expectancy (realistic/worse scenario)
+                  // Reuse baseline expectancy with sex-based defaults
+                  const isFemale = (answers as any)?.Gender === 1
+                  const baseLifeExpectancy = isFemale ? 84 : 80
+                  const remaining = Math.max(0, baseLifeExpectancy - currentAge)
+                  const decayPct = 0.02
+                  const projectedYears = Math.min(maxYears, Math.max(currentAge, baseLifeExpectancy - remaining * decayPct))
+                  const projectedYearsInt = Math.round(projectedYears)
+                  // Slight height boost to raise bars visually
+                  const h = (years: number) => `${Math.min((years / maxYears) * 100 * 1.3, 100)}%`
+                  return (
+                    <>
+                      <div className="mb-4">
+                        <h4 className="text-lg font-bold text-text-primary mb-1">Age Snapshot & Life Expectancy</h4>
+                        <div className="text-sm text-text-secondary">Lower is better (biological). Includes projected life expectancy.</div>
+                      </div>
+
+                      <div className="relative w-full h-56 mb-4">
+                        {/* Grid lines */}
+                        <div className="absolute inset-0 z-0">
+                          {[0, 25, 50, 75, 100].map((percent) => (
+                            <div key={percent} className="absolute w-full border-b border-dashed border-border-subtle/20" style={{ bottom: `${percent}%` }} />
+                          ))}
+                        </div>
+
+                        {/* Bars container */}
+                        <div className="absolute inset-0 flex items-end justify-center gap-10 px-8 z-10">
+                          {/* Bar 1: Current (Chronological) */}
+                          <div className="flex items-end justify-center flex-1 max-w-[100px] h-full">
+                            <motion.div
+                              className="w-full rounded-t-[12px] rounded-b-[6px] relative shadow-[0_6px_14px_rgba(0,0,0,0.12)] overflow-visible"
+                              style={{ background: 'linear-gradient(180deg, rgba(138,96,255,0.95) 0%, rgba(163,133,233,0.75) 100%)' }}
+                              initial={{ height: 0, transformOrigin: 'bottom' }}
+                              whileInView={{ height: h(currentAge), transformOrigin: 'bottom' }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 0.8, delay: 0.2 }}
+                            >
+                              <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-sm font-semibold text-text-primary">{Math.round(currentAge)} yrs</div>
+                              <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[12px] pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 100%)' }} />
+                            </motion.div>
+                          </div>
+
+                          {/* Bar 2: Biological (current) */}
+                          <div className="flex items-end justify-center flex-1 max-w-[100px] h-full">
+                            <motion.div
+                              className="w-full rounded-t-[12px] rounded-b-[6px] relative shadow-[0_6px_14px_rgba(0,0,0,0.12)] overflow-visible"
+                              style={{ background: 'linear-gradient(180deg, rgba(255,138,80,0.95) 0%, rgba(138,96,255,0.25) 100%)' }}
+                              initial={{ height: 0, transformOrigin: 'bottom' }}
+                              whileInView={{ height: h(biologicalAge), transformOrigin: 'bottom' }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 0.8, delay: 0.4 }}
+                            >
+                              <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-sm font-semibold text-text-primary">{Math.round(biologicalAge)} yrs</div>
+                              <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[12px] pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 100%)' }} />
+                            </motion.div>
+                          </div>
+
+                          {/* Bar 3: Projected Life Expectancy (realistic) */}
+                          <div className="flex items-end justify-center flex-1 max-w-[100px] h-full">
+                            <motion.div
+                              className="w-full rounded-t-[12px] rounded-b-[6px] relative shadow-[0_6px_14px_rgba(0,0,0,0.12)] overflow-visible"
+                              style={{ background: 'linear-gradient(180deg, rgba(255,166,77,0.95) 0%, rgba(254,108,108,0.85) 100%)' }}
+                              initial={{ height: 0, transformOrigin: 'bottom' }}
+                              whileInView={{ height: h(projectedYears), transformOrigin: 'bottom' }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 0.8, delay: 0.6 }}
+                            >
+                              <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-sm font-semibold text-text-primary">{projectedYearsInt} yrs</div>
+                              <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-[12px] pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 100%)' }} />
+                            </motion.div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bar captions */}
+                      <div className="px-8 grid grid-cols-3 gap-10 -mt-2 mb-2">
+                        <div className="text-center">
+                          <div className="text-sm font-semibold text-text-primary">Current</div>
+                          <div className="text-xs text-text-secondary">Chronological</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-semibold text-text-primary">Biological</div>
+                          <div className="text-xs text-text-secondary">(current)</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-semibold text-text-primary">Life Expectancy</div>
+                          <div className="text-xs text-text-secondary">Projected (realistic)</div>
+                        </div>
+                      </div>
+                    </>
+                  )
+                })()}
+              </motion.div>
+
               {/* Consolidated recommended care at bottom */}
               <GeminiRecommendedCare aiModel={aiModel} />
             </>
