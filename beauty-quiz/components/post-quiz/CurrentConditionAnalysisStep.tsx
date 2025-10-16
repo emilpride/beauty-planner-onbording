@@ -552,10 +552,13 @@ export default function CurrentConditionAnalysisStep() {
                         <span className="text-3xl font-bold" style={{ color: bmiNumberColorAnimated }}>
                           {Number.isFinite(bmiAnimatedDisplay) ? bmiAnimatedDisplay.toFixed(1) : '—'}
                         </span>
-                        <img
+                        <motion.img
                           src={getPersonImage(answers.Gender === 2 ? 'female' : 'male', bmiCategory)}
                           alt="BMI reference"
                           className="w-80 h-80 rounded-xl object-contain bg-white/80"
+                          initial={{ x: 100, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ duration: 0.8, delay: 0.5, ease: 'easeOut' }}
                         />
                       </div>
                     </div>
@@ -570,10 +573,14 @@ export default function CurrentConditionAnalysisStep() {
                 const score = typeof aiForId.score === 'number' ? Number(aiForId.score) : null
                 const scoreColor = score != null ? getBandColor(score) : getBandColor(null)
                 const explanation = typeof aiForId.explanation === 'string' ? aiForId.explanation : ''
+                // Match BMS ring category colors (skin: blue, hair: green, physical: amber, mental: pink)
+                const baseCategoryColor = id === 'skin' ? '#60A5FA' : id === 'hair' ? '#6EE7B7' : id === 'physic' ? '#FBBF24' : '#F472B6'
+                const bgColor = baseCategoryColor + '33' // add 20% alpha
                 return (
                   <motion.article 
                     key={id} 
-                    className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft"
+                    className="rounded-3xl border border-border-subtle/60 p-6 shadow-soft"
+                    style={{ backgroundColor: bgColor }}
                     variants={fadeSlide}
                     initial="hidden"
                     whileInView="visible"
@@ -601,30 +608,36 @@ export default function CurrentConditionAnalysisStep() {
                   <h2 className="text-lg font-semibold text-text-primary">Beauty Mirror Score (BMS)</h2>
                 </div>
                 <div className="flex items-center justify-center">
-                  <BmsRing
-                    size={240}
-                    thickness={28}
-                    gapDeg={18}
-                    overall={bmsInView ? bmsAnimated : 0}
-                    scores={{
-                      skin: aiModel?.skinCondition?.score ?? 6,
-                      hair: aiModel?.hairCondition?.score ?? 6,
-                      physic: aiModel?.physicalCondition?.score ?? 6,
-                      mental: aiModel?.mentalCondition?.score ?? 6,
-                    }}
-                    icons={{
-                      skin: '/icons/misc/skin.svg',
-                      hair: '/icons/misc/hair.svg',
-                      physic: '/icons/misc/physic.svg',
-                      mental: '/icons/misc/psychology.svg',
-                    }}
-                    colors={{
-                      skin: '#6EE7B7',     // teal/green for Skin
-                      hair: '#60A5FA',     // blue for Hair
-                      physic: '#FBBF24',   // amber/yellow for Physical
-                      mental: '#F472B6',   // pink for Mental
-                    }}
-                  />
+                  {(() => {
+                    // Single source of truth for category colors (aligns with visual expectation: skin is blue)
+                    const CATEGORY_COLORS: Record<'skin'|'hair'|'physic'|'mental', string> = {
+                      skin: '#60A5FA',   // blue for Skin
+                      hair: '#6EE7B7',   // green/teal for Hair
+                      physic: '#FBBF24', // amber/yellow for Physical
+                      mental: '#F472B6', // pink for Mental
+                    }
+                    return (
+                      <BmsRing
+                        size={240}
+                        thickness={28}
+                        gapDeg={18}
+                        overall={bmsInView ? bmsAnimated : 0}
+                        scores={{
+                          skin: aiModel?.skinCondition?.score ?? 6,
+                          hair: aiModel?.hairCondition?.score ?? 6,
+                          physic: aiModel?.physicalCondition?.score ?? 6,
+                          mental: aiModel?.mentalCondition?.score ?? 6,
+                        }}
+                        icons={{
+                          skin: '/icons/misc/skin.svg',
+                          hair: '/icons/misc/hair.svg',
+                          physic: '/icons/misc/physic.svg',
+                          mental: '/icons/misc/psychology.svg',
+                        }}
+                        colors={CATEGORY_COLORS}
+                      />
+                    )
+                  })()}
                 </div>
               </motion.article>
 
@@ -773,7 +786,7 @@ export default function CurrentConditionAnalysisStep() {
         </section>
 
         {/* Next button */}
-        <div className="sticky bottom-0 left-0 right-0 mt-2">
+        <div className="mt-2">
           <div className="mx-auto max-w-2xl px-5 pb-5">
             <button
               onClick={() => router.push('/premium-intro')}
