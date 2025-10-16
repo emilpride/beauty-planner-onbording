@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore, ActivityItem, DietItem } from '@/store/quizStore'
@@ -56,7 +57,7 @@ export default function MomentumInsightStep() {
 
       <div className="space-y-6 text-left">
         {/* Animated Energy Pulse Background */}
-        <div className="relative overflow-hidden rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft min-h-[180px]">
+  <div className="relative overflow-hidden rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft min-h-[180px]">
           {/* Multiple animated pulse rings */}
           {[0, 1, 2].map((i) => (
             <motion.div
@@ -74,25 +75,40 @@ export default function MomentumInsightStep() {
             animate={{ rotate: [0, 360] }}
             transition={{ repeat: Infinity, duration: 18, ease: 'linear' }}
           />
-          <div className="relative space-y-3 z-10">
-            <motion.p
-              className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-            >Routine sync</motion.p>
-            <motion.h3
-              className="text-lg font-semibold text-text-primary"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35, duration: 0.6 }}
-            >{summary.headline}</motion.h3>
-            <motion.p
-              className="text-sm leading-relaxed text-text-secondary"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.6 }}
-            >{summary.blurb}</motion.p>
+          <div className="relative z-10 grid grid-cols-[1fr_auto] gap-4 items-center">
+            <div className="space-y-3">
+              <motion.p
+                className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.6 }}
+              >Routine sync</motion.p>
+              <motion.h3
+                className="text-lg font-semibold text-text-primary"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35, duration: 0.6 }}
+              >{summary.headline}</motion.h3>
+              <motion.p
+                className="text-sm leading-relaxed text-text-secondary"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.6 }}
+              >{summary.blurb}</motion.p>
+            </div>
+            {/* Circular assistant image on the right */}
+            <div className="relative h-20 w-20 rounded-full overflow-hidden ring-2 ring-primary/30 shadow-soft justify-self-end">
+              <Image
+                src={answers.assistant === 2
+                  ? '/images/on_boarding_images/onboarding_img_physical_activities_ellie.png'
+                  : '/images/on_boarding_images/onboarding_img_physical_activities_max.png'}
+                alt="Assistant"
+                fill
+                className="object-cover object-center"
+                sizes="80px"
+                priority
+              />
+            </div>
           </div>
         </div>
 
@@ -160,20 +176,7 @@ export default function MomentumInsightStep() {
           </div>
         </div>
 
-        <motion.div
-          className="rounded-3xl border border-border-subtle/60 bg-surface/95 p-5 shadow-soft"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7, duration: 0.7, type: 'spring', stiffness: 120 }}
-        >
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary">Mood today</p>
-          <motion.p
-            className="mt-2 text-sm leading-relaxed text-text-secondary"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9, duration: 0.5 }}
-          >{moodMessage}</motion.p>
-        </motion.div>
+        {/* Removed Mood today block as requested */}
       </div>
     </OnboardingStep>
   )

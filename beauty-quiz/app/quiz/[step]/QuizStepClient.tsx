@@ -95,7 +95,7 @@ const cardHeights = [
   0.55, // EndDayStep (was index 11)
   0.6,  // SleepRhythmInsightStep (was index 9)
   0.5, 0.8, 0.5, 0.5, 0.5, 0.58, 0.6, 0.6,
-  0.8, 0.6, 0.6, 0.6, 0.8, 0.6, 0.6, 0.6, 0.6,
+  0.8, 0.6, 0.6, 0.6, 0.8, /* 19 PhysicalActivities */ 0.78, 0.6, 0.6, 0.6,
   0.6, 0.6, 0.6, 0.6, 0.6
 ];
 
@@ -276,7 +276,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   16: null,  // SkinGlowInsightStep (insight - no character)
   17: 'onboarding_img_hair_type',  // HairTypeStep
   18: 'onboarding_img_Hair_problems',  // HairProblemsStep
-  19: 'onboarding_img_physical_activities',  // PhysicalActivitiesStep
+  19: null,  // PhysicalActivitiesStep - remove character to maximize selection area
   20: 'onboarding_img_diet',  // DietStep
   21: null,  // MomentumInsightStep (insight - no character)
   22: null,  // MomentumCheckStep (insight - no character)
