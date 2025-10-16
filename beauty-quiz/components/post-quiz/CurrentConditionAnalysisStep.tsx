@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import GeminiRecommendedCare from '@/components/post-quiz/GeminiRecommendedCare'
+import BmsRing from '@/components/post-quiz/BmsRing'
 import { useQuizStore } from '@/store/quizStore'
 
 const BMI_CATEGORIES = [
@@ -613,19 +614,23 @@ export default function CurrentConditionAnalysisStep() {
                   <h2 className="text-lg font-semibold text-text-primary">Beauty Mirror Score (BMS)</h2>
                 </div>
                 <div className="flex items-center justify-center">
-                  <span className="text-5xl font-semibold" style={{ color: bmsColor }}>{bmsInView ? bmsAnimated.toFixed(1) : '0.0'}</span>
-                </div>
-                {/* Horizontal gradient bar (rotated version of BMI bar) with animated indicator */}
-                <div className="relative mx-auto mt-4 h-6 w-full max-w-md rounded-full" style={{ background: 'linear-gradient(90deg,#FF7D7E 0%,#FFA64D 25%,#FBF447 50%,#33C75A 75%,#53E5FF 100%)' }}>
-                  <motion.div
-                    className="absolute top-1/2"
-                    initial={{ left: '0%' }}
-                    animate={{ left: bmsInView ? `${bmsPosition * 100}%` : '0%' }}
-                    transition={{ duration: 0.9, ease: 'easeOut' }}
-                    style={{ transform: 'translate(-50%, -50%)' }}
-                  >
-                    <div className="w-8 h-8 rounded-full bg-white shadow-soft ring-1 ring-black/10" />
-                  </motion.div>
+                  <BmsRing
+                    size={240}
+                    thickness={14}
+                    overall={bmsInView ? bmsAnimated : 0}
+                    scores={{
+                      skin: aiModel?.skinCondition?.score ?? 6,
+                      hair: aiModel?.hairCondition?.score ?? 6,
+                      physic: aiModel?.physicalCondition?.score ?? 6,
+                      mental: aiModel?.mentalCondition?.score ?? 6,
+                    }}
+                    icons={{
+                      skin: '/icons/misc/skin.svg',
+                      hair: '/icons/misc/hair.svg',
+                      physic: '/icons/misc/physic.svg',
+                      mental: '/icons/misc/psychology.svg',
+                    }}
+                  />
                 </div>
               </motion.article>
 

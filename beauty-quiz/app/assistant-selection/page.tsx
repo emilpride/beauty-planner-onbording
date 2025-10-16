@@ -48,6 +48,7 @@ const ASSISTANT_ABILITIES = {
 export default function AssistantSelectionPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [isExiting, setIsExiting] = useState(false)
   const [isHydrated, setIsHydrated] = useState(false)
   const [selectedAssistant, setSelectedAssistant] = useState<1 | 2 | null>(null)
   const { hydrate, setAnswer } = useQuizStore()
@@ -119,7 +120,11 @@ export default function AssistantSelectionPage() {
     setAnswer('assistant', selectedAssistant)
     // Auto-assign gender based on assistant selection (1=Max -> male, 2=Ellie -> female, 3=Dave -> male)
     setAnswer('Gender', selectedAssistant === 2 ? 2 : 1)
-    router.push('/assistant-welcome')
+    // Play a gentle exit animation of the card, then navigate
+    setIsExiting(true)
+    setTimeout(() => {
+      router.push('/assistant-welcome')
+    }, 260)
   }
 
   if (!isHydrated) {
@@ -135,7 +140,16 @@ export default function AssistantSelectionPage() {
       <style>{animationStyles}</style>
       <div className="min-h-[100dvh] flex items-center justify-center p-4 relative overflow-hidden">
         <AnimatedBackground />
-  <div className="max-w-md w-full text-center rounded-3xl border border-border-subtle/70 bg-surface/90 p-8 shadow-elevated backdrop-blur relative z-10 -translate-y-[10vh] sm:-translate-y-[5vh] md:-translate-y-[1vh]">
+        <AnimatePresence mode="wait">
+          {!isExiting && (
+            <motion.div
+              key="assistantCard"
+              initial={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
+              transition={{ duration: 0.28, ease: 'easeOut' }}
+              className="max-w-md w-full text-center rounded-3xl border border-border-subtle/70 bg-surface/90 p-8 shadow-elevated backdrop-blur relative z-10 -translate-y-[10vh] sm:-translate-y-[5vh] md:-translate-y-[1vh]"
+            >
           <div className="absolute top-4 left-4">
             <button
               onClick={() => router.push('/welcome')}
@@ -235,14 +249,16 @@ export default function AssistantSelectionPage() {
             )}
           </AnimatePresence>
 
-          <button
-            onClick={startQuiz}
-            disabled={isLoading || selectedAssistant === null}
-            className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3.5 rounded-xl transition-all duration-200 disabled:opacity-50"
-          >
-            {isLoading ? 'Loading...' : 'Continue'}
-          </button>
-        </div>
+              <button
+                onClick={startQuiz}
+                disabled={isLoading || selectedAssistant === null}
+                className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3.5 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Loading...' : 'Continue'}
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </>
   )

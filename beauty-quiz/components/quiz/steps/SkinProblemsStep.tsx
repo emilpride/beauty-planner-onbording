@@ -10,6 +10,8 @@ const problems = [
   { id: "redness", title: "Redness" },
   { id: "blackheads", title: "Blackheads" },
   { id: "pores", title: "Pores" },
+  { id: "pigmentation", title: "Pigmentation" },
+  { id: "sensitivity", title: "Sensitivity" },
   { id: "wrinkles", title: "Wrinkles" },
   { id: "dark-circles", title: "Dark Circles" },
   { id: "dryness", title: "Dryness" },
@@ -65,7 +67,7 @@ export default function SkinProblemsStep() {
       skipText="Skip"
       onSkip={handleSkip}
     >
-      <div className="flex flex-wrap gap-2 py-1">
+      <div className="flex flex-wrap gap-3 py-2">
         {problems.map((problem) => {
           const isSelected = answers.SkinProblems.find(p => p.id === problem.id)?.isActive || false
           return (

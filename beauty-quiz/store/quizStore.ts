@@ -365,6 +365,8 @@ export const initialAnswers: UserModel = {
     { id: "redness", title: "Redness", isActive: false },
     { id: "blackheads", title: "Blackheads", isActive: false },
     { id: "pores", title: "Pores", isActive: false },
+    { id: "pigmentation", title: "Pigmentation", isActive: false },
+    { id: "sensitivity", title: "Sensitivity", isActive: false },
     { id: "wrinkles", title: "Wrinkles", isActive: false },
     { id: "dark-circles", title: "Dark Circles", isActive: false },
     { id: "dryness", title: "Dryness", isActive: false },

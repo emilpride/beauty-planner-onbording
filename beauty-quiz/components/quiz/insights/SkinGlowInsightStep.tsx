@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore, ProblemItem } from '@/store/quizStore'
 
@@ -113,50 +114,19 @@ export default function SkinGlowInsightStep() {
 
   return (
     <OnboardingStep title="Skin care matters" subtitle="Personalized guidance from AI — right after the quiz" buttonText="Continue" centerContent>
-      {/* Brand Aurora animation (no assessments) */}
+      {/* Centered circular assistant image instead of animation */}
       <div className="w-full flex items-center justify-center py-2">
-        <div className="relative w-full max-w-[320px] aspect-square select-none" aria-hidden="true">
-          {/* Soft backdrop */}
-          <div className="absolute inset-0 rounded-3xl" style={{ background: '#F0F4FF' }} />
-
-          {/* Aurora blobs using brand colors */}
-          <div className="absolute inset-0 overflow-hidden rounded-3xl" style={{ filter: 'blur(40px)' }}>
-            <div
-              className="absolute rounded-full"
-              style={{
-                width: '70%', height: '70%', left: '-10%', top: '0%',
-                background: 'radial-gradient(60% 60% at 50% 50%, #8A60FF 0%, rgba(138,96,255,0) 70%)',
-                animation: 'floatA 16s ease-in-out infinite',
-              }}
-            />
-            <div
-              className="absolute rounded-full"
-              style={{
-                width: '65%', height: '65%', right: '-8%', top: '20%',
-                background: 'radial-gradient(60% 60% at 50% 50%, #53E5FF 0%, rgba(83,229,255,0) 70%)',
-                animation: 'floatB 18s ease-in-out infinite',
-              }}
-            />
-            <div
-              className="absolute rounded-full"
-              style={{
-                width: '60%', height: '60%', left: '15%', bottom: '-10%',
-                background: 'radial-gradient(60% 60% at 50% 50%, #FF99CC 0%, rgba(255,153,204,0) 70%)',
-                animation: 'floatC 20s ease-in-out infinite',
-              }}
-            />
-          </div>
-
-          {/* Subtle conic shimmer */}
-          <div className="absolute inset-0 rounded-3xl pointer-events-none" style={{ maskImage: 'radial-gradient(70% 70% at 50% 50%, black 60%, transparent 100%)' }}>
-            <div
-              className="absolute inset-0 rounded-3xl opacity-30"
-              style={{
-                background: 'conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,0.3), rgba(255,255,255,0) 60%)',
-                animation: 'spinBrand 24s linear infinite',
-              }}
-            />
-          </div>
+        <div className="relative w-[220px] h-[220px] rounded-full overflow-hidden ring-2 ring-primary/30 shadow-soft">
+          <Image
+            src={answers.assistant === 2
+              ? '/images/on_boarding_images/onboarding_img_Skin_problems_ellie.png'
+              : '/images/on_boarding_images/onboarding_img_Skin_problems_max.png'}
+            alt="Assistant"
+            fill
+            className="object-cover object-center"
+            sizes="220px"
+            priority
+          />
         </div>
       </div>
 
@@ -169,30 +139,7 @@ export default function SkinGlowInsightStep() {
         Not medical advice. For medical concerns, consult a qualified professional.
       </p>
 
-      <style jsx>{`
-        @keyframes floatA {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(12%, -6%) scale(1.03); }
-          66% { transform: translate(-6%, 8%) scale(0.98); }
-        }
-        @keyframes floatB {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(-10%, 6%) scale(1.04); }
-          66% { transform: translate(8%, -6%) scale(0.99); }
-        }
-        @keyframes floatC {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(6%, 10%) scale(0.97); }
-          66% { transform: translate(-8%, -4%) scale(1.02); }
-        }
-        @keyframes spinBrand {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          * { animation: none !important; transition: none !important; }
-        }
-      `}</style>
+      {/* Removed brand aurora animation and associated styles */}
     </OnboardingStep>
   )
 }
