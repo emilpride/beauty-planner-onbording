@@ -6,8 +6,8 @@ import OnboardingStep from '@/components/quiz/OnboardingStep'
 import { useQuizStore, ActivityItem, DietItem } from '@/store/quizStore'
 
 const getMomentumProfile = (activities: ActivityItem[], diet: DietItem[], mood: string) => {
-  const activityCount = activities?.filter(a => a.isActive).length || 0
-  const dietCount = diet?.filter(d => d.isActive).length || 0
+  const activityCount = activities?.filter(a => a?.isActive).length || 0
+  const dietCount = diet?.filter(d => d?.isActive).length || 0
   
   let momentumLevel = 'balanced'
   let title = 'Balanced Momentum'
@@ -220,7 +220,9 @@ export default function MomentumCheckStep() {
             
             <div className="space-y-2">
               <div className="flex flex-wrap gap-2">
-                {(answers.PhysicalActivities || []).slice(0, 4).map((activity, index) => (
+                {(() => {
+                  const active = (answers.PhysicalActivities || []).filter(a => a?.isActive);
+                  return active.slice(0, 4).map((activity, index) => (
                   <motion.span
                     key={activity.id}
                     className="rounded-full bg-blue-100 text-blue-800 px-3 py-1 text-xs font-medium"
@@ -235,12 +237,16 @@ export default function MomentumCheckStep() {
                   >
                     {activity.title.replace(/_/g, ' ')}
                   </motion.span>
-                ))}
-                {(answers.PhysicalActivities || []).length > 4 && (
-                  <span className="rounded-full bg-gray-100 text-gray-800 px-3 py-1 text-xs font-medium">
-                    +{(answers.PhysicalActivities || []).length - 4} more
-                  </span>
-                )}
+                  ))
+                })()}
+                {(() => {
+                  const activeLen = (answers.PhysicalActivities || []).filter(a => a?.isActive).length;
+                  return activeLen > 4 ? (
+                    <span className="rounded-full bg-gray-100 text-gray-800 px-3 py-1 text-xs font-medium">
+                      +{activeLen - 4} more
+                    </span>
+                  ) : null;
+                })()}
               </div>
             </div>
           </motion.div>
@@ -268,7 +274,9 @@ export default function MomentumCheckStep() {
             
             <div className="space-y-2">
               <div className="flex flex-wrap gap-2">
-                {(answers.Diet || []).slice(0, 4).map((item, index) => (
+                {(() => {
+                  const activeDiet = (answers.Diet || []).filter(d => d?.isActive);
+                  return activeDiet.slice(0, 4).map((item, index) => (
                   <motion.span
                     key={item.id}
                     className="rounded-full bg-green-100 text-green-800 px-3 py-1 text-xs font-medium"
@@ -283,12 +291,16 @@ export default function MomentumCheckStep() {
                   >
                     {item.title.replace(/_/g, ' ')}
                   </motion.span>
-                ))}
-                {(answers.Diet || []).length > 4 && (
-                  <span className="rounded-full bg-gray-100 text-gray-800 px-3 py-1 text-xs font-medium">
-                    +{(answers.Diet || []).length - 4} more
-                  </span>
-                )}
+                  ))
+                })()}
+                {(() => {
+                  const activeDietLen = (answers.Diet || []).filter(d => d?.isActive).length;
+                  return activeDietLen > 4 ? (
+                    <span className="rounded-full bg-gray-100 text-gray-800 px-3 py-1 text-xs font-medium">
+                      +{activeDietLen - 4} more
+                    </span>
+                  ) : null;
+                })()}
               </div>
             </div>
           </motion.div>

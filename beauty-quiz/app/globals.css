@@ -36,6 +36,25 @@ body {
   transition: background 0.4s ease, color 0.4s ease;
 }
 
+/* iOS Safari: stabilize layout and gestures */
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overscroll-behavior: none; /* disable rubber-banding */
+  -webkit-overflow-scrolling: auto; /* avoid momentum scroll flings */
+  touch-action: pan-y; /* allow vertical scroll, block horizontal pan/zoom */
+}
+
+/* Full-height sections should use dynamic viewport to avoid bounce/jump */
+.h-screen, .min-h-screen {
+  height: 100dvh !important;
+}
+
+/* Prevent accidental horizontal panning causing sideways jumps */
+* {
+  touch-action: pan-y;
+}
+
 /* Prevent background scroll when modal is open */
 html.modal-open,
 body.modal-open {

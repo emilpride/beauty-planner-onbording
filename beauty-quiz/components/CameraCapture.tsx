@@ -14,6 +14,7 @@ const PreviewModal = dynamic(() => import('./PreviewModal'), { ssr: false })
 
 export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [capturing, setCapturing] = useState(false)
@@ -29,22 +30,21 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
   const [topInstruction, setTopInstruction] = useState<string>('Align your face within the guide')
   const [flash, setFlash] = useState(false)
   const [finalizing, setFinalizing] = useState(false)
+  const [videoBox, setVideoBox] = useState<{ w: number; h: number } | null>(null)
 
   // Choose sensible mobile-first constraints to reduce letterboxing
   const buildConstraints = (fm: 'user' | 'environment'): MediaStreamConstraints => {
     // Match the stream aspect to the current viewport to avoid heavy cropping/zoom on mobile.
     const w = typeof window !== 'undefined' ? Math.max(360, Math.min(1280, window.innerWidth)) : 720
     const h = typeof window !== 'undefined' ? Math.max(640, Math.min(1920, window.innerHeight)) : 1280
-    const screenAR = typeof window !== 'undefined' && window.innerHeight > 0
-      ? window.innerWidth / window.innerHeight
-      : 3 / 4
+    // Avoid forcing aspectRatio which can cause iOS/Safari to digitally crop/zoom.
     return {
       audio: false,
       video: {
         facingMode: fm,
         width: { ideal: w },
         height: { ideal: h },
-        aspectRatio: { ideal: screenAR },
+        // Do not set aspectRatio to prevent camera from zoom-cropping.
       },
     }
   }
@@ -60,6 +60,17 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
       }
       activeStreamRef.current = s
       setStream(s)
+      // Try to force digital zoom to minimum if supported to avoid over-zoomed preview on some devices
+      try {
+        const [track] = s.getVideoTracks()
+        const caps: any = track?.getCapabilities ? track.getCapabilities() : null
+        if (caps && typeof caps.zoom !== 'undefined') {
+          const minZoom = (caps as any).min ?? 1
+          await track.applyConstraints({ advanced: [{ zoom: minZoom }] } as any)
+        }
+      } catch (_) {
+        // Ignore failures; not all browsers support zoom constraint
+      }
       if (videoRef.current) {
         videoRef.current.srcObject = s
         const playPromise = videoRef.current.play?.()
@@ -94,6 +105,24 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
     const video = videoRef.current
     if (!video) return
 
+    const computeVideoBox = () => {
+      const container = containerRef.current
+      if (!container || !video.videoWidth || !video.videoHeight) return
+      const cw = container.clientWidth
+      const ch = container.clientHeight
+      const arV = video.videoWidth / video.videoHeight
+      const arC = cw / ch
+      let w: number, h: number
+      if (arV > arC) {
+        w = cw
+        h = Math.round(cw / arV)
+      } else {
+        h = ch
+        w = Math.round(ch * arV)
+      }
+      setVideoBox({ w, h })
+    }
+
     const handleReady = () => {
       setVideoReady(true)
       const playPromise = video.play?.()
@@ -102,16 +131,20 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
           /* noop – user gesture will resume playback */
         })
       }
+      // After metadata, we can compute the displayed box for overlay sizing
+      computeVideoBox()
     }
 
     video.addEventListener('loadedmetadata', handleReady)
     video.addEventListener('loadeddata', handleReady)
     video.addEventListener('canplay', handleReady)
+    window.addEventListener('resize', handleReady)
 
     return () => {
       video.removeEventListener('loadedmetadata', handleReady)
       video.removeEventListener('loadeddata', handleReady)
       video.removeEventListener('canplay', handleReady)
+      window.removeEventListener('resize', handleReady)
     }
   }, [stream])
 
@@ -323,10 +356,12 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95">
+  <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95" style={{ height: '100dvh', overscrollBehavior: 'contain' as any }}>
       {/* Full-bleed camera on mobile; centered card on larger screens */}
       <div
+        ref={containerRef}
         className="relative w-screen h-screen overflow-hidden bg-black md:w-[56vmin] md:h-[74vmin] md:max-w-[90vw] md:max-h-[90vh] md:aspect-[3/4] md:rounded-xl md:flex md:flex-col md:items-center md:justify-center"
+        style={{ overscrollBehavior: 'contain' as any, touchAction: 'none' as any }}
       >
         {error ? (
           <div className="text-white p-8">{error}</div>
@@ -336,12 +371,11 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
             autoPlay
             playsInline
             muted
-            className={`absolute inset-0 w-full h-full object-cover bg-black [transform:translateZ(0)] md:object-contain ${facingMode === 'user' ? 'scale-x-[-1]' : ''} ${previewUrl && previewBlob ? 'opacity-0' : 'opacity-100'}`}
-            style={{ transform: facingMode === 'user' ? 'scaleX(-1)' as any : undefined }}
+            className={`absolute inset-0 w-full h-full ${mode === 'body' ? 'object-cover' : 'object-contain'} object-center bg-black [transform:translateZ(0)] md:object-contain ${facingMode === 'user' ? 'scale-x-[-1]' : ''} ${previewUrl && previewBlob ? 'opacity-0' : 'opacity-100'}`}
           />
         )}
-        {/* Overlay guides */}
-        <CameraOverlay mode={mode} ok={guideOk} />
+  {/* Overlay guides aligned to the displayed video box */}
+  <CameraOverlay mode={mode} ok={guideOk} videoBox={videoBox || undefined} />
         {/* Top instructions */}
         {!error && (
           <div className="absolute top-3 md:top-4 left-1/2 -translate-x-1/2 px-2.5 py-1.5 md:px-3 rounded-full bg-black/55 text-white text-xs md:text-sm font-medium shadow">

@@ -117,7 +117,9 @@ export default function MomentumInsightStep() {
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary">Selected activities</p>
             <div className="flex flex-wrap gap-2 text-xs text-text-primary/80">
               <AnimatePresence>
-                {(answers.PhysicalActivities || []).slice(0, 6).map((activity, idx) => (
+                {(() => {
+                  const active = (answers.PhysicalActivities || []).filter(a => a?.isActive);
+                  return active.slice(0, 6).map((activity, idx) => (
                   <motion.span
                     key={activity.id}
                     className="rounded-full bg-primary/10 px-3 py-1"
@@ -128,9 +130,13 @@ export default function MomentumInsightStep() {
                   >
                     {activity.title.replace(/_/g, ' ')}
                   </motion.span>
-                ))}
+                  ))
+                })()}
               </AnimatePresence>
-              {(!answers.PhysicalActivities || answers.PhysicalActivities.length === 0) && (
+              {(() => {
+                const activeLen = (answers.PhysicalActivities || []).filter(a => a?.isActive).length;
+                return activeLen === 0;
+              })() && (
                 <motion.span
                   className="rounded-full bg-primary/10 px-3 py-1"
                   initial={{ opacity: 0 }}
@@ -138,17 +144,20 @@ export default function MomentumInsightStep() {
                   transition={{ delay: 0.3, duration: 0.4 }}
                 >No activities yet</motion.span>
               )}
-              {answers.PhysicalActivities && answers.PhysicalActivities.length > 6 && (
-                <span className="rounded-full bg-primary/10 px-3 py-1">+{answers.PhysicalActivities.length - 6}</span>
-              )}
+              {(() => {
+                const activeLen = (answers.PhysicalActivities || []).filter(a => a?.isActive).length;
+                return activeLen > 6 ? (
+                  <span className="rounded-full bg-primary/10 px-3 py-1">+{activeLen - 6}</span>
+                ) : null;
+              })()}
             </div>
           </div>
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary">Diet focus</p>
             <div className="flex flex-wrap gap-2 text-xs text-text-primary/80">
               <AnimatePresence>
-                {(answers.Diet || []).length
-                  ? answers.Diet.slice(0, 6).map((item, idx) => (
+                {(answers.Diet || []).filter(d => d?.isActive).length
+                  ? (answers.Diet || []).filter(d => d?.isActive).slice(0, 6).map((item, idx) => (
                       <motion.span
                         key={item.id}
                         className="rounded-full bg-primary/10 px-3 py-1"
@@ -169,9 +178,12 @@ export default function MomentumInsightStep() {
                     >No diet choices yet</motion.span>
                   )}
               </AnimatePresence>
-              {answers.Diet && answers.Diet.length > 6 && (
-                <span className="rounded-full bg-primary/10 px-3 py-1">+{answers.Diet.length - 6}</span>
-              )}
+              {(() => {
+                const activeDietLen = (answers.Diet || []).filter(d => d?.isActive).length;
+                return activeDietLen > 6 ? (
+                  <span className="rounded-full bg-primary/10 px-3 py-1">+{activeDietLen - 6}</span>
+                ) : null;
+              })()}
             </div>
           </div>
         </div>
