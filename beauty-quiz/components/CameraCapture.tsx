@@ -31,6 +31,7 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
   const [flash, setFlash] = useState(false)
   const [finalizing, setFinalizing] = useState(false)
   const [videoBox, setVideoBox] = useState<{ w: number; h: number } | null>(null)
+  const [mirrorPreview, setMirrorPreview] = useState(true)
 
   // Choose sensible mobile-first constraints to reduce letterboxing
   const buildConstraints = (fm: 'user' | 'environment'): MediaStreamConstraints => {
@@ -63,10 +64,14 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
       // Try to force digital zoom to minimum if supported to avoid over-zoomed preview on some devices
       try {
         const [track] = s.getVideoTracks()
-        const caps: any = track?.getCapabilities ? track.getCapabilities() : null
-        if (caps && typeof caps.zoom !== 'undefined') {
-          const minZoom = (caps as any).min ?? 1
-          await track.applyConstraints({ advanced: [{ zoom: minZoom }] } as any)
+        if (track && typeof (track as any).getCapabilities === 'function') {
+          const caps: any = (track as any).getCapabilities()
+          if (caps && typeof caps.zoom !== 'undefined') {
+            const minZoom = (caps as any).min ?? 1
+            if (typeof (track as any).applyConstraints === 'function') {
+              await (track as any).applyConstraints({ advanced: [{ zoom: minZoom }] } as any)
+            }
+          }
         }
       } catch (_) {
         // Ignore failures; not all browsers support zoom constraint
@@ -88,6 +93,7 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
 
   // Restart camera when facingMode changes
   useEffect(() => {
+    setMirrorPreview(facingMode === 'user')
     startCamera(facingMode)
     return () => {
       activeStreamRef.current?.getTracks().forEach((track) => track.stop())
@@ -107,20 +113,11 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
 
     const computeVideoBox = () => {
       const container = containerRef.current
-      if (!container || !video.videoWidth || !video.videoHeight) return
+      if (!container) return
       const cw = container.clientWidth
       const ch = container.clientHeight
-      const arV = video.videoWidth / video.videoHeight
-      const arC = cw / ch
-      let w: number, h: number
-      if (arV > arC) {
-        w = cw
-        h = Math.round(cw / arV)
-      } else {
-        h = ch
-        w = Math.round(ch * arV)
-      }
-      setVideoBox({ w, h })
+      // With object-cover on the video, the displayed area fully covers the container
+      setVideoBox({ w: cw, h: ch })
     }
 
     const handleReady = () => {
@@ -166,6 +163,7 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
     const evaluateFaceBoxes = (w: number, h: number, boxes: { width: number; height: number; top: number; left: number }[]) => {
       if (!boxes || boxes.length === 0) return false
       const b = boxes[0]
+      if (!b) return false
       const cx = b.left + b.width / 2
       const cy = b.top + b.height / 2
       const centerDx = Math.abs(cx - w / 2) / w // 0..0.5
@@ -179,13 +177,13 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
       return centerDx < 0.28 && cy / h < 0.62 && sizeRatio > 0.07 && sizeRatio < 0.38
     }
 
-    const luminanceHeuristic = (w: number, h: number) => {
+  const luminanceHeuristic = (w: number, h: number) => {
       // Fallback: analyze a center crop for brightness and variance
       const canvas = sampleCanvasRef.current!
       const ctx = canvas.getContext('2d')
       if (!ctx) return false
-      const cropW = Math.floor(w * (mode === 'body' ? 0.32 : 0.42))
-      const cropH = Math.floor(h * (mode === 'body' ? 0.52 : 0.52))
+  const cropW = Math.floor(w * (mode === 'body' ? 0.30 : 0.40))
+  const cropH = Math.floor(h * (mode === 'body' ? 0.50 : 0.50))
       canvas.width = cropW
       canvas.height = cropH
       const sx = Math.floor((w - cropW) / 2)
@@ -201,9 +199,9 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
       let sumSq = 0
       const n = cropW * cropH
       for (let i = 0; i < data.length; i += 4) {
-        const r = data[i]
-        const g = data[i + 1]
-        const b = data[i + 2]
+        const r = data[i]!
+        const g = data[i + 1]!
+        const b = data[i + 2]!
         // Rec. 601 luma approximation
         const y = 0.299 * r + 0.587 * g + 0.114 * b
         sum += y
@@ -334,8 +332,8 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
       setError('Failed to capture image. Please try again.')
       return
     }
-    // If mirrored preview (user-facing), un-mirror on capture so the saved photo is correct
-    if (facingMode === 'user') {
+    // If preview is mirrored, un-mirror on capture so the saved photo is correct
+    if (mirrorPreview) {
       ctx.translate(width, 0)
       ctx.scale(-1, 1)
       ctx.drawImage(video, 0, 0, width, height)
@@ -360,7 +358,7 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
       {/* Full-bleed camera on mobile; centered card on larger screens */}
       <div
         ref={containerRef}
-        className="relative w-screen h-screen overflow-hidden bg-black md:w-[56vmin] md:h-[74vmin] md:max-w-[90vw] md:max-h-[90vh] md:aspect-[3/4] md:rounded-xl md:flex md:flex-col md:items-center md:justify-center"
+        className="relative w-screen h-[100dvh] overflow-hidden bg-black md:w-[56vmin] md:h-[74vmin] md:max-w-[90vw] md:max-h-[90vh] md:aspect-[3/4] md:rounded-xl md:flex md:flex-col md:items-center md:justify-center"
         style={{ overscrollBehavior: 'contain' as any, touchAction: 'none' as any }}
       >
         {error ? (
@@ -371,14 +369,15 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
             autoPlay
             playsInline
             muted
-            className={`absolute inset-0 w-full h-full ${mode === 'body' ? 'object-cover' : 'object-contain'} object-center bg-black [transform:translateZ(0)] md:object-contain ${facingMode === 'user' ? 'scale-x-[-1]' : ''} ${previewUrl && previewBlob ? 'opacity-0' : 'opacity-100'}`}
+            className={`absolute inset-0 w-full h-full object-cover object-center bg-black [transform:translateZ(0)] ${mirrorPreview ? 'scale-x-[-1]' : ''} ${previewUrl && previewBlob ? 'opacity-0' : 'opacity-100'}`}
           />
         )}
   {/* Overlay guides aligned to the displayed video box */}
   <CameraOverlay mode={mode} ok={guideOk} videoBox={videoBox || undefined} />
         {/* Top instructions */}
         {!error && (
-          <div className="absolute top-3 md:top-4 left-1/2 -translate-x-1/2 px-2.5 py-1.5 md:px-3 rounded-full bg-black/55 text-white text-xs md:text-sm font-medium shadow">
+          <div className="absolute left-1/2 -translate-x-1/2 px-2.5 py-1.5 md:px-3 rounded-full bg-black/55 text-white text-xs md:text-sm font-medium shadow"
+               style={{ top: 'max(env(safe-area-inset-top, 0px) + 8px, 8px)' }}>
             {topInstruction}
           </div>
         )}
@@ -387,7 +386,8 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
         <button
           onClick={handleCapture}
           disabled={!!error || capturing || !!previewUrl || !!previewBlob || finalizing}
-          className="absolute bottom-5 md:bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur text-black rounded-full w-16 h-16 md:w-20 md:h-20 flex items-center justify-center shadow-xl border-4 border-white active:scale-95 transition"
+          className="absolute left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur text-black rounded-full w-16 h-16 md:w-20 md:h-20 flex items-center justify-center shadow-xl border-4 border-white active:scale-95 transition"
+          style={{ bottom: 'max(env(safe-area-inset-bottom, 0px) + 20px, 20px)' }}
           aria-label="Take a photo"
         >
           {capturing ? (
@@ -397,13 +397,29 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
           )}
         </button>
         {!guideOk && !capturing && !error && (
-          <div className="absolute bottom-24 md:bottom-28 left-1/2 -translate-x-1/2 px-2.5 py-1.5 md:px-3 rounded-full bg-black/55 text-white text-xs md:text-sm font-medium shadow">
+          <div className="absolute left-1/2 -translate-x-1/2 px-2.5 py-1.5 md:px-3 rounded-full bg-black/55 text-white text-xs md:text-sm font-medium shadow"
+               style={{ bottom: 'max(env(safe-area-inset-bottom, 0px) + 92px, 92px)' }}>
             {hint || (mode === 'body' ? 'Step back a bit · keep centered' : 'Move closer · center your face')}
           </div>
         )}
+        {/* Mirror toggle */}
+        <button
+          onClick={() => setMirrorPreview((m) => !m)}
+          className="absolute bg-black/60 text-white rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center hover:bg-black/80 border border-white/30"
+          style={{ left: '16px', bottom: 'max(env(safe-area-inset-bottom, 0px) + 20px, 20px)' }}
+          title={mirrorPreview ? 'Unmirror preview' : 'Mirror preview'}
+          aria-label="Toggle mirror"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 4v16M4 12h16" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M6 6h5v12H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" fill={mirrorPreview ? '#22c55e' : 'none'} stroke="#fff" strokeWidth="1.2"/>
+            <path d="M13 6h5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-5V6Z" stroke="#fff" strokeWidth="1.2"/>
+          </svg>
+        </button>
         <button
           onClick={handleSwitchCamera}
-          className="absolute bottom-5 md:bottom-6 right-5 md:right-6 bg-black/60 text-white rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center hover:bg-black/80 border border-white/30"
+          className="absolute bg-black/60 text-white rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center hover:bg-black/80 border border-white/30"
+          style={{ right: '16px', bottom: 'max(env(safe-area-inset-bottom, 0px) + 20px, 20px)' }}
           title="Switch camera"
           aria-label="Switch camera"
         >
@@ -424,7 +440,8 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
             }
             onCancel()
           }}
-          className="absolute top-2.5 right-2.5 md:top-3 md:right-3 bg-black/60 text-white rounded-full w-9 h-9 flex items-center justify-center hover:bg-black/80"
+          className="absolute bg-black/60 text-white rounded-full w-9 h-9 flex items-center justify-center hover:bg-black/80"
+          style={{ top: 'max(env(safe-area-inset-top, 0px) + 8px, 8px)', right: '10px' }}
           aria-label="Close"
         >
           <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">

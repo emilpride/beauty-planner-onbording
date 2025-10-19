@@ -51,16 +51,19 @@ export default function FrequencyModal({
   }
 
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches && e.touches.length > 0 ? e.touches[0] : undefined
+    if (!touch) return
     setIsDragging(true)
-    setStartY(e.touches[0].clientY)
+    setStartY(touch.clientY)
     setStartFrequency(frequency)
   }
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     if (!isDragging) return
-    
-    const currentY = e.touches[0].clientY
+    const touch = e.touches && e.touches.length > 0 ? e.touches[0] : undefined
+    if (!touch) return
+    const currentY = touch.clientY
     const deltaY = startY - currentY
     const deltaFrequency = Math.round(deltaY / 20)
     const newFrequency = Math.max(1, Math.min(30, startFrequency + deltaFrequency))
@@ -72,29 +75,34 @@ export default function FrequencyModal({
   }
 
 
-  const handlePeriodWheel = (e: React.WheelEvent) => {
+  const handlePeriodWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     const currentIndex = periods.findIndex(p => p.value === period)
     const delta = e.deltaY > 0 ? 1 : -1
     const newIndex = Math.max(0, Math.min(periods.length - 1, currentIndex + delta))
-    setPeriod(periods[newIndex].value)
+    const next = periods[newIndex]?.value ?? period
+    setPeriod(next)
   }
 
 
-  const handlePeriodTouchStart = (e: React.TouchEvent) => {
+  const handlePeriodTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches && e.touches.length > 0 ? e.touches[0] : undefined
+    if (!touch) return
     setIsDragging(true)
-    setStartY(e.touches[0].clientY)
+    setStartY(touch.clientY)
     setStartFrequency(periods.findIndex(p => p.value === period))
   }
 
-  const handlePeriodTouchMove = (e: React.TouchEvent) => {
+  const handlePeriodTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     if (!isDragging) return
-    
-    const currentY = e.touches[0].clientY
+    const touch = e.touches && e.touches.length > 0 ? e.touches[0] : undefined
+    if (!touch) return
+    const currentY = touch.clientY
     const deltaY = startY - currentY
     const deltaIndex = Math.round(deltaY / 20)
     const currentIndex = periods.findIndex(p => p.value === period)
     const newIndex = Math.max(0, Math.min(periods.length - 1, currentIndex + deltaIndex))
-    setPeriod(periods[newIndex].value)
+    const next = periods[newIndex]?.value ?? period
+    setPeriod(next)
   }
 
   if (!isOpen) return null

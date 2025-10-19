@@ -65,7 +65,7 @@ export default function StatisticStep() {
               cx={size / 2}
               cy={size / 2}
               r={radius}
-              stroke="#A385E9"
+              stroke="rgb(var(--color-primary))"
               strokeWidth={stroke}
               strokeLinecap="round"
               fill="none"

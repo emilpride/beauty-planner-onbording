@@ -128,10 +128,10 @@ export default function GeneratingScheduleStep() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10">
-        {/* Assistant Character */}
+      <div className="flex-1 flex flex-col items-center justify-start p-6 relative z-10 pt-48 sm:pt-52 md:pt-56">
+        {/* Assistant Character pinned at the top */}
         <motion.div
-          className="mb-8"
+          className="pointer-events-none absolute top-4 left-0 right-0 flex justify-center"
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.3 }}

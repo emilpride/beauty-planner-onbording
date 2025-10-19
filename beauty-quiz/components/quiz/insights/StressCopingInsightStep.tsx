@@ -15,7 +15,8 @@ export default function StressCopingInsightStep() {
     often: { from: "#FBC2EB", to: "#A6C1EE", ring: "rgba(171, 120, 255, 0.35)" },
     always: { from: "#FFD1D1", to: "#FFE5C3", ring: "rgba(255, 120, 120, 0.35)" },
   }
-  const { from, to, ring } = palette[level]
+  const selected = (palette[level] ?? palette[""]) as { from: string; to: string; ring: string }
+  const { from, to, ring } = selected
 
   return (
     <OnboardingStep title="Take a breath" subtitle="10-second reset" buttonText="Continue" centerContent>

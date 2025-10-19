@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import { normalizeAndCompressImage } from '@/lib/imageNormalize'
 import { useQuizStore } from '@/store/quizStore'
 import { auth } from '@/lib/firebase'
@@ -101,9 +102,11 @@ export default function ImageUpload({ type, currentImageUrl, onUploadComplete }:
       <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
         {previewUrl ? (
           <div className="space-y-4">
-            <img
+            <Image
               src={previewUrl}
               alt="Preview"
+              width={256}
+              height={256}
               className="mx-auto max-h-64 rounded-lg object-cover"
             />
             <div className="flex gap-2 justify-center">

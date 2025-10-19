@@ -13,7 +13,8 @@ export default function AnimatedBackground({ paused = false }: AnimatedBackgroun
         style={{ 
           left: '200px',
           top: '-100px',
-          background: '#53E5FF',
+          // Use accent-1 variable from ThemeProvider
+          background: 'rgb(var(--color-accent-1))',
           filter: 'blur(120px)',
           transform: 'rotate(14.51deg)',
           animation: 'float1 8s ease-in-out infinite',
@@ -26,7 +27,8 @@ export default function AnimatedBackground({ paused = false }: AnimatedBackgroun
         style={{ 
           left: '450px',
           top: '-150px',
-          background: '#FF99CC',
+          // Use accent-2 variable from ThemeProvider
+          background: 'rgb(var(--color-accent-2))',
           filter: 'blur(120px)',
           transform: 'matrix(-0.97, 0.25, 0.25, 0.97, 0, 0)',
           animation: 'float2 10s ease-in-out infinite',

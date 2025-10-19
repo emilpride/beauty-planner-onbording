@@ -219,11 +219,11 @@ export default function ChooseProceduresStep() {
       // Merge in any extra categories/items previously added by user
       const merged: ActivityCollection = { ...rebuilt }
       for (const [key, list] of Object.entries(prev)) {
-        if (!(key in merged)) merged[key] = []
+        const targetList = (merged[key] ||= [])
         // Append items that are not part of the rebuilt list (custom-*)
-        const existingIds = new Set(merged[key].map((a) => a.id))
-        for (const item of list) {
-          if (!existingIds.has(item.id)) merged[key].push(item)
+        const existingIds = new Set(targetList.map((a) => a.id))
+        for (const item of (list ?? [])) {
+          if (!existingIds.has(item.id)) targetList.push(item)
         }
       }
       return merged
@@ -562,9 +562,9 @@ export default function ChooseProceduresStep() {
     console.log('Converting hex to RGB:', hex)
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
     const rgb = result ? [
-      parseInt(result[1], 16),
-      parseInt(result[2], 16),
-      parseInt(result[3], 16)
+      parseInt(result[1]!, 16),
+      parseInt(result[2]!, 16),
+      parseInt(result[3]!, 16)
     ] : [0, 0, 0]
     console.log('RGB result:', rgb)
     return rgb
@@ -632,9 +632,9 @@ export default function ChooseProceduresStep() {
     const matches = hsl.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/)
     if (!matches) return hsl
     
-    const h = parseInt(matches[1]) / 360
-    const s = parseInt(matches[2]) / 100
-    const l = parseInt(matches[3]) / 100
+    const h = parseInt(matches[1]!) / 360
+    const s = parseInt(matches[2]!) / 100
+    const l = parseInt(matches[3]!) / 100
     
     const hue2rgb = (p: number, q: number, t: number) => {
       if (t < 0) t += 1

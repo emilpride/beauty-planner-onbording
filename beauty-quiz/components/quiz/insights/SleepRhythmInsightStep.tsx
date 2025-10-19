@@ -232,7 +232,7 @@ export default function SleepRhythmInsightStep() {
                   cx={size / 2}
                   cy={size / 2}
                   r={radius}
-                  stroke="#E5E7EB"
+                  stroke="rgb(var(--color-border))"
                   strokeWidth={stroke}
                   fill="none"
                   opacity={0.4}
@@ -241,7 +241,7 @@ export default function SleepRhythmInsightStep() {
                   cx={size / 2}
                   cy={size / 2}
                   r={radius}
-                  stroke="#A385E9"
+                  stroke="rgb(var(--color-primary))"
                   strokeWidth={stroke}
                   strokeLinecap="round"
                   fill="none"

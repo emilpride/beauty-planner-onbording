@@ -5,15 +5,16 @@ import { getStorage } from 'firebase/storage'
 
 // Initialize Firebase app (use env vars for config)
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env['NEXT_PUBLIC_FIREBASE_API_KEY'],
+  authDomain: process.env['NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN'],
+  projectId: process.env['NEXT_PUBLIC_FIREBASE_PROJECT_ID'],
+  storageBucket: process.env['NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET'],
+  messagingSenderId: process.env['NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'],
+  appId: process.env['NEXT_PUBLIC_FIREBASE_APP_ID'],
 }
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
+if (!app) throw new Error('Failed to initialize Firebase')
 export const auth = getAuth(app)
 export const db = getFirestore(app)
 export const storage = getStorage(app)
@@ -100,8 +101,8 @@ export async function saveOnboardingSession(sessionId: string, events: any[], us
   const endpoint =
     typeof window !== 'undefined'
       ? '/api/save-onboarding-session'
-      : process.env.SAVE_ONBOARDING_URL ||
-        process.env.NEXT_PUBLIC_SAVE_ONBOARDING_URL ||
+      : process.env['SAVE_ONBOARDING_URL'] ||
+        process.env['NEXT_PUBLIC_SAVE_ONBOARDING_URL'] ||
         'https://us-central1-beauty-planner-26cc0.cloudfunctions.net/saveOnboardingSession'
 
   const payload = {

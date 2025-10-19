@@ -5,7 +5,7 @@ import AnimatedBackground from '@/components/AnimatedBackground'
 
 export default function PaymentPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-[100dvh] overflow-x-hidden">
       <AnimatedBackground />
       <div className="relative z-10">
         <PricingStep />

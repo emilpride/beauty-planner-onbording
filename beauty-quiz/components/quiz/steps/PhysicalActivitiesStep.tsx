@@ -157,6 +157,7 @@ export default function PhysicalActivitiesStep() {
     if (customActivities.length === 0) return 'Not set'
     if (customActivities.length === 1) {
       const activity = customActivities[0]
+      if (!activity) return 'Not set'
       const periodText = activity.period === 'day' ? 'Day' : 
                         activity.period === 'week' ? 'Week' : 
                         activity.period === 'month' ? 'Month' : 'Year'

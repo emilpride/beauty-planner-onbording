@@ -688,6 +688,7 @@ function StickyMobileCTA({
   discountActive: boolean
 }) {
   const plan = plans.find((p) => p.id === selectedPlanId) ?? plans[0]
+  if (!plan) return null
   const price = computePrice(plan, discountActive)
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle/60 bg-surface/90 px-4 py-3 pb-[max(env(safe-area-inset-bottom),0px)] backdrop-blur md:hidden">
@@ -717,6 +718,7 @@ function StickyMobileCTA({
 
 function DynamicBillingNotice({ selectedPlanId }: { selectedPlanId: string }) {
   const plan = plans.find((p) => p.id === selectedPlanId) ?? plans[0]
+  if (!plan) return null
   const everyLabel = plan.billingWeeks === 1 ? "1 week" : `${plan.billingWeeks} weeks`
   const { currentTotal } = computePrice(plan, false) // Always inform regular billing at full price
   return (
@@ -740,6 +742,7 @@ interface PaymentModalProps {
 
 function PaymentModal({ selectedPlanId, discountOffered, discountActive, promoCode, onPromoChange, onClose, onComplete }: PaymentModalProps) {
   const plan = plans.find((item) => item.id === selectedPlanId) ?? plans[0]
+  if (!plan) return null
   const { currentTotal } = computePrice(plan, discountActive)
   return (
     <motion.div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

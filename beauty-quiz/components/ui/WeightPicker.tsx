@@ -17,8 +17,9 @@ export default function WeightPicker({ valueKg = 80, onConfirm, onCancel }: Weig
   const svgRef = useRef<SVGSVGElement | null>(null)
   const draggingRef = useRef(false)
   const [angleDeg, setAngleDeg] = useState<number>(() => {
-    const startAngle = 0
-    const endAngle = 180
+    // Reverse: heavier weights on the right (0°), lighter on the left (180°)
+    const startAngle = 180
+    const endAngle = 0
     const initKg = Math.max(MIN_KG, Math.min(MAX_KG, Math.round(valueKg ?? 80)))
     const normalized = (initKg - MIN_KG) / (MAX_KG - MIN_KG)
     return startAngle + normalized * (endAngle - startAngle)
@@ -32,8 +33,9 @@ export default function WeightPicker({ valueKg = 80, onConfirm, onCancel }: Weig
   const centerX = 200
   const centerY = 300
   const radius = 180
-  const startAngle = 0  // right side
-  const endAngle = 180  // left side
+  // Reverse: MIN at left (180°), MAX at right (0°)
+  const startAngle = 180  // left side
+  const endAngle = 0      // right side
 
   // Convert weight to angle (0-180 degrees)
   const valueToAngle = (weight: number) => {
@@ -119,7 +121,7 @@ export default function WeightPicker({ valueKg = 80, onConfirm, onCancel }: Weig
         y1={y1}
         x2={x2}
         y2={y2}
-        stroke="#E7E9F3"
+        stroke={`rgb(var(--color-border))`}
         strokeOpacity={isMain ? 0.9 : 0.55}
         strokeWidth={isMain ? 2 : 1}
         strokeLinecap="round"
@@ -145,7 +147,7 @@ export default function WeightPicker({ valueKg = 80, onConfirm, onCancel }: Weig
           y={0}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill="#A1A7B3"
+          fill={`rgb(var(--color-text-secondary))`}
           fontSize={10}
           fontWeight={500}
         >
@@ -165,10 +167,10 @@ export default function WeightPicker({ valueKg = 80, onConfirm, onCancel }: Weig
   return (
     <div className="w-full h-full bg-white flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-100">
+      <div className="flex items-center justify-between p-4 border-b border-border-subtle/70 bg-surface">
         <button 
           onClick={onCancel} 
-          className="text-gray-500 hover:text-gray-700 text-base"
+          className="text-text-secondary hover:opacity-90 text-base"
         >
           Cancel
         </button>
@@ -177,14 +179,14 @@ export default function WeightPicker({ valueKg = 80, onConfirm, onCancel }: Weig
         </h2>
         <button 
           onClick={() => onConfirm(kg)} 
-          className="text-blue-500 hover:text-blue-700 font-medium text-base"
+          className="text-primary hover:opacity-90 font-medium text-base"
         >
           Done
         </button>
       </div>
 
       {/* Dial Container */}
-      <div className="flex-1 relative bg-white overflow-hidden touch-none select-none">
+      <div className="flex-1 relative bg-surface overflow-hidden touch-none select-none">
         <svg
           ref={svgRef}
           width="100%"
@@ -199,8 +201,8 @@ export default function WeightPicker({ valueKg = 80, onConfirm, onCancel }: Weig
         >
           <defs>
             <linearGradient id="needleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#A78BFA" />
-              <stop offset="100%" stopColor="#8B5CF6" />
+              <stop offset="0%" stopColor={`rgb(var(--color-primary))`} stopOpacity={0.9} />
+              <stop offset="100%" stopColor={`rgb(var(--color-primary))`} stopOpacity={1} />
             </linearGradient>
             <filter id="needleShadow" x="-50%" y="-50%" width="200%" height="200%">
               <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="rgba(0,0,0,0.18)" />
@@ -218,7 +220,7 @@ export default function WeightPicker({ valueKg = 80, onConfirm, onCancel }: Weig
           <path
             d={`M ${centerX + radius} ${centerY} A ${radius} ${radius} 0 0 0 ${centerX - radius} ${centerY}`}
             fill="none"
-            stroke="#F2F3F7"
+            stroke={`rgb(var(--color-border))`}
             strokeWidth="3"
             filter="url(#arcGlow)"
           />
@@ -248,7 +250,7 @@ export default function WeightPicker({ valueKg = 80, onConfirm, onCancel }: Weig
             return (
               <g filter="url(#needleShadow)">
                 <polygon points={points} fill="url(#needleGrad)" />
-                <circle cx={tipX2} cy={tipY2} r={2.2} fill="#8B5CF6" />
+                <circle cx={tipX2} cy={tipY2} r={2.2} fill={`rgb(var(--color-primary))`} />
               </g>
             )
           })()}
@@ -258,10 +260,10 @@ export default function WeightPicker({ valueKg = 80, onConfirm, onCancel }: Weig
             cy={centerY}
             r={7}
             fill="#ffffff"
-            stroke="#E5E7EB"
+            stroke={`rgb(var(--color-border))`}
             strokeWidth={2}
           />
-          <circle cx={centerX} cy={centerY} r={2.5} fill="#8B5CF6" />
+          <circle cx={centerX} cy={centerY} r={2.5} fill={`rgb(var(--color-primary))`} />
         </svg>
 
         {/* Weight Display */}

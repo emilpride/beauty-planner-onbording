@@ -128,8 +128,8 @@ export default function ContractAgreementStep() {
     const onTouchStart = (ev: TouchEvent) => {
       if (!canvas) return
       ev.preventDefault()
-      if (ev.changedTouches.length === 0) return
-      const t = ev.changedTouches[0]
+      const t = ev.changedTouches && ev.changedTouches.length > 0 ? ev.changedTouches[0] : undefined
+      if (!t) return
       activeTouchIdRef.current = t.identifier
       touchActiveRef.current = true
       const { x, y } = getNormalizedPos(t.clientX, t.clientY)
@@ -157,6 +157,7 @@ export default function ContractAgreementStep() {
       if (id != null) {
         for (let i = 0; i < ev.touches.length; i++) {
           const tt = ev.touches[i]
+          if (!tt) continue
           if (tt.identifier === id) { targetTouch = tt; break }
         }
       }

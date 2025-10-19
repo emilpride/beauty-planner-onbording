@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 import type React from 'react'
 
 type HeightPickerProps = {
@@ -118,10 +119,13 @@ export default function HeightPicker({ value = 170, gender, onConfirm, onCancel 
         {/* Silhouette */}
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-center pointer-events-none z-[1]">
           <div style={{ transform: `scale(${silhouetteScale})`, transformOrigin: 'bottom center' }}>
-            <img
+            <Image
               src={getCharacterImage()}
               alt="Character silhouette"
-              className="h-[320px] object-contain"
+              width={320}
+              height={320}
+              className="h-[320px] w-auto object-contain"
+              priority={false}
             />
           </div>
         </div>

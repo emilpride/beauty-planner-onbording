@@ -134,12 +134,20 @@ const rgbToHex = (r: number, g: number, b: number) => {
   return `#${toHex(Math.round(r))}${toHex(Math.round(g))}${toHex(Math.round(b))}`
 }
 
+// Convenience: build an rgba() string from a hex color and alpha
+const rgbaFromHex = (hex: string, alpha: number) => {
+  const { r, g, b } = hexToRgb(hex)
+  const a = Math.max(0, Math.min(1, alpha))
+  return `rgba(${r}, ${g}, ${b}, ${a})`
+}
+
 const colorAt = (stops: { pos: number; color: string }[], t: number) => {
   const clampedT = Math.min(1, Math.max(0, t))
   let i = 0
-  while (i < stops.length - 1 && clampedT > stops[i + 1].pos) i++
+  while (i < stops.length - 1 && clampedT > (stops[i + 1]?.pos ?? 1)) i++
   const a = stops[i]
   const b = stops[Math.min(i + 1, stops.length - 1)]
+  if (!a || !b) return '#000000'
   const span = b.pos - a.pos || 1
   const localT = span === 0 ? 0 : (clampedT - a.pos) / span
   const ca = hexToRgb(a.color)
@@ -370,14 +378,14 @@ export default function CurrentConditionAnalysisStep() {
     overall: 6,
   }
 
-  const overallScore = baseScores.overall
+  const overallScore = baseScores['overall']
   // BMS value (prefer AI score, fallback to overallScore) + horizontal indicator position
   const bmsValue = useMemo(() => {
     const v = aiModel?.bmsScore
     if (typeof v === 'number' && Number.isFinite(v)) return Number(v)
     return overallScore
   }, [aiModel?.bmsScore, overallScore])
-  const bmsPosition = useMemo(() => clamp(bmsValue / 10, 0, 1), [bmsValue])
+  const bmsPosition = useMemo(() => clamp((bmsValue ?? 0) / 10, 0, 1), [bmsValue])
   const [bmsAnimated, setBmsAnimated] = useState(0)
   const [bmsInView, setBmsInView] = useState(false)
   useEffect(() => {
@@ -386,7 +394,7 @@ export default function CurrentConditionAnalysisStep() {
     const duration = 900
     const start = performance.now()
     const from = 0
-    const to = bmsValue
+    const to = bmsValue ?? 0
     const tick = (t: number) => {
       const p = Math.min(1, (t - start) / duration)
       const eased = 1 - Math.pow(1 - p, 3)
@@ -553,7 +561,7 @@ export default function CurrentConditionAnalysisStep() {
                           {Number.isFinite(bmiAnimatedDisplay) ? bmiAnimatedDisplay.toFixed(1) : '—'}
                         </span>
                         <motion.img
-                          src={getPersonImage(answers.Gender === 2 ? 'female' : 'male', bmiCategory)}
+                          src={getPersonImage(answers.Gender === 2 ? 'female' : 'male', bmiCategory!)}
                           alt="BMI reference"
                           className="w-80 h-80 rounded-xl object-contain bg-white/80"
                           initial={{ x: 100, opacity: 0 }}
@@ -575,12 +583,14 @@ export default function CurrentConditionAnalysisStep() {
                 const explanation = typeof aiForId.explanation === 'string' ? aiForId.explanation : ''
                 // Match BMS ring category colors (skin: blue, hair: green, physical: amber, mental: pink)
                 const baseCategoryColor = id === 'skin' ? '#60A5FA' : id === 'hair' ? '#6EE7B7' : id === 'physic' ? '#FBBF24' : '#F472B6'
-                const bgColor = baseCategoryColor + '33' // add 20% alpha
+                // Use an opaque surface base to avoid background artifacts (visible stripes/banding)
+                // and overlay a subtle tint using a gradient.
+                const overlayTint = rgbaFromHex(baseCategoryColor, 0.12)
                 return (
                   <motion.article 
                     key={id} 
-                    className="rounded-3xl border border-border-subtle/60 p-6 shadow-soft"
-                    style={{ backgroundColor: bgColor }}
+                    className="rounded-3xl border border-border-subtle/60 p-6 shadow-soft bg-surface"
+                    style={{ backgroundImage: `linear-gradient(0deg, ${overlayTint}, ${overlayTint})` }}
                     variants={fadeSlide}
                     initial="hidden"
                     whileInView="visible"

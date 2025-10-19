@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 
 const TARGET_URL =
-  process.env.SAVE_ONBOARDING_URL ||
-  process.env.NEXT_PUBLIC_SAVE_ONBOARDING_URL ||
+  process.env['SAVE_ONBOARDING_URL'] ||
+  process.env['NEXT_PUBLIC_SAVE_ONBOARDING_URL'] ||
   'https://us-central1-beauty-planner-26cc0.cloudfunctions.net/saveOnboardingSession'
 
 export async function POST(request: Request) {

@@ -214,6 +214,7 @@ export default function ProceduresOverview({ currentStep }: ProceduresOverviewPr
     () => procedureSteps.find((step) => step.id === currentStep) ?? procedureSteps[0],
     [currentStep],
   )
+  const safeActiveCard = activeCard ?? procedureSteps[0]!
 
   return (
     <div className="flex min-h-screen flex-col gap-5 bg-background px-5 pb-10 pt-8">
@@ -229,7 +230,7 @@ export default function ProceduresOverview({ currentStep }: ProceduresOverviewPr
 
       <AnimatePresence mode="wait">
         <motion.section
-          key={activeCard.id}
+          key={safeActiveCard.id}
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -24 }}
@@ -237,11 +238,11 @@ export default function ProceduresOverview({ currentStep }: ProceduresOverviewPr
           className="flex flex-col gap-5 rounded-3xl border border-border-subtle/60 bg-surface/95 p-6 shadow-soft md:flex-row"
         >
           <div className="md:w-1/2">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary">Step {activeCard.id + 1} of {procedureSteps.length}</p>
-            <h2 className="mt-2 text-xl font-semibold text-text-primary">{activeCard.title}</h2>
-            <p className="mt-3 text-sm text-text-secondary">{activeCard.description}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-secondary">Step {safeActiveCard.id + 1} of {procedureSteps.length}</p>
+            <h2 className="mt-2 text-xl font-semibold text-text-primary">{safeActiveCard.title}</h2>
+            <p className="mt-3 text-sm text-text-secondary">{safeActiveCard.description}</p>
             <ul className="mt-5 space-y-3">
-              {activeCard.items.map((item) => (
+              {safeActiveCard.items.map((item) => (
                 <ProcedureCard key={item.title} {...item} />
               ))}
             </ul>
@@ -249,8 +250,8 @@ export default function ProceduresOverview({ currentStep }: ProceduresOverviewPr
           <div className="md:w-1/2">
             <div className="flex h-full items-center justify-center rounded-3xl border border-border-subtle/60 bg-surface-muted/80 p-6 shadow-soft">
               <Image
-                src={activeCard.illustration}
-                alt={activeCard.title}
+                src={safeActiveCard.illustration}
+                alt={safeActiveCard.title}
                 width={260}
                 height={260}
                 className="h-full w-auto object-contain"

@@ -27,7 +27,22 @@
         "./*"
       ]
     },
-    "target": "ES2017"
+    "target": "ES2017",
+    // ===== STRICT TYPE CHECKING =====
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "alwaysStrict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "forceConsistentCasingInFileNames": true,
+    "useDefineForClassFields": true
   },
   "include": [
     "next-env.d.ts",
@@ -40,6 +55,7 @@
     "functions"
   ]
 }
+
 
 
 

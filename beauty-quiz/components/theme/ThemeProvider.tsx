@@ -27,6 +27,32 @@ const PRIMARY_COLOR_MAP: Record<PrimaryColor, string> = {
   pink: '236 72 153',   // tailwind pink-500 #EC4899
 }
 
+// Provide two accent colors used for animated backgrounds and glows.
+// Values are RGB space-separated to match how Tailwind vars are consumed.
+const PRIMARY_ACCENTS: Record<PrimaryColor, { accent1: string; accent2: string }> = {
+  purple: {
+    // cyan + pink (existing design)
+    accent1: '83 229 255',   // #53E5FF
+    accent2: '255 153 204',  // #FF99CC
+  },
+  blue: {
+    accent1: '83 229 255',   // cyan
+    accent2: '179 206 255',  // light blue
+  },
+  green: {
+    accent1: '167 243 208',  // emerald-200
+    accent2: '74 222 128',   // green-400
+  },
+  pink: {
+    accent1: '255 153 204',  // light pink
+    accent2: '255 182 193',  // light pink 2
+  },
+  red: {
+    accent1: '255 160 160',  // light red
+    accent2: '255 200 200',  // very light red
+  },
+}
+
 function applyThemeClass(theme: ThemeVariant) {
   if (typeof document === 'undefined') {
     return
@@ -43,6 +69,9 @@ function applyPrimaryColor(color: PrimaryColor) {
   const rgb = PRIMARY_COLOR_MAP[color] || PRIMARY_COLOR_MAP.purple
   // Inline style has higher precedence than stylesheet .dark overrides
   root.style.setProperty('--color-primary', rgb)
+  const accents = PRIMARY_ACCENTS[color] || PRIMARY_ACCENTS.purple
+  root.style.setProperty('--color-accent-1', accents.accent1)
+  root.style.setProperty('--color-accent-2', accents.accent2)
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

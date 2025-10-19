@@ -45,7 +45,7 @@ export default function MomentumInsightStep() {
     [answers.PhysicalActivities, answers.Diet, answers.Mood],
   )
 
-  const moodMessage = answers.Mood ? moodCopy[answers.Mood] ?? moodCopy.okay : moodCopy.okay
+  const moodMessage = answers.Mood ? (moodCopy[answers.Mood] ?? moodCopy['okay']) : moodCopy['okay']
 
   return (
     <OnboardingStep

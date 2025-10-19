@@ -10,11 +10,19 @@ export default function NotificationsConsentStep() {
   const { currentStep, nextStep, answers, setAnswer } = useQuizStore()
   const router = useRouter()
   const [dailyReminders, setDailyReminders] = useState(answers.DailyMoodReminder || false)
-  const [activityReminders, setActivityReminders] = useState<boolean>(answers.ActivityReminder || true)
+  const [dailyPush, setDailyPush] = useState<boolean>(answers.DailyPushNotifications ?? true)
+  const [dailyEmail, setDailyEmail] = useState<boolean>(answers.DailyEmailNotifications ?? false)
+  const [activityReminders, setActivityReminders] = useState<boolean>(answers.ActivityReminder ?? true)
+  const [emailNotifications, setEmailNotifications] = useState<boolean>(answers.EmailNotifications ?? false)
+  const [pushNotifications, setPushNotifications] = useState<boolean>(answers.PushNotifications ?? true)
 
   const handleSave = () => {
-    setAnswer('DailyMoodReminder', dailyReminders)
-    setAnswer('ActivityReminder', activityReminders)
+  setAnswer('DailyMoodReminder', dailyReminders)
+  setAnswer('DailyPushNotifications', dailyPush)
+  setAnswer('DailyEmailNotifications', dailyEmail)
+  setAnswer('ActivityReminder', activityReminders)
+  setAnswer('EmailNotifications', emailNotifications)
+  setAnswer('PushNotifications', pushNotifications)
     
     router.push('/procedures/4')
   }
@@ -29,10 +37,10 @@ export default function NotificationsConsentStep() {
   return (
     <div className="h-full bg-gradient-to-br from-background to-surface-muted flex flex-col">
       {/* Top Section with Character */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
+  <div className="flex-1 flex flex-col items-center justify-start p-6 relative">
         {/* Floating Bell Icon */}
         <motion.div
-          className="absolute top-20 right-8"
+          className="absolute top-20 right-8 z-20"
           animate={{
             y: [-10, 10, -10],
             rotate: [0, 10, -10, 0],
@@ -52,7 +60,7 @@ export default function NotificationsConsentStep() {
 
         {/* Assistant Character */}
         <motion.div
-          className="mb-8"
+          className="mb-2 z-0 pointer-events-none"
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.3 }}
@@ -69,52 +77,90 @@ export default function NotificationsConsentStep() {
 
         {/* Content Card */}
         <motion.div
-          className="w-full max-w-md bg-surface rounded-2xl p-6 shadow-xl"
+          className="relative z-10 w-full max-w-md bg-surface rounded-2xl p-6 shadow-xl -mt-2 sm:-mt-3"
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.5 }}
         >
-          <div className="text-center mb-6">
+          <div className="text-center mb-4">
             <h1 className="text-2xl font-bold text-text-primary mb-2">Set Up Reminders</h1>
             <p className="text-text-secondary">
-              Stay on track with your beauty routine by setting up personalized reminders.
+              Stay on track with smart reminders. Configure delivery inside.
             </p>
           </div>
 
           {/* Toggle Options */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Daily Mood Reminder */}
-            <div className="flex items-center justify-between p-4 bg-surface-muted rounded-xl">
-              <div className="flex-1">
-                <h3 className="font-semibold text-text-primary mb-1">Daily reminder to log your mood</h3>
-                <p className="text-sm text-text-secondary">Get notified to track your daily mood</p>
+            <div className="p-4 bg-surface-muted rounded-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-text-primary mb-1">Daily reminder to log your mood</h3>
+                  <p className="text-sm text-text-secondary">Get notified to track your daily mood</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={dailyReminders}
+                    onChange={(e) => setDailyReminders(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#A385E9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-border-subtle/60 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#A385E9]"></div>
+                </label>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={dailyReminders}
-                  onChange={(e) => setDailyReminders(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#A385E9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-border-subtle/60 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#A385E9]"></div>
-              </label>
+              {dailyReminders && (
+                <div className="mt-3 pt-3 border-t border-border-subtle/60">
+                  <p className="text-xs text-text-secondary mb-2">Delivery channels</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDailyPush((v) => !v)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${dailyPush ? 'bg-primary text-white border-primary' : 'bg-surface text-text-primary border-border-subtle'}`}
+                    >In‑app push</button>
+                    <button
+                      type="button"
+                      onClick={() => setDailyEmail((v) => !v)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${dailyEmail ? 'bg-primary text-white border-primary' : 'bg-surface text-text-primary border-border-subtle'}`}
+                    >Email</button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Activity Reminders */}
-            <div className="flex items-center justify-between p-4 bg-surface-muted rounded-xl">
-              <div className="flex-1">
-                <h3 className="font-semibold text-text-primary mb-1">Reminders of Activities</h3>
-                <p className="text-sm text-text-secondary">Get notified about your scheduled activities</p>
+            <div className="p-4 bg-surface-muted rounded-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-text-primary mb-1">Activity reminders</h3>
+                  <p className="text-sm text-text-secondary">Get notified about your scheduled activities</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={activityReminders}
+                    onChange={(e) => setActivityReminders(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#A385E9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-border-subtle/60 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#A385E9]"></div>
+                </label>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={activityReminders}
-                  onChange={(e) => setActivityReminders(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#A385E9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-border-subtle/60 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#A385E9]"></div>
-              </label>
+              {activityReminders && (
+                <div className="mt-3 pt-3 border-t border-border-subtle/60">
+                  <p className="text-xs text-text-secondary mb-2">Delivery channels</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPushNotifications((v) => !v)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${pushNotifications ? 'bg-primary text-white border-primary' : 'bg-surface text-text-primary border-border-subtle'}`}
+                    >In‑app push</button>
+                    <button
+                      type="button"
+                      onClick={() => setEmailNotifications((v) => !v)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${emailNotifications ? 'bg-primary text-white border-primary' : 'bg-surface text-text-primary border-border-subtle'}`}
+                    >Email</button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

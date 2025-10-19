@@ -97,6 +97,10 @@ export interface UserModel {
   ActivityNotes: Record<string, string>;
   DailyMoodReminder: boolean;
   ActivityReminder: boolean;
+  EmailNotifications: boolean;
+  PushNotifications: boolean;
+  DailyEmailNotifications: boolean;
+  DailyPushNotifications: boolean;
   ContractSignature: string;
   SelectedPlan: string;
   Onboarding2Completed: boolean;
@@ -392,6 +396,10 @@ export const initialAnswers: UserModel = {
   ActivityNotes: {},
   DailyMoodReminder: false,
   ActivityReminder: false,
+  EmailNotifications: false,
+  PushNotifications: false,
+  DailyEmailNotifications: false,
+  DailyPushNotifications: true,
   ContractSignature: '',
   SelectedPlan: '',
   Onboarding2Completed: false,

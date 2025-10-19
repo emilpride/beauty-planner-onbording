@@ -30,28 +30,29 @@ export default function EnergyLevelStep() {
 
   const handleInteractionStart = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     setIsDragging(true);
-    let clientX: number;
-    if (typeof TouchEvent !== 'undefined' && e instanceof TouchEvent) {
-      clientX = e.touches[0].clientX;
-    } else if (e instanceof MouseEvent) {
-      clientX = e.clientX;
-    } else {
-      return;
+    let clientX: number | undefined;
+    // React synthetic events: check properties instead of relying on instanceof
+    if ('touches' in e) {
+      const touch = e.touches?.[0];
+      if (touch) clientX = touch.clientX;
+    } else if ('clientX' in e) {
+      clientX = (e as React.MouseEvent<HTMLDivElement>).clientX;
     }
+    if (typeof clientX !== 'number') return;
     handleInteractionMove(clientX);
   };
 
   useEffect(() => {
     const handleMove = (e: MouseEvent | TouchEvent) => {
       if (isDragging) {
-        let clientX: number;
-        if (typeof TouchEvent !== 'undefined' && e instanceof TouchEvent) {
-          clientX = e.touches[0].clientX;
-        } else if (e instanceof MouseEvent) {
-          clientX = e.clientX;
-        } else {
-          return;
+        let clientX: number | undefined;
+        if ('touches' in e) {
+          const touch = (e as TouchEvent).touches?.[0];
+          if (touch) clientX = touch.clientX;
+        } else if ('clientX' in e) {
+          clientX = (e as MouseEvent).clientX;
         }
+        if (typeof clientX !== 'number') return;
         handleInteractionMove(clientX);
       }
     };

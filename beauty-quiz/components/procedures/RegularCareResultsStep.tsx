@@ -70,13 +70,14 @@ export default function RegularCareResultsStep() {
     }
     return null
   }, [aiModel, heightMeters, weightKg])
-
-  const bmiCategory = useMemo(() => {
-    if (!bmiValue) return BMI_CATEGORIES[1]
-    return (
-      BMI_CATEGORIES.find((cat) => bmiValue >= cat.range[0] && bmiValue <= cat.range[1]) || BMI_CATEGORIES[BMI_CATEGORIES.length - 1]
-    )
-  }, [bmiValue])
+  const lastBmiCategory = BMI_CATEGORIES[BMI_CATEGORIES.length - 1] as (typeof BMI_CATEGORIES)[number]
+  const getBmiCategory = (value: number | null): (typeof BMI_CATEGORIES)[number] => {
+    if (!value) return BMI_CATEGORIES[1]
+    const found = BMI_CATEGORIES.find((cat) => value >= cat.range[0] && value <= cat.range[1])
+    if (found !== undefined) return found
+    return lastBmiCategory
+  }
+  const bmiCategory = useMemo<(typeof BMI_CATEGORIES)[number]>(() => getBmiCategory(bmiValue), [bmiValue])
 
   // Keep gender mapping consistent across app: 2 = female, else male
   const genderPrefix = (answers as any)?.Gender === 2 ? 'female' : 'male'

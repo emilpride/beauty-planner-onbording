@@ -29,7 +29,6 @@ interface ActivitySetting {
   remindAmount: number
   remindUnit: 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | 'years'
 }
-
 const createActivitySetting = (activityId: string, fallbackName?: string, gender: GenderKey = 'unknown'): ActivitySetting => {
   const meta = getActivityMeta(activityId, fallbackName)
 
@@ -38,7 +37,7 @@ const createActivitySetting = (activityId: string, fallbackName?: string, gender
     name: meta.name,
     note: getDefaultNote(activityId, gender),
     repeat: null,
-  weeklyInterval: 1,
+    weeklyInterval: 1,
     allDay: true,
     weekdays: [],
     monthlyDays: [],
@@ -403,41 +402,43 @@ const TimePickerModal = ({ open, initialTime, onCancel, onSave }: TimePickerModa
           <h2 className="text-lg font-semibold text-text-primary">Pick a time</h2>
           <p className="text-sm text-text-secondary">Choose the exact time for this activity.</p>
         </div>
-        <div className="grid grid-cols-3 items-center gap-4">
+        <div className="grid grid-cols-3 items-center gap-5">
           {/* Hour selector */}
           <div className="flex flex-col items-center">
-            <button type="button" onClick={incHour} className="grid h-8 w-8 place-items-center rounded-full text-text-primary hover:bg-[#ECE9FF] dark:hover:bg-white/10">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <button type="button" onClick={incHour} aria-label="Increase hour" className="grid h-12 w-12 place-items-center rounded-full border border-border-subtle bg-surface text-text-primary shadow-sm hover:bg-[#ECE9FF] dark:hover:bg-white/10">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
-            <div className="mt-2 min-w-[64px] rounded-xl border border-border-subtle bg-surface px-4 py-3 text-center text-2xl font-semibold text-text-primary">{String(hour).padStart(2, '0')}</div>
-            <button type="button" onClick={decHour} className="mt-2 grid h-8 w-8 place-items-center rounded-full text-text-primary hover:bg-[#ECE9FF] dark:hover:bg-white/10">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <div className="mt-2 min-w-[84px] rounded-xl border border-border-subtle bg-surface px-5 py-3 text-center text-3xl font-semibold text-text-primary">{String(hour).padStart(2, '0')}</div>
+            <button type="button" onClick={decHour} aria-label="Decrease hour" className="mt-2 grid h-12 w-12 place-items-center rounded-full border border-border-subtle bg-surface text-text-primary shadow-sm hover:bg-[#ECE9FF] dark:hover:bg-white/10">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           </div>
           {/* Minute selector */}
           <div className="flex flex-col items-center">
-            <button type="button" onClick={incMinute} className="grid h-8 w-8 place-items-center rounded-full text-text-primary hover:bg-[#ECE9FF] dark:hover:bg-white/10">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <button type="button" onClick={incMinute} aria-label="Increase minutes" className="grid h-12 w-12 place-items-center rounded-full border border-border-subtle bg-surface text-text-primary shadow-sm hover:bg-[#ECE9FF] dark:hover:bg-white/10">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
-            <div className="mt-2 min-w-[64px] rounded-xl border border-border-subtle bg-surface px-4 py-3 text-center text-2xl font-semibold text-text-primary">{String(minute).padStart(2, '0')}</div>
-            <button type="button" onClick={decMinute} className="mt-2 grid h-8 w-8 place-items-center rounded-full text-text-primary hover:bg-[#ECE9FF] dark:hover:bg-white/10">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <div className="mt-2 min-w-[84px] rounded-xl border border-border-subtle bg-surface px-5 py-3 text-center text-3xl font-semibold text-text-primary">{String(minute).padStart(2, '0')}</div>
+            <button type="button" onClick={decMinute} aria-label="Decrease minutes" className="mt-2 grid h-12 w-12 place-items-center rounded-full border border-border-subtle bg-surface text-text-primary shadow-sm hover:bg-[#ECE9FF] dark:hover:bg-white/10">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           </div>
           {/* AM/PM toggle */}
           <div className="flex flex-col items-center gap-2">
-            <div className="rounded-full bg-[#ECE9FF] dark:bg-white/10 p-1">
+            <div role="group" aria-label="AM or PM" className="inline-flex items-center rounded-full bg-[#ECE9FF] dark:bg-white/10 p-1.5 shadow-sm gap-1">
               <button
                 type="button"
                 onClick={() => setAmpm('AM')}
-                className={`px-4 py-2 text-sm font-semibold rounded-full ${ampm === 'AM' ? 'bg-[#5C4688] text-white' : 'text-text-primary'}`}
+                aria-pressed={ampm === 'AM'}
+                className={`px-6 py-2.5 text-base font-semibold rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9B8F5] ${ampm === 'AM' ? 'bg-[#5C4688] text-white' : 'text-text-primary'}`}
               >
                 AM
               </button>
               <button
                 type="button"
                 onClick={() => setAmpm('PM')}
-                className={`ml-1 px-4 py-2 text-sm font-semibold rounded-full ${ampm === 'PM' ? 'bg-[#5C4688] text-white' : 'text-text-primary'}`}
+                aria-pressed={ampm === 'PM'}
+                className={`px-6 py-2.5 text-base font-semibold rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9B8F5] ${ampm === 'PM' ? 'bg-[#5C4688] text-white' : 'text-text-primary'}`}
               >
                 PM
               </button>

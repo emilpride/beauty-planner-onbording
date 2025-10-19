@@ -15,12 +15,12 @@
 .battery-outline {
   width: 100%;
   height: 100%;
-  border: 6px solid #483D8B; /* Темно-фиолетовый */
+  border: 6px solid rgb(var(--color-primary)); /* themed */
   border-radius: 20px;
   padding: 6px;
   box-sizing: border-box;
   position: relative;
-  background-color: #E0E0E0; /* Фон "пустой" части */
+  background-color: rgba(var(--color-surface), 1); /* themed surface */
   overflow: hidden; /* Скрываем все, что выходит за скругленные углы */
 }
 
@@ -52,7 +52,7 @@
   top: 0;
   height: 100%;
   width: 4px; /* Ширина разделителя */
-  background-color: #E0E0E0; /* Цвет фона, чтобы создать эффект "пробела" */
+  background-color: rgb(var(--color-border)); /* themed subtle divider */
   transform: translateX(-50%);
   z-index: 2; /* Поверх уровня заряда */
 }
@@ -61,7 +61,7 @@
 .battery-terminal {
   width: 20px;
   height: 50%;
-  background-color: #483D8B; /* Темно-фиолетовый */
+  background-color: rgb(var(--color-primary)); /* themed */
   border-radius: 0 8px 8px 0;
   margin-left: 2px;
 }

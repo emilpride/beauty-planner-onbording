@@ -5,6 +5,9 @@
 :root {
   color-scheme: light;
   --color-primary: 138 96 255;
+  /* Accent colors used for animated glows/ellipses; overridden by ThemeProvider at runtime */
+  --color-accent-1: 83 229 255; /* #53E5FF */
+  --color-accent-2: 255 153 204; /* #FF99CC */
   --color-text-primary: 75 57 99;
   --color-text-secondary: 108 117 125;
   --color-background: 240 244 255;
@@ -18,6 +21,9 @@
 .dark {
   color-scheme: dark;
   --color-primary: 163 133 233;
+  /* Keep same base accents; ThemeProvider will override based on selected primary */
+  --color-accent-1: 83 229 255;
+  --color-accent-2: 255 153 204;
   --color-text-primary: 245 245 245;
   --color-text-secondary: 150 154 183;
   --color-background: 24 26 32;
@@ -77,7 +83,7 @@ body::after {
 body::before {
   top: 12%;
   right: 8%;
-  background: #ff99cc;
+  background: rgb(var(--color-accent-2));
   transform: rotate(12deg);
   animation: float1 12s ease-in-out infinite;
 }
@@ -85,18 +91,18 @@ body::before {
 body::after {
   bottom: 8%;
   left: 6%;
-  background: #53e5ff;
+  background: rgb(var(--color-accent-1));
   animation: float2 14s ease-in-out infinite;
 }
 
 .dark body::before {
   opacity: 0.32;
-  background: rgba(255, 153, 204, 0.55);
+  background: color-mix(in srgb, rgb(var(--color-accent-2)) 55%, transparent);
 }
 
 .dark body::after {
   opacity: 0.28;
-  background: rgba(83, 229, 255, 0.45);
+  background: color-mix(in srgb, rgb(var(--color-accent-1)) 45%, transparent);
 }
 
 @layer base {
@@ -266,9 +272,9 @@ body::after {
   height: 20px;
   width: 20px;
   border-radius: 50%;
-  background: #8a60ff;
+  background: rgb(var(--color-primary));
   cursor: pointer;
-  border: 2px solid #ffffff;
+  border: 2px solid rgba(255,255,255,1);
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
@@ -276,9 +282,9 @@ body::after {
   height: 20px;
   width: 20px;
   border-radius: 50%;
-  background: #8a60ff;
+  background: rgb(var(--color-primary));
   cursor: pointer;
-  border: 2px solid #ffffff;
+  border: 2px solid rgba(255,255,255,1);
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 

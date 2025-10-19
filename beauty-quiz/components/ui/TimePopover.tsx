@@ -69,6 +69,8 @@ export default function TimePopover({
         window.removeEventListener('resize', onResize)
       }
     }
+    // Ensure a cleanup function is returned for all code paths
+    return () => {}
   }, [open, value, timeFormat, computePos])
 
   // Close on outside click or Escape

@@ -62,7 +62,7 @@ export default function DietStep() {
   const getCustomDietsText = () => {
     if (customDiets.length === 0) return 'Not set'
     if (customDiets.length === 1) {
-      return customDiets[0].name
+      return customDiets[0]?.name ?? 'Not set'
     }
     return `${customDiets.length} custom diets`
   }

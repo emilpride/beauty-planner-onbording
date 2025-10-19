@@ -82,6 +82,8 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
       mql.addListener(update);
       return () => mql.removeListener(update);
     }
+    // Fallback cleanup to satisfy all code paths
+    return () => {}
   }, []);
 
   // Close dropdowns on outside click
@@ -167,7 +169,7 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
             <select
               value={visibleMonth.getMonth()}
               onChange={(e) => onChangeMonth(Number(e.target.value))}
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
             >
               {MONTHS.map((label, idx) => (
                 <option key={label} value={idx}>
@@ -181,7 +183,7 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
             <select
               value={visibleMonth.getFullYear()}
               onChange={(e) => onChangeYear(Number(e.target.value))}
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
             >
               {years.map((year) => (
                 <option key={year} value={year}>
@@ -198,13 +200,13 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
             <button
               type="button"
               onClick={() => { setYearOpen((v) => !v); setMonthOpen(false); }}
-              className="rounded-full bg-gray-100/90 px-4 py-2 text-sm font-semibold text-text-primary shadow-sm transition hover:bg-gray-200"
+              className="rounded-full bg-surface-muted px-4 py-2 text-sm font-semibold text-text-primary shadow-sm transition hover:bg-surface"
             >
               {visibleMonth.getFullYear()}
-              <span className="ml-1 text-gray-500">▾</span>
+              <span className="ml-1 text-text-secondary">▾</span>
             </button>
             {yearOpen && (
-              <div className="absolute left-1/2 z-20 mt-3 max-h-72 w-32 -translate-x-1/2 overflow-y-auto rounded-2xl bg-white p-2 shadow-lg ring-1 ring-black/5 scrollbar-thin scrollbar-thumb-gray-200">
+              <div className="absolute left-1/2 z-20 mt-3 max-h-72 w-32 -translate-x-1/2 overflow-y-auto rounded-2xl bg-surface p-2 shadow-lg ring-1 ring-black/5 dark:ring-white/10 scrollbar-thin scrollbar-thumb-gray-200/50">
                 {years.map((y) => {
                   const isActive = y === visibleMonth.getFullYear();
                   return (
@@ -213,7 +215,7 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
                       type="button"
                       onClick={() => { onChangeYear(y); setYearOpen(false); }}
                       className={`w-full rounded-lg px-3 py-2 text-sm text-left transition ${
-                        isActive ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-gray-50 text-gray-600'
+                        isActive ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-surface-muted text-text-secondary'
                       }`}
                     >
                       {y}
@@ -229,13 +231,13 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
             <button
               type="button"
               onClick={() => { setMonthOpen((v) => !v); setYearOpen(false); }}
-              className="rounded-full bg-gray-100/90 px-4 py-2 text-sm font-semibold text-text-primary shadow-sm transition hover:bg-gray-200"
+              className="rounded-full bg-surface-muted px-4 py-2 text-sm font-semibold text-text-primary shadow-sm transition hover:bg-surface"
             >
               {MONTHS[visibleMonth.getMonth()]}
-              <span className="ml-1 text-gray-500">▾</span>
+              <span className="ml-1 text-text-secondary">▾</span>
             </button>
             {monthOpen && (
-              <div className="absolute left-1/2 z-20 mt-3 max-h-72 w-36 -translate-x-1/2 overflow-y-auto rounded-2xl bg-white p-2 shadow-lg ring-1 ring-black/5 scrollbar-thin scrollbar-thumb-gray-200">
+              <div className="absolute left-1/2 z-20 mt-3 max-h-72 w-36 -translate-x-1/2 overflow-y-auto rounded-2xl bg-surface p-2 shadow-lg ring-1 ring-black/5 dark:ring-white/10 scrollbar-thin scrollbar-thumb-gray-200/50">
                 {MONTHS.map((m, idx) => {
                   const isActive = idx === visibleMonth.getMonth();
                   return (
@@ -244,7 +246,7 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
                       type="button"
                       onClick={() => { onChangeMonth(idx); setMonthOpen(false); }}
                       className={`w-full rounded-lg px-3 py-2 text-sm text-left transition ${
-                        isActive ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-gray-50 text-gray-600'
+                        isActive ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-surface-muted text-text-secondary'
                       }`}
                     >
                       {m}
@@ -277,7 +279,7 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
                   onClick={() => cell.date && setSelected(cell.date)}
                   className={[
                     "relative mx-auto flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition",
-                    cell.outside ? "text-gray-300" : "text-text-primary",
+                    cell.outside ? "text-text-secondary/40" : "text-text-primary",
                     cell.disabled ? "cursor-not-allowed opacity-40" : "hover:bg-primary/10",
                     isSelected ? "bg-primary text-white hover:bg-primary" : "",
                     !isSelected && isToday ? "ring-1 ring-primary/40" : "",
@@ -295,7 +297,7 @@ export default function DatePicker({ value, min, max, onConfirm, onCancel }: Dat
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-xl bg-gray-100 px-4 py-2 text-sm font-semibold text-text-primary transition hover:bg-gray-200"
+          className="rounded-xl bg-surface-muted px-4 py-2 text-sm font-semibold text-text-primary transition hover:bg-surface"
         >
           Cancel
         </button>

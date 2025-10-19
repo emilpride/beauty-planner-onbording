@@ -146,6 +146,8 @@ export default function GeneralStep() {
         document.body.style.overflow = prev
       }
     }
+    // Ensure a consistent cleanup function is returned for all code paths
+    return () => {}
   }, [calendarOpen])
 
   // Enforce metric units for simplified UI
@@ -169,7 +171,7 @@ export default function GeneralStep() {
           <div
             role="tablist"
             aria-label="Select your gender"
-            className="w-full rounded-xl border border-gray-300 bg-white p-1"
+            className="w-full rounded-xl border border-border-subtle bg-surface p-1"
           >
             <div className="grid grid-cols-2 gap-1.5">
               <button
@@ -211,8 +213,8 @@ export default function GeneralStep() {
             type="text"
             value={answers.Name}
             onChange={(e) => handleInputChange('Name', e.target.value)}
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary placeholder-gray-400 ${
-              errors.name ? 'border-red-500' : 'border-gray-300'
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary placeholder:text-text-secondary/60 ${
+              errors['name'] ? 'border-red-500' : 'border-border-subtle bg-surface'
             }`}
             placeholder="Enter your name"
           />
@@ -224,8 +226,8 @@ export default function GeneralStep() {
           <button
             type="button"
             onClick={handleOpenCalendar}
-            className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-white ${
-              errors.birthDate ? 'border-red-500' : 'border-gray-300'
+            className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-surface ${
+              errors['birthDate'] ? 'border-red-500' : 'border-border-subtle'
             }`}
             aria-haspopup="dialog"
             aria-expanded={calendarOpen}
@@ -246,13 +248,13 @@ export default function GeneralStep() {
               <circle cx="12" cy="14" r="1.2" fill="currentColor" stroke="none" />
             </svg>
           </button>
-          {errors.birthDate && (
-            <p className="mt-1 text-xs text-red-600">{errors.birthDate}</p>
+          {errors['birthDate'] && (
+            <p className="mt-1 text-xs text-red-600">{errors['birthDate']}</p>
           )}
         </div>
         {calendarOpen && (
           <div
-            className="fixed inset-0 z-[100] bg-black/30 flex items-center justify-center p-4 animate-in fade-in duration-300"
+            className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4 animate-in fade-in duration-300"
             role="dialog"
             aria-modal="true"
             onClick={handleCloseCalendar}
@@ -260,7 +262,7 @@ export default function GeneralStep() {
             <div
               ref={calendarRef}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl animate-in zoom-in-95 duration-300"
+              className="w-full max-w-sm rounded-2xl border border-border-subtle bg-surface p-4 shadow-2xl animate-in zoom-in-95 duration-300"
             >
               <DatePicker
                 value={answers.BirthDate ? ymdToLocalDate(answers.BirthDate) : null}
@@ -290,8 +292,8 @@ export default function GeneralStep() {
             <button
               type="button"
               onClick={() => setHeightPickerOpen(true)}
-              className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-white ${
-                errors.height ? 'border-red-500' : 'border-gray-300'
+              className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-surface ${
+                errors['height'] ? 'border-red-500' : 'border-border-subtle'
               }`}
             >
               <span className={`text-left ${answers.Height ? 'text-text-primary' : 'text-gray-400'}`}>
@@ -314,8 +316,8 @@ export default function GeneralStep() {
                 <path d="M12 3v18M9 6l3-3 3 3M9 18l3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            {errors.height && (
-              <p className="mt-1 text-xs text-red-600">{errors.height}</p>
+            {errors['height'] && (
+              <p className="mt-1 text-xs text-red-600">{errors['height']}</p>
             )}
           </div>
 
@@ -326,8 +328,8 @@ export default function GeneralStep() {
             <button
               type="button"
               onClick={() => setWeightPickerOpen(true)}
-              className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-white ${
-                errors.weight ? 'border-red-500' : 'border-gray-300'
+              className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl focus:ring-1 focus:ring-primary focus:ring-inset outline-none transition text-text-primary bg-surface ${
+                errors['weight'] ? 'border-red-500' : 'border-border-subtle'
               }`}
             >
               <span className={`text-left ${answers.Weight ? 'text-text-primary' : 'text-gray-400'}`}>
@@ -351,8 +353,8 @@ export default function GeneralStep() {
                 <circle cx="12" cy="12" r="0.75" fill="currentColor" stroke="none" />
               </svg>
             </button>
-            {errors.weight && (
-              <p className="mt-1 text-xs text-red-600">{errors.weight}</p>
+            {errors['weight'] && (
+              <p className="mt-1 text-xs text-red-600">{errors['weight']}</p>
             )}
           </div>
         </div>

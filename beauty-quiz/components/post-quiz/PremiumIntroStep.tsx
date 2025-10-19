@@ -37,19 +37,20 @@ export default function PremiumIntroStep() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent dark:from-primary/25" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-background via-background/80 to-background" />
 
-      <div className="relative z-10 w-full max-w-[360px] flex flex-col items-center">
-        <div className="relative mb-2">
+  <div className="relative z-10 w-full max-w-[360px] flex flex-col items-center overflow-visible">
+        {/* Assistant image positioned behind the card */}
+  <div className="pointer-events-none absolute inset-x-0 -top-40 sm:-top-48 md:-top-56 lg:-top-64 xl:-top-72 flex justify-center z-0">
           <Image
             src={`/images/on_boarding_images/onboarding_img_4${assistant === 'max' ? '_max' : ''}.png`}
             alt="Assistant"
-            width={120}
-            height={120}
+            width={144}
+            height={144}
             className="object-contain drop-shadow-[0_20px_30px_rgba(76,45,130,0.25)]"
             priority
           />
         </div>
 
-        <div className="relative z-10 w-full rounded-3xl border border-border-subtle/70 bg-surface px-5 pt-6 pb-5 shadow-elevated backdrop-blur-sm">
+  <div className="relative z-10 w-full rounded-3xl border border-border-subtle/70 bg-surface px-5 pt-6 pb-5 shadow-elevated backdrop-blur-sm mt-8 sm:mt-10 md:mt-12">
           <div className="flex flex-col gap-3">
             <header className="text-left">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Premium intro</p>

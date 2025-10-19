@@ -20,7 +20,9 @@ export default function WakeUpStep() {
   const presets = ['06:30', '07:00', '07:30', '08:00', '08:30']
 
   const adjustMinutes = (value: string, delta: number) => {
-    const [hh, mm] = (value || '00:00').split(':').map(Number)
+    const [hStr, mStr] = (value || '00:00').split(':')
+    const hh = Number(hStr ?? '00')
+    const mm = Number(mStr ?? '00')
     let total = hh * 60 + mm + delta
     total = (total % (24 * 60) + (24 * 60)) % (24 * 60) // wrap around 0..1439
     const nh = Math.floor(total / 60)
@@ -29,7 +31,9 @@ export default function WakeUpStep() {
   }
 
   const toLabel = (value: string) => {
-    const [hh, mm] = (value || '00:00').split(':').map(Number)
+    const [hStr, mStr] = (value || '00:00').split(':')
+    const hh = Number(hStr ?? '00')
+    const mm = Number(mStr ?? '00')
     if ((answers.TimeFormat || '12h') === '24h') return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`
     const isAM = hh < 12
     const h12 = hh % 12 === 0 ? 12 : hh % 12

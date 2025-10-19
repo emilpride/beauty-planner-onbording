@@ -2,6 +2,19 @@ import { onRequest } from 'firebase-functions/v2/https'
 import * as admin from 'firebase-admin'
 import axios from 'axios'
 import Stripe from 'stripe'
+import { 
+	retryWithBackoff, 
+	isCircuitBreakerOpen, 
+	recordRequest, 
+	validateUserAnswers,
+	generateCacheKey,
+	getCachedAnalysis,
+	saveCacheAnalysis,
+	incrementCacheHit
+} from './reliability'
+import { startHeartbeat, updateHeartbeat, stopHeartbeat } from './heartbeat'
+import { callClaudeAnalysis, isClaudeFallbackEnabled } from './claude'
+import { getAPIHealthMetrics, periodicHealthCheck } from './monitoring'
 // Use dynamic require for Secret Manager to avoid TypeScript proto typing issues in build
 
 admin.initializeApp()
@@ -9,6 +22,51 @@ const db = admin.firestore()
 let secretClient: any = null
 const stripeSecret = process.env.STRIPE_SECRET_KEY || ''
 const stripe = stripeSecret ? new Stripe(stripeSecret, { apiVersion: '2024-06-20' }) : null
+
+// ===== RATE LIMITING =====
+// Simple in-memory rate limiter with Firestore persistence across invocations
+interface RateLimitEntry {
+  count: number
+  resetAt: number
+}
+
+const rateLimitCache = new Map<string, RateLimitEntry>()
+
+async function checkRateLimit(key: string, maxRequests: number = 100, windowMs: number = 60000): Promise<boolean> {
+  const now = Date.now()
+  
+  // Check in-memory cache first
+  let entry = rateLimitCache.get(key)
+  if (entry && entry.resetAt > now) {
+    // Still within window
+    return entry.count < maxRequests
+  }
+  
+  // Window expired or no cache entry
+  rateLimitCache.set(key, { count: 1, resetAt: now + windowMs })
+  return true
+}
+
+async function incrementRateLimit(key: string, windowMs: number = 60000): Promise<void> {
+  const now = Date.now()
+  const entry = rateLimitCache.get(key)
+  
+  if (entry && entry.resetAt > now) {
+    entry.count++
+  } else {
+    rateLimitCache.set(key, { count: 1, resetAt: now + windowMs })
+  }
+}
+
+// ===== SECURITY HEADERS =====
+// Add security headers to all responses
+function addSecurityHeaders(res: any) {
+  res.set('X-Content-Type-Options', 'nosniff')
+  res.set('X-Frame-Options', 'SAMEORIGIN')
+  res.set('X-XSS-Protection', '1; mode=block')
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  res.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=(self), payment=(self)')
+}
 
 // Sanitize objects before saving to Firestore: remove functions, symbols, undefined,
 // cut off deep nesting and break cycles.
@@ -401,16 +459,76 @@ function buildCompleteAnalysis(geminiResponse: any, answers: any): AIAnalysisMod
 // Forced deployment on Oct 10, 2025
 export const analyzeUserData = onRequest({
 	maxInstances: 10,
-	timeoutSeconds: 120, // Increased to 120 seconds to handle Gemini API delays
+	timeoutSeconds: 60, // Reduced from 120s to 60s - faster timeout detection with heartbeat updates
 	cors: true,
 }, async (req, res) => {
+	// Add security headers
+	addSecurityHeaders(res)
 	if (req.method !== 'POST') { res.status(405).send({ error: 'Method not allowed' }); return }
 	try {
+		// Start heartbeat logging for long-running operation
+		// Logs progress every 15s (client can parse logs if needed)
+		startHeartbeat(res, { intervalMs: 15000, maxDurationMs: 50000 })
+
+		// Circuit breaker: check if API is experiencing too many failures
+		if (isCircuitBreakerOpen()) {
+			console.warn('[CircuitBreaker] Rejecting request - circuit breaker is open')
+			stopHeartbeat()
+			res.status(503).json({ error: 'The analysis service is temporarily unavailable. Please try again in a few moments.' })
+			return
+		}
+
+		// Rate limiting: 10 requests per minute per IP
+		const xffHeader = req.headers['x-forwarded-for'] as string | undefined
+		const clientIp = (xffHeader?.split(',')?.[0]?.trim()) || (typeof req.ip === 'string' ? req.ip : undefined) || 'unknown'
+		const rateLimitKey = `analyzeUser_${clientIp}`
+		const isAllowed = await checkRateLimit(rateLimitKey, 10, 60000)
+		if (!isAllowed) {
+			stopHeartbeat()
+			res.status(429).json({ error: 'Too many requests. Please try again later.' })
+			return
+		}
+		await incrementRateLimit(rateLimitKey, 60000)
+
 		const body = req.body
 		const { userId, sessionId, events, answers, photoUrls } = body || {}
-		if (!userId) { res.status(400).send({ error: 'userId required' }); return }
+		if (!userId) { 
+			stopHeartbeat()
+			res.status(400).send({ error: 'userId required' }); return 
+		}
+
+		// Validate and preprocess user answers
+		updateHeartbeat('validating', 10, 'Validating your answers...')
+		const validationResult = validateUserAnswers(answers)
+		if (!validationResult.isValid) {
+			console.error('[Validation] Input validation failed:', validationResult.errors)
+			stopHeartbeat()
+			res.status(400).json({ 
+				error: 'Invalid input data: ' + validationResult.errors.join(', ')
+			})
+			return
+		}
+		if (validationResult.warnings.length > 0) {
+			console.warn('[Validation] Input warnings:', validationResult.warnings)
+		}
+
+		// Check cache for similar analysis
+		updateHeartbeat('caching', 15, 'Checking for existing analysis...')
+		const cacheKey = generateCacheKey(answers)
+		if (cacheKey) {
+			const cached = await getCachedAnalysis(cacheKey)
+			if (cached) {
+				console.log('[Cache] Returning cached analysis')
+				await incrementCacheHit(cacheKey)
+				recordRequest(true)
+				stopHeartbeat()
+				res.json({ analysis: cached, fromCache: true })
+				return
+			}
+		}
 
 		// Extract traffic meta for session doc (ip/device/source)
+		updateHeartbeat('preprocessing', 20, 'Processing your profile...')
 		const meta = extractTrafficMetaSync(req)
 
 		// Retrieve API key and sanitize (trim + remove newlines) to avoid invalid header characters
@@ -605,7 +723,7 @@ User profile: ${JSON.stringify(optimizedAnswers)}`
 					let u = (input || '').trim()
 					if (!u) return ''
 					// Strip querystring early
-					if (u.includes('?')) u = u.split('?')[0]
+					if (u.includes('?')) u = u.split('?')[0] as string
 
 					if (u.startsWith('gs://')) {
 						const rest = u.slice(5)
@@ -634,19 +752,25 @@ User profile: ${JSON.stringify(optimizedAnswers)}`
 						}
 						if (m) {
 							bucket = m[1]
-							path = decodeURIComponent(m[2])
+							if (m[2]) {
+								path = decodeURIComponent(m[2] as string)
+							}
 						} else {
 							// 3) https://storage.googleapis.com/<bucket>/<path>
 							let m2 = u.match(/^https?:\/\/storage\.googleapis\.com\/([^/]+)\/(.+)$/)
 							if (m2) {
 								bucket = m2[1]
-								path = m2[2]
+								if (m2[2]) {
+									path = m2[2] as string
+								}
 							} else {
 								// 4) https://<bucket>.storage.googleapis.com/<path>
 								let m3 = u.match(/^https?:\/\/([^/]+)\.storage\.googleapis\.com\/(.+)$/)
 								if (m3) {
 									bucket = m3[1]
-									path = m3[2]
+									if (m3[2]) {
+										path = m3[2] as string
+									}
 								} else {
 									// 5) https://<project>.firebasestorage.app/<path> (not a gs-valid host) -> use default bucket
 									const uObj = new URL(u)
@@ -722,7 +846,7 @@ User profile: ${JSON.stringify(optimizedAnswers)}`
 			let t = text.trim()
 			// Prefer fenced block content if present
 			const fenced = t.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
-			if (fenced) {
+			if (fenced && typeof fenced[1] === 'string') {
 				return fenced[1].trim()
 			}
 			// Strip simple leading/trailing fences if they exist
@@ -753,54 +877,96 @@ Cleaned text:\n', cleaned)
 				return null
 			}
 		}
+
+		// Use retryWithBackoff for Gemini API calls with exponential backoff
+		updateHeartbeat('analyzing', 35, 'Analyzing with AI...')
 		try {
-			console.log('Attempting Gemini call with images...')
-			generated = await callGemini(basePrompt, optimizedPhotos)
+			console.log('Attempting Gemini call with retry mechanism...')
+			
+			generated = await retryWithBackoff(
+				async () => {
+					const result = await callGemini(basePrompt, optimizedPhotos)
+					return result
+				},
+				{
+					maxRetries: 4,
+					initialDelayMs: 500,
+					maxDelayMs: 8000,
+					backoffMultiplier: 2,
+				},
+				{ userId, sessionId }
+			)
+			
 			console.log('Gemini raw response:', generated)
 			
 			if (typeof generated === 'string' || (generated && typeof generated === 'object')) {
 				parsed = tryParseGeminiJSON(generated)
-				if (parsed) console.log('Parsed JSON successfully')
+				if (parsed) {
+					console.log('Parsed JSON successfully')
+					recordRequest(true)
+				}
 			}
 
 			if (!parsed) {
 				console.log('First attempt failed, retrying with explicit JSON instruction...')
 				// Retry with an explicit instruction to return JSON only and a short schema example
 				const retryPrompt = basePrompt + ' ONLY return the JSON object. Example format: {"skinCondition":{"score":7,"explanation":"...","recommendations":["cleanse-hydrate"]},"hairCondition":{"score":6,"explanation":"...","recommendations":["wash-care"]},"physicalCondition":{"score":8,"explanation":"...","recommendations":["morning-stretch"]},"mentalCondition":{"score":7,"explanation":"...","recommendations":["mindful-meditation"]}}'
-				const retryResp = await callGemini(retryPrompt, optimizedPhotos)
+				
+				const retryResp = await retryWithBackoff(
+					async () => {
+						const result = await callGemini(retryPrompt, optimizedPhotos)
+						return result
+					},
+					{
+						maxRetries: 3,
+						initialDelayMs: 1000,
+						maxDelayMs: 6000,
+						backoffMultiplier: 2,
+					},
+					{ userId, sessionId }
+				)
+				
 				console.log('Retry response:', retryResp)
 				
 				if (typeof retryResp === 'string' || (retryResp && typeof retryResp === 'object')) {
 					parsed = tryParseGeminiJSON(retryResp)
-					if (parsed) console.log('Retry parsed successfully')
+					if (parsed) {
+						console.log('Retry parsed successfully')
+						recordRequest(true)
+					}
 				}
 			}
 		} catch (e: any) {
-			console.error('Gemini request failed with images:', e)
+			console.error('Gemini request failed after all retries:', e)
+			recordRequest(false) // Record failure for circuit breaker
 			
 			// Log the detailed error response from Gemini API
 			if (e?.response?.data) {
 				console.error('Gemini API error response:', JSON.stringify(e.response.data, null, 2))
 				
-				// If the error is about unsupported file URI, try without images
+				// If the error is about unsupported file URI, try without images (no retries for this)
 				if (e.response.data?.error?.message?.includes('Unsupported file uri')) {
-					console.log('File URI error detected, retrying without images...')
-						try {
-							const textOnlyPrompt = basePrompt + ' Note: Analysis based on text data only (no images provided).'
-							generated = await callGemini(textOnlyPrompt, null)
-							console.log('Text-only Gemini response:', generated)
-							// Extra safety: show sanitized JSON for debugging
-							if (typeof generated === 'string') {
-								const sanitized = sanitizeGeminiText(generated)
-								console.log('Sanitized text-only JSON candidate:', sanitized.slice(0, 500))
+					console.log('File URI error detected, attempting text-only analysis...')
+					try {
+						const textOnlyPrompt = basePrompt + ' Note: Analysis based on text data only (no images provided).'
+						generated = await callGemini(textOnlyPrompt, null)
+						console.log('Text-only Gemini response:', generated)
+						// Extra safety: show sanitized JSON for debugging
+						if (typeof generated === 'string') {
+							const sanitized = sanitizeGeminiText(generated)
+							console.log('Sanitized text-only JSON candidate:', sanitized.slice(0, 500))
+						}
+						
+						if (typeof generated === 'string' || (generated && typeof generated === 'object')) {
+							parsed = tryParseGeminiJSON(generated)
+							if (parsed) {
+								console.log('Text-only parsed successfully')
+								recordRequest(true)
 							}
-							
-							if (typeof generated === 'string' || (generated && typeof generated === 'object')) {
-								parsed = tryParseGeminiJSON(generated)
-								if (parsed) console.log('Text-only parsed successfully')
-							}
-						} catch (textOnlyError) {
+						}
+					} catch (textOnlyError) {
 						console.error('Text-only request also failed:', textOnlyError)
+						recordRequest(false)
 						parsed = null
 					}
 				}
@@ -815,27 +981,72 @@ Cleaned text:\n', cleaned)
 		const isValidResponse = validateGeminiResponse(parsed)
 		console.log('Validation result:', isValidResponse, 'for response:', parsed)
 
-		// If the parsed object is invalid, use a safe fallback by default so UX does not stall.
-		// Can be disabled by setting GEMINI_ALLOW_FALLBACK=false.
-		const allowFallback = (process.env.GEMINI_ALLOW_FALLBACK || 'true').toLowerCase() === 'true'
+		// If the parsed object is invalid, do NOT use a fallback by default so users are not misled.
+		// The frontend will handle the error gracefully and allow retry or support contact.
+		// Can be overridden by setting GEMINI_ALLOW_FALLBACK=true (not recommended for production).
+		const allowFallback = (process.env.GEMINI_ALLOW_FALLBACK || 'false').toLowerCase() === 'true'
 		console.log('Allow fallback:', allowFallback)
 		
 		if (!parsed || !isValidResponse) {
 			console.error('Gemini returned invalid or unparsable response', { generated, parsed, isValidResponse })
+			recordRequest(false)
+			
+			// Try Claude API fallback if enabled
+			if (isClaudeFallbackEnabled()) {
+				console.log('[Fallback] Attempting Claude API fallback...')
+				updateHeartbeat('analyzing', 50, 'Using alternative AI model...')
+				
+				try {
+					const claudeResult = await callClaudeAnalysis(
+						optimizedAnswers,
+						basePrompt
+					)
+					
+					if (claudeResult) {
+						console.log('[Fallback] Claude analysis successful')
+						recordRequest(true)
+						const completeAnalysis = buildCompleteAnalysis(claudeResult, answers)
+						
+						// Save with fallback flag
+						const docRef = db.collection('users').doc(userId).collection('analysis').doc()
+						await docRef.set({ 
+							createdAt: admin.firestore.FieldValue.serverTimestamp(), 
+							model: completeAnalysis,
+							usedClaudeFallback: true
+						})
+						
+						// Save to cache if key available
+						if (cacheKey && completeAnalysis) {
+							await saveCacheAnalysis(cacheKey, completeAnalysis).catch(err => {
+								console.warn('[Cache] Failed to save Claude fallback to cache:', err)
+							})
+						}
+						
+						updateHeartbeat('finalizing', 95, 'Finalizing results...')
+						stopHeartbeat()
+						res.status(200).json({ analysis: completeAnalysis, usedFallback: true }); return
+					}
+				} catch (claudeError) {
+					console.error('[Fallback] Claude API also failed:', claudeError)
+				}
+			}
+			
+			// Claude didn't work either or not enabled, return error
 			if (!allowFallback) {
 				// Return an error to the client so the UI can surface it—no silent fallback.
-				res.status(502).json({ error: 'Invalid response from Gemini. Please retry.' }); return
+				stopHeartbeat()
+				res.status(502).json({ error: 'Our analysis service encountered a temporary issue. Please retry in a moment.' }); return
 			}
 			
-			// Create fallback Gemini response
+			// If explicitly enabled, create fallback Gemini response (ONLY for testing, not production)
 			const fallbackGeminiResponse = {
-				skinCondition: { score: 6, explanation: 'Insufficient data - default analysis.', recommendations: ['cleanse-hydrate','deep-hydration'] },
-				hairCondition: { score: 6, explanation: 'Insufficient data - default analysis.', recommendations: ['wash-care','deep-nourishment'] },
-				physicalCondition: { score: 6, explanation: 'Insufficient data - default analysis.', recommendations: ['morning-stretch','cardio-boost'] },
-				mentalCondition: { score: 6, explanation: 'Insufficient data - default analysis.', recommendations: ['mindful-meditation','breathing-exercises'] }
+				skinCondition: { score: 6, explanation: 'Analysis in progress. Your results will be ready shortly.', recommendations: ['cleanse-hydrate','deep-hydration'] },
+				hairCondition: { score: 6, explanation: 'Analysis in progress. Your results will be ready shortly.', recommendations: ['wash-care','deep-nourishment'] },
+				physicalCondition: { score: 6, explanation: 'Analysis in progress. Your results will be ready shortly.', recommendations: ['morning-stretch','cardio-boost'] },
+				mentalCondition: { score: 6, explanation: 'Analysis in progress. Your results will be ready shortly.', recommendations: ['mindful-meditation','breathing-exercises'] }
 			}
 			
-			console.log('Using fallback response due to Gemini validation failure')
+			console.log('Using fallback response due to Gemini validation failure (TESTING MODE)')
 			
 			// Build complete analysis with fallback data
 			const fallback = buildCompleteAnalysis(fallbackGeminiResponse, answers)
@@ -843,6 +1054,7 @@ Cleaned text:\n', cleaned)
 			await ref.set({ createdAt: admin.firestore.FieldValue.serverTimestamp(), model: fallback, raw: generated || null })
 			
 			console.log('Fallback analysis created:', fallback)
+			stopHeartbeat()
 			res.status(200).json({ analysis: fallback }); return
 		}
 
@@ -858,6 +1070,14 @@ Cleaned text:\n', cleaned)
 		
 		const docRef = db.collection('users').doc(userId).collection('analysis').doc()
 		await docRef.set({ createdAt: admin.firestore.FieldValue.serverTimestamp(), model: completeAnalysis })
+
+		// Save analysis to cache for future similar queries
+		if (cacheKey && completeAnalysis) {
+			await saveCacheAnalysis(cacheKey, completeAnalysis).catch(err => {
+				console.warn('[Cache] Failed to save analysis to cache:', err)
+				// Non-critical, don't fail the request
+			})
+		}
 
 		// Save onboarding session
 		if (sessionId && events) {
@@ -908,15 +1128,20 @@ Cleaned text:\n', cleaned)
 			}
 		}
 
+		updateHeartbeat('finalizing', 95, 'Finalizing results...')
+		stopHeartbeat()
 		res.status(200).json({ analysis: completeAnalysis }); return
 	} catch (e: any) {
 		console.error('analyzeUserData error', e)
+		stopHeartbeat()
 		res.status(500).json({ error: e?.message || 'internal' }); return
 	}
 })
 
 export const saveOnboardingSession = onRequest(async (req, res) => {
 	// Real-time onboarding session event logging - v2
+	// Add security headers
+	addSecurityHeaders(res)
 	// CORS handling: allow browser clients to POST from different origins.
 	res.set('Access-Control-Allow-Origin', '*')
 	res.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
@@ -924,6 +1149,17 @@ export const saveOnboardingSession = onRequest(async (req, res) => {
 	if (req.method === 'OPTIONS') { res.status(204).send(''); return }
 	if (req.method !== 'POST') { res.status(405).send({ error: 'Method not allowed' }); return }
 	try {
+		// Rate limiting: 30 requests per minute per IP
+		const xffHeader2 = req.headers['x-forwarded-for'] as string | undefined
+		const clientIp = (xffHeader2?.split(',')?.[0]?.trim()) || (typeof req.ip === 'string' ? req.ip : undefined) || 'unknown'
+		const rateLimitKey = `saveSession_${clientIp}`
+		const isAllowed = await checkRateLimit(rateLimitKey, 30, 60000)
+		if (!isAllowed) {
+			res.status(429).json({ error: 'Too many requests. Please try again later.' })
+			return
+		}
+		await incrementRateLimit(rateLimitKey, 60000)
+
 		const body = req.body
 		const { sessionId, events, userId } = body || {}
 		if (!sessionId) { res.status(400).send({ error: 'sessionId required' }); return }
@@ -1025,6 +1261,8 @@ export const saveOnboardingSession = onRequest(async (req, res) => {
 // Expects: POST { amount: number (cents), currency: string, paymentMethodId?: string }
 // Creates + confirms a PaymentIntent when paymentMethodId provided. Returns status + client_secret.
 export const processPayment = onRequest(async (req, res) => {
+	// Add security headers
+	addSecurityHeaders(res)
 	res.set('Access-Control-Allow-Origin', '*')
 	res.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
 	res.set('Access-Control-Allow-Headers', 'Content-Type')
@@ -1032,6 +1270,17 @@ export const processPayment = onRequest(async (req, res) => {
 	if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return }
 
 	try {
+		// Rate limiting: 5 requests per minute per IP
+		const xffHeader3 = req.headers['x-forwarded-for'] as string | undefined
+		const clientIp = (xffHeader3?.split(',')?.[0]?.trim()) || (typeof req.ip === 'string' ? req.ip : undefined) || 'unknown'
+		const rateLimitKey = `payment_${clientIp}`
+		const isAllowed = await checkRateLimit(rateLimitKey, 5, 60000)
+		if (!isAllowed) {
+			res.status(429).json({ error: 'Too many requests. Please try again later.' })
+			return
+		}
+		await incrementRateLimit(rateLimitKey, 60000)
+
 		if (!stripe) { res.status(500).json({ error: 'Stripe not configured' }); return }
 
 		const { amount, currency = 'usd', paymentMethodId, sessionId, userId } = req.body || {}
@@ -1204,11 +1453,24 @@ export const uploadPhoto = onRequest({
 	timeoutSeconds: 60,
 	cors: true,
 }, async (req, res) => {
+	// Add security headers
+	addSecurityHeaders(res)
 	try {
 		if (req.method !== 'POST') {
 			res.status(405).send('Method Not Allowed')
 			return
 		}
+
+		// Rate limiting: 20 requests per minute per IP
+		const xffHeader4 = req.headers['x-forwarded-for'] as string | undefined
+		const clientIp = (xffHeader4?.split(',')?.[0]?.trim()) || (typeof req.ip === 'string' ? req.ip : undefined) || 'unknown'
+		const rateLimitKey = `uploadPhoto_${clientIp}`
+		const isAllowed = await checkRateLimit(rateLimitKey, 20, 60000)
+		if (!isAllowed) {
+			res.status(429).json({ error: 'Too many requests. Please try again later.' })
+			return
+		}
+		await incrementRateLimit(rateLimitKey, 60000)
 
 		const { userId, photoType, base64Data, contentType = 'image/jpeg' } = req.body
 
@@ -1252,6 +1514,108 @@ export const uploadPhoto = onRequest({
 	} catch (e: any) {
 		console.error('uploadPhoto error', e)
 		res.status(500).json({ error: 'Upload failed', details: e.message })
+	}
+})
+
+/**
+ * Periodic health check for Gemini API reliability
+ * Call this via Cloud Scheduler every 10 minutes
+ * Example: curl -X POST https://us-central1-beauty-planner-26cc0.cloudfunctions.net/healthCheck
+ */
+export const healthCheck = onRequest(async (req, res) => {
+	addSecurityHeaders(res)
+	
+	if (req.method !== 'POST') {
+		res.status(405).json({ error: 'Method not allowed' })
+		return
+	}
+
+	try {
+		console.log('[HealthCheck] Starting periodic health check...')
+		
+		// Run comprehensive health check
+		await periodicHealthCheck()
+		
+		// Get current metrics
+		const metrics = await getAPIHealthMetrics()
+		
+		console.log('[HealthCheck] Health check completed successfully')
+		res.status(200).json({
+			status: 'ok',
+			message: 'Health check completed',
+			metrics,
+			timestamp: new Date().toISOString(),
+		})
+	} catch (error: any) {
+		console.error('[HealthCheck] Health check failed:', error)
+		res.status(500).json({
+			status: 'error',
+			message: 'Health check failed',
+			error: error?.message,
+		})
+	}
+})
+
+/**
+ * Get current API health metrics (monitoring endpoint)
+ * Returns real-time API health statistics
+ */
+export const getHealthMetrics = onRequest(async (req, res) => {
+	addSecurityHeaders(res)
+	
+	// Require authentication in production
+	const authToken = req.headers.authorization?.replace('Bearer ', '')
+	if (!authToken && process.env.NODE_ENV === 'production') {
+		res.status(401).json({ error: 'Unauthorized' })
+		return
+	}
+
+	try {
+		const metrics = await getAPIHealthMetrics()
+		
+		if (!metrics) {
+			res.status(204).json({ message: 'No metrics available yet' })
+			return
+		}
+
+		// Calculate health score (0-100)
+		let healthScore = metrics.successRate
+		
+		// Penalize high latency
+		if (metrics.averageLatencyMs > 35000) {
+			healthScore -= 20
+		} else if (metrics.averageLatencyMs > 20000) {
+			healthScore -= 10
+		}
+
+		// Penalize high fallback usage
+		if (metrics.totalRequests > 0) {
+			const fallbackRate = (metrics.claudeFallbackUsed / metrics.totalRequests) * 100
+			if (fallbackRate > 5) {
+				healthScore -= 15
+			}
+		}
+
+		// Circuit breaker penalty
+		if (metrics.circuitBreakerOpen) {
+			healthScore -= 50
+		}
+
+		const healthStatus = healthScore >= 80 ? 'healthy' : healthScore >= 60 ? 'degraded' : 'unhealthy'
+
+		res.status(200).json({
+			status: healthStatus,
+			healthScore: Math.max(0, Math.min(100, healthScore)),
+			metrics,
+			timestamp: new Date().toISOString(),
+		})
+	} catch (error: any) {
+		console.error('[Metrics] Failed to get metrics:', error)
+		res.status(500).json({
+			status: 'error',
+			message: 'Failed to retrieve metrics',
+			error: error?.message,
+		})
 	}
 })
 

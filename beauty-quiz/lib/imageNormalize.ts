@@ -29,7 +29,11 @@ export async function normalizeAndCompressImage(
     try {
       const heic2any: any = (await import('heic2any')).default || (await import('heic2any'))
       const converted: Blob | Blob[] = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.98 })
-      workingBlob = Array.isArray(converted) ? converted[0] : converted
+      if (Array.isArray(converted)) {
+        workingBlob = (converted[0] as Blob) || file
+      } else {
+        workingBlob = (converted as Blob) || file
+      }
     } catch (err) {
       console.warn('HEIC conversion failed, proceeding without conversion', err)
     }
@@ -70,12 +74,12 @@ export async function normalizeAndCompressImage(
   const srcCanvas = document.createElement('canvas')
   srcCanvas.width = srcW
   srcCanvas.height = srcH
-  const sctx = srcCanvas.getContext('2d')!
+  const sctx = srcCanvas.getContext('2d', { willReadFrequently: true } as any) as CanvasRenderingContext2D
   sctx.drawImage(imgBitmap, 0, 0)
 
   // Destination canvas may require rotation based on EXIF
   const destCanvas = document.createElement('canvas')
-  const dctx = destCanvas.getContext('2d')!
+  const dctx = destCanvas.getContext('2d', { willReadFrequently: true } as any) as CanvasRenderingContext2D
 
   const setCanvasForOrientation = (o: number, w: number, h: number) => {
     switch (o) {
@@ -146,7 +150,7 @@ async function createImageBitmapSafe(blob: Blob): Promise<ImageBitmap> {
   const canvas = document.createElement('canvas')
   canvas.width = img.naturalWidth
   canvas.height = img.naturalHeight
-  const ctx = canvas.getContext('2d')!
+  const ctx = canvas.getContext('2d', { willReadFrequently: true } as any) as CanvasRenderingContext2D
   ctx.drawImage(img, 0, 0)
   return await createImageBitmap(canvas)
 }

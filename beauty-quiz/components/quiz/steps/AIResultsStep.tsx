@@ -374,7 +374,9 @@ export default function AIResultsStep() {
       // Provide explicit numeric sleepHours to Gemini based on WakeUp/EndDay
       const parseHHMM = (v?: string) => {
         if (!v) return null
-        const [hh, mm] = v.split(':').map(Number)
+        const parts = v.split(':')
+        const hh = Number(parts[0] ?? NaN)
+        const mm = Number(parts[1] ?? NaN)
         if (Number.isNaN(hh) || Number.isNaN(mm)) return null
         return hh * 60 + mm
       }
@@ -445,24 +447,12 @@ export default function AIResultsStep() {
     }
   }, [])
 
-  // Client-side fallback: proceed with a safe default model if server analysis fails
+  // Client-side fallback: do NOT proceed with fallback analysis
+  // Instead, inform user and allow retry or contact support
   const continueWithBasicAnalysis = () => {
-    const fallback = {
-      bmi: null,
-      bmiCategory: 'Unknown',
-      bmiDescription: '',
-      bmiImageId: '',
-      skinCondition: { score: 6, explanation: 'Basic analysis due to network issue.', recommendations: ['cleanse-hydrate','deep-hydration'] },
-      hairCondition: { score: 6, explanation: 'Basic analysis due to network issue.', recommendations: ['wash-care','deep-nourishment'] },
-      physicalCondition: { score: 6, explanation: 'Basic analysis due to network issue.', recommendations: ['morning-stretch','cardio-boost'] },
-      mentalCondition: { score: 6, explanation: 'Basic analysis due to network issue.', recommendations: ['mindful-meditation','breathing-exercises'] },
-      bmsScore: 6,
-      bmsCategory: 'On the Path to Balance',
-      bmsDescription: ''
-    }
-    setAnalysis(fallback)
-    setIsPaused(false)
-    setStatus('success')
+    setStatus('error')
+    setErrorMessage('We were unable to complete your analysis. This may be a temporary server issue. Please retry or contact support.')
+    setProgress(0)
   }
 
   // Testimonials scroller (copied from Procedures step with identical behavior)
@@ -491,7 +481,7 @@ export default function AIResultsStep() {
             cy="50"
           />
           <motion.circle
-            className={status === 'error' ? 'text-red-500' : 'text-blue-600'}
+            className={status === 'error' ? 'text-red-500' : 'text-primary'}
             strokeWidth="5"
             strokeDasharray={2 * Math.PI * 45}
             strokeDashoffset={2 * Math.PI * 45 * (1 - progress / 100)}
@@ -514,7 +504,7 @@ export default function AIResultsStep() {
           )}
           {(status === 'running' || status === 'success') && isPaused && interludeIndex !== null && (
             <div className="text-center">
-              <p className="text-base font-semibold text-text-primary mb-2">{interludes[interludeIndex].prompt}</p>
+              <p className="text-base font-semibold text-text-primary mb-2">{interludes[interludeIndex]?.prompt}</p>
               <div className="flex items-center justify-center gap-3">
                 <button
                   className="px-3 py-1.5 rounded-full bg-primary text-white text-sm font-semibold"
@@ -537,7 +527,7 @@ export default function AIResultsStep() {
                   }}
                 >Yes</button>
                 <button
-                  className="px-3 py-1.5 rounded-full bg-gray-200 text-gray-800 text-sm font-semibold"
+                  className="px-3 py-1.5 rounded-full bg-surface-2 text-text-primary border border-border-subtle text-sm font-semibold"
                   onClick={() => {
                     // Dummy: do not persist, just continue
                     setIsPaused(false)
@@ -571,10 +561,7 @@ export default function AIResultsStep() {
                 <svg className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                <span className="text-sm font-semibold text-red-500 mt-2">Retry</span>
-              </button>
-              <button onClick={continueWithBasicAnalysis} className="text-xs font-semibold text-blue-600 underline">
-                Continue with basic analysis
+                <span className="text-sm font-semibold text-red-500 mt-2">Try Again</span>
               </button>
             </div>
           )}

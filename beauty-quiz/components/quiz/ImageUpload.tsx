@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef } from 'react'
+import Image from 'next/image'
 import { UploadCloud, CheckCircle, AlertTriangle } from 'lucide-react';
 
 interface ImageUploadProps {
@@ -74,7 +75,7 @@ export default function ImageUpload({ onUpload, uploadStatus, previewUrl }: Imag
         className="mt-1 flex justify-center items-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-primary transition"
       >
         {previewUrl ? (
-          <img src={previewUrl} alt="Preview" className="max-h-48 rounded-md" />
+          <Image src={previewUrl} alt="Preview" width={192} height={192} className="max-h-48 rounded-md" />
         ) : (
           <div className="text-center">
             {getStatusContent()}

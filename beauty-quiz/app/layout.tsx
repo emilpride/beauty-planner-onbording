@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import './carousel-styles.css'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import { QueryProvider } from '@/components/QueryProvider'
 import ClientShell from '@/components/ClientShell'
 import ErrorBoundary from '@/components/ErrorBoundary'
 
@@ -14,6 +15,15 @@ export const metadata: Metadata = {
   keywords: 'beauty mirror, wellness quiz, skincare, haircare, personalized plan',
   icons: {
     icon: '/logos/favicon.ico',
+  },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Beauty Mirror Quiz',
+  },
+  formatDetection: {
+    telephone: false,
   },
 }
 
@@ -33,11 +43,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="light" suppressHydrationWarning>
       <body className={[inter.className, 'antialiased'].join(' ')} suppressHydrationWarning>
-        <ThemeProvider>
-          <ErrorBoundary>
-            <ClientShell>{children}</ClientShell>
-          </ErrorBoundary>
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider>
+            <ErrorBoundary>
+              <ClientShell>{children}</ClientShell>
+            </ErrorBoundary>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   )

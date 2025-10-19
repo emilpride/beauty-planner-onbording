@@ -77,20 +77,24 @@ export default function CustomActivitiesModal({
   }
 
 
-  const handleTouchStart = (e: React.TouchEvent, activityIndex: number) => {
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>, activityIndex: number) => {
+    const touch = e.touches && e.touches.length > 0 ? e.touches[0] : undefined
+    if (!touch) return
     setIsDragging(true)
     setDraggingIndex(activityIndex)
-    setStartY(e.touches[0].clientY)
-    setStartFrequency(activities[activityIndex]?.frequency || 1)
+    setStartY(touch.clientY)
+    setStartFrequency(activities[activityIndex]?.frequency ?? 1)
   }
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     if (!isDragging || draggingIndex === null) return
     
     const activity = activities[draggingIndex]
     if (!activity) return
     
-    const currentY = e.touches[0].clientY
+    const touch = e.touches && e.touches.length > 0 ? e.touches[0] : undefined
+    if (!touch) return
+    const currentY = touch.clientY
     const deltaY = startY - currentY
     const deltaFrequency = Math.round(deltaY / 20)
     const newFrequency = Math.max(1, Math.min(30, startFrequency + deltaFrequency))
@@ -109,30 +113,36 @@ export default function CustomActivitiesModal({
     
     const currentIndex = periods.findIndex(p => p.value === activity.period)
     const delta = e.deltaY > 0 ? 1 : -1
-    const newIndex = Math.max(0, Math.min(periods.length - 1, currentIndex + delta))
-    updateActivity(activity.id, 'period', periods[newIndex].value)
+  const newIndex = Math.max(0, Math.min(periods.length - 1, currentIndex + delta))
+  const nextPeriod = periods[newIndex]?.value ?? activity.period
+  updateActivity(activity.id, 'period', nextPeriod)
   }
 
 
-  const handlePeriodTouchStart = (e: React.TouchEvent, activityIndex: number) => {
+  const handlePeriodTouchStart = (e: React.TouchEvent<HTMLDivElement>, activityIndex: number) => {
+    const touch = e.touches && e.touches.length > 0 ? e.touches[0] : undefined
+    if (!touch) return
     setIsDragging(true)
     setDraggingIndex(activityIndex)
-    setStartY(e.touches[0].clientY)
+    setStartY(touch.clientY)
     setStartFrequency(periods.findIndex(p => p.value === activities[activityIndex]?.period) || 0)
   }
 
-  const handlePeriodTouchMove = (e: React.TouchEvent) => {
+  const handlePeriodTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     if (!isDragging || draggingIndex === null) return
     
     const activity = activities[draggingIndex]
     if (!activity) return
     
-    const currentY = e.touches[0].clientY
+    const touch = e.touches && e.touches.length > 0 ? e.touches[0] : undefined
+    if (!touch) return
+    const currentY = touch.clientY
     const deltaY = startY - currentY
     const deltaIndex = Math.round(deltaY / 20)
     const currentIndex = periods.findIndex(p => p.value === activity.period)
-    const newIndex = Math.max(0, Math.min(periods.length - 1, currentIndex + deltaIndex))
-    updateActivity(activity.id, 'period', periods[newIndex].value)
+  const newIndex = Math.max(0, Math.min(periods.length - 1, currentIndex + deltaIndex))
+  const nextPeriod = periods[newIndex]?.value ?? activity.period
+  updateActivity(activity.id, 'period', nextPeriod)
   }
 
   if (!isOpen) return null

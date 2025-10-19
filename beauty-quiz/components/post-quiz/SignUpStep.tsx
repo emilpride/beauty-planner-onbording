@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { initializeApp, getApps } from 'firebase/app'
+import { initializeApp, getApps, type FirebaseApp } from 'firebase/app'
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -16,14 +16,14 @@ import { useQuizStore } from '@/store/quizStore'
 
 // Initialize firebase client (safe to call multiple times)
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env['NEXT_PUBLIC_FIREBASE_API_KEY'],
+  authDomain: process.env['NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN'],
+  projectId: process.env['NEXT_PUBLIC_FIREBASE_PROJECT_ID'],
+  storageBucket: process.env['NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET'],
+  messagingSenderId: process.env['NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'],
+  appId: process.env['NEXT_PUBLIC_FIREBASE_APP_ID'],
 }
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
+const app: FirebaseApp = getApps()[0] ?? initializeApp(firebaseConfig)
 const clientAuth = getAuth(app)
 const clientDb = getFirestore(app)
 
@@ -120,9 +120,9 @@ export default function SignUpStep() {
   }
 
   return (
-    <div className="min-h-screen relative bg-background">
+    <div className="min-h-[100dvh] bg-background">
       {/* Back Button */}
-      <div className="absolute top-8 left-6 z-20">
+      <div className="sticky top-0 left-0 z-20 px-6 pt-6" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px) + 16px, 16px)' }}>
         <button
           onClick={() => {
             const target = Math.max(0, Math.min(totalSteps - 1, currentStep))
@@ -147,10 +147,8 @@ export default function SignUpStep() {
         </button>
       </div>
       
-      {/* Removed top title */}
-
       {/* Main Content */}
-      <div className="px-6 pt-8 pb-6">
+      <div className="px-6 pt-4 pb-6" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px) + 24px, 24px)' }}>
         <div className="flex flex-col items-center space-y-4">
           {/* Logo */}
           <div className="w-32 h-32 mb-4">

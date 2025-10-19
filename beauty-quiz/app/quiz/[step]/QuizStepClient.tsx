@@ -7,6 +7,8 @@ import { ensureAuthUser } from '@/lib/firebase'
 import Image from 'next/image'
 import OnboardingAppbar from '@/components/quiz/OnboardingAppbar'
 import AnimatedBackground from '@/components/AnimatedBackground'
+import { useQuizResume } from '@/hooks/useQuizResume'
+import { QuizResumeToast } from '@/components/quiz/QuizResumeToast'
 
 // Import all step components
 import GoalStep from '@/components/quiz/steps/GoalStep'
@@ -105,6 +107,9 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   const [isExiting, setIsExiting] = useState(false)
   const [isGoingBack, setIsGoingBack] = useState(false)
 
+  // Quiz resume notification
+  const { notification, dismiss } = useQuizResume()
+
   // Refs to measure and glue the card under the character
   const mainRef = useRef<HTMLDivElement | null>(null)
   const characterBoxRef = useRef<HTMLDivElement | null>(null)
@@ -161,8 +166,6 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
   // Keep URL in sync with store and guard assistant selection
   useEffect(() => {
     if (!isHydrated) return
-    // eslint-disable-next-line no-console
-    console.log('[QuizStepClient] sync check', { stepNumber, currentStep, assistant: answers.assistant })
     if (answers.assistant === 0) {
       router.replace('/assistant-selection')
       return
@@ -312,6 +315,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
       }, 600)
       return () => clearTimeout(fallbackTimer)
     }
+    return () => {}
   }, [stepNumber, hasMeasured, isFullScreen, showQuestion])
 
   // Ensure animation order: card (text) enters first, then character
@@ -322,6 +326,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
       return () => clearTimeout(timer)
     } else {
       setAnimationReady(false)
+      return () => {}
     }
   }, [showQuestion, hasMeasured])
 
@@ -343,16 +348,20 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
       if (hasCharacter && characterBoxRef.current) {
         const mainRect = main.getBoundingClientRect()
         const charRect = characterBoxRef.current.getBoundingClientRect()
-        const topPx = Math.max(0, Math.round(charRect.bottom - mainRect.top))
+        const baseTop = Math.max(0, Math.round(charRect.bottom - mainRect.top))
+        // Per-step adjustments
+  const offset = (stepNumber === 28 /* Analysis Intro */ || stepNumber === 31 /* AI Results: "Analyzing Your Profile" */) ? -40 : 0
+        const topPx = Math.max(0, baseTop + offset)
         setCardTopPx(topPx)
         setHasMeasured(true)
         setShowQuestion(true)
         return
       }
 
-      const viewportH = Math.max(window.innerHeight, document.documentElement.clientHeight)
-      const approxTop = Math.max(Math.round(viewportH * 0.12), 88)
-      setCardTopPx(approxTop)
+  const viewportH = Math.max(window.innerHeight, document.documentElement.clientHeight)
+  const approxTop = Math.max(Math.round(viewportH * 0.12), 88)
+  const fallbackOffset = (stepNumber === 28 || stepNumber === 31) ? -40 : 0
+  setCardTopPx(Math.max(0, approxTop + fallbackOffset))
       setHasMeasured(true)
       setShowQuestion(true)
       if (!hasCharacter) setIsReady(true)
@@ -397,6 +406,13 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
       {/* Animated Background (paused until step is ready to reduce motion conflicts) */}
       <AnimatedBackground paused={!isReady} />
 
+      {/* Quiz Resume Notification */}
+      <QuizResumeToast
+        show={notification.show}
+        message={notification.progressText}
+        onDismiss={dismiss}
+      />
+
       {isHydrated ? (
         <>
           {stepNumber < 33 && stepNumber >= 0 && ![30, 31, 32].includes(stepNumber) && (
@@ -414,7 +430,16 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
                   ...(assistantName === 'max' && [14, 15, 16, 17, 18, 19].includes(stepNumber)
                     ? {
                         alignItems: 'flex-end',
-                        paddingBottom: stepNumber === 18 ? '40px' : stepNumber === 19 ? '30px' : '20px',
+                        paddingBottom:
+                          stepNumber === 18
+                            ? '14px' // HairProblemsStep: lower image a bit compared to previous 40px
+                            : stepNumber === 19
+                            ? '30px'
+                            : stepNumber === 17
+                            ? '8px' // HairTypeStep: lower slightly
+                            : stepNumber === 14
+                            ? '8px' // SkinTypeStep: lower slightly
+                            : '20px',
                       }
                     : {}),
                 }}
@@ -453,7 +478,7 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
               }}
             >
               <div
-                className={`bg-white shadow-2xl ${isFullScreen ? 'min-h-[100dvh]' : 'rounded-3xl overflow-hidden'} relative z-40`}
+                className={`bg-surface shadow-2xl ${isFullScreen ? 'min-h-[100dvh]' : 'rounded-3xl overflow-hidden'} relative z-40`}
                 style={
                   isFullScreen
                     ? {}

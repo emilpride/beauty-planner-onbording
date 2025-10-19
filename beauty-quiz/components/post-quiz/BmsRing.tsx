@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 import { motion, useInView } from 'framer-motion'
 
 type SegmentKey = 'skin' | 'hair' | 'physic' | 'mental'
@@ -177,7 +178,7 @@ export default function BmsRing({ size = 240, thickness = 28, scores, overall, i
             }}
             title={`${k.charAt(0).toUpperCase()}${k.slice(1)}: ${scores[k]?.toFixed(1)}/10`}
           >
-            <img src={src} alt={`${k} icon`} className="w-[70%] h-[70%] object-contain" />
+            <Image src={src} alt={`${k} icon`} width={iconSize * 0.7} height={iconSize * 0.7} className="w-[70%] h-[70%] object-contain" />
           </div>
         )
       })}

@@ -22,7 +22,7 @@ export default function StripeExpressPay({ amountCents, currency = "usd", label 
   const sessionId = useQuizStore(s => s.sessionId)
   const userId = useQuizStore(s => s.answers.Id)
 
-  const pubKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  const pubKey = process.env['NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'];
 
   useEffect(() => {
     let mounted = true;

@@ -31,8 +31,8 @@ const welcomeSlides = [
 export default function WelcomeCarousel() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
-  const [touchStart, setTouchStart] = useState(0)
-  const [touchEnd, setTouchEnd] = useState(0)
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
   const router = useRouter()
   const [webmSupported, setWebmSupported] = useState<boolean | null>(null)
 
@@ -73,15 +73,28 @@ export default function WelcomeCarousel() {
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX)
+    const touches = e.targetTouches
+    if (touches && touches.length > 0) {
+      const x = touches[0]?.clientX
+      if (typeof x === 'number') {
+        setTouchStart(x)
+        setTouchEnd(x)
+      }
+    }
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX)
+    const touches = e.targetTouches
+    if (touches && touches.length > 0) {
+      const x = touches[0]?.clientX
+      if (typeof x === 'number') {
+        setTouchEnd(x)
+      }
+    }
   }
 
   const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return
+    if (touchStart === null || touchEnd === null) return
     
     const distance = touchStart - touchEnd
     const isLeftSwipe = distance > 50
@@ -183,7 +196,7 @@ export default function WelcomeCarousel() {
 
           {/* Sign In Link - Reserve space even when hidden to prevent layout shift */}
           <div className="mt-3 min-h-[24px]">
-            {welcomeSlides[currentSlide].showSignIn ? (
+            {currentSlideData?.showSignIn ? (
               <p className="text-center text-text-secondary">
                 Already have an account?{' '}
                 <button className="text-primary font-semibold">Sign in</button>
