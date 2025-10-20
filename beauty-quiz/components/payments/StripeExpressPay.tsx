@@ -94,6 +94,16 @@ export default function StripeExpressPay({ amountCents, currency = "usd", label 
       });
 
       pr.on("paymentmethod", async (ev: any) => {
+        // Track when user proceeds to add payment info via PRB
+        try {
+          if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+            window.fbq('track', 'AddPaymentInfo', {
+              value: amountCents / 100,
+              currency,
+              content_type: 'product',
+            })
+          }
+        } catch { /* noop */ }
         // Create + confirm a PaymentIntent on the server using the received paymentMethod
         try {
           const resp = await fetch('/api/pay', {

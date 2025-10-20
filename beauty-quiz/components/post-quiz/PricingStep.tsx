@@ -7,6 +7,8 @@ import { AnimatePresence, motion } from "framer-motion"
 import { useQuizStore } from "../../store/quizStore"
 import { auth, saveUserToFirestore } from '@/lib/firebase'
 import StripeExpressPay from "../payments/StripeExpressPay"
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
+import { loadStripe } from "@stripe/stripe-js"
 
 // Types
 interface PlanOption {
@@ -209,6 +211,22 @@ export default function PricingStep() {
   }
 
   const handleOpenPayment = () => setShowPayment(true)
+  // Fire Pixel event when user initiates checkout (opening payment modal)
+  useEffect(() => {
+    try {
+      if (showPayment && typeof window !== 'undefined' && typeof window.fbq === 'function') {
+        const plan = plans.find((p) => p.id === selectedPlan)
+        const price = plan ? computePrice(plan, discountActive) : null
+        window.fbq('track', 'InitiateCheckout', {
+          value: price ? price.currentTotal : undefined,
+          currency: 'USD',
+          num_items: 1,
+          content_type: 'product',
+          content_ids: plan ? [plan.id] : undefined,
+        })
+      }
+    } catch { /* noop */ }
+  }, [showPayment, selectedPlan, discountActive])
 
   const handleRequestClose = () => {
     if (!discountOffered) {
@@ -469,6 +487,19 @@ function PlanCard({
   discountActive: boolean
 }) {
   const price = computePrice(plan, discountActive)
+  // Track AddToCart when selecting a plan (fires when this card becomes active)
+  useEffect(() => {
+    try {
+      if (active && typeof window !== 'undefined' && typeof window.fbq === 'function') {
+        window.fbq('track', 'AddToCart', {
+          content_ids: [plan.id],
+          content_type: 'product',
+          value: price.currentTotal,
+          currency: 'USD',
+        })
+      }
+    } catch { /* noop */ }
+  }, [active, plan.id, price.currentTotal])
   return (
     <button
       type="button"
@@ -741,9 +772,42 @@ interface PaymentModalProps {
 }
 
 function PaymentModal({ selectedPlanId, discountOffered, discountActive, promoCode, onPromoChange, onClose, onComplete }: PaymentModalProps) {
-  const plan = plans.find((item) => item.id === selectedPlanId) ?? plans[0]
-  if (!plan) return null
+  // Always resolve a plan to avoid conditional hooks; assert non-empty plans
+  const plan = useMemo(() => (plans.find((item) => item.id === selectedPlanId) ?? plans[0]) as PlanOption, [selectedPlanId])
   const { currentTotal } = computePrice(plan, discountActive)
+  const amountCents = Math.round(currentTotal * 100)
+  // Stripe publishable key from env
+  const pubKey = process.env['NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY']
+  const stripePromise = useMemo(() => pubKey ? loadStripe(pubKey) : null, [pubKey])
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [cardError, setCardError] = useState<string | null>(null)
+  const sessionId = useQuizStore(s => s.sessionId)
+  const userId = useQuizStore(s => s.answers.Id)
+
+  // Create a PaymentIntent for card fallback
+  useEffect(() => {
+    let alive = true
+    async function createIntent() {
+      try {
+        const resp = await fetch('/api/pay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: amountCents, currency: 'usd', sessionId, userId })
+        })
+        if (!resp.ok) {
+          const text = await resp.text().catch(() => '')
+          console.warn('Failed to create PaymentIntent', text)
+          return
+        }
+        const data = await resp.json()
+        if (alive) setClientSecret(data.clientSecret || null)
+      } catch (e) {
+        console.warn('createIntent exception', e)
+      }
+    }
+    createIntent()
+    return () => { alive = false }
+  }, [amountCents, sessionId, userId])
   return (
     <motion.div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
@@ -776,39 +840,76 @@ function PaymentModal({ selectedPlanId, discountOffered, discountActive, promoCo
 
           {/* Right: Payment Methods */}
           <div className="flex flex-col">
-            <StripeExpressPay amountCents={Math.round(currentTotal * 100)} currency="usd" label="Total" onSuccess={onComplete} />
+            <StripeExpressPay amountCents={amountCents} currency="usd" label="Total" onSuccess={onComplete} />
             <div className="relative my-2 flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-text-secondary">
               <span className="flex-1 h-px bg-border-subtle" />
               <span>or pay with a card</span>
               <span className="flex-1 h-px bg-border-subtle" />
             </div>
-            <PaymentBrandsRow />
-            <label className="mb-3 text-xs font-medium text-text-secondary">
-              Card number
-              <input type="text" placeholder="XXXX XXXX XXXX XXXX" className="mt-1 w-full rounded-xl border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/60 focus:border-[#A0D8CC] focus:outline-none focus:ring-2 focus:ring-[#C4E9E0]" />
-            </label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="text-xs font-medium text-text-secondary">
-                Expiry date
-                <input type="text" placeholder="MM/YY" className="mt-1 w-full rounded-xl border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/60 focus:border-[#A0D8CC] focus:outline-none focus:ring-2 focus:ring-[#C4E9E0]" />
-              </label>
-              <label className="text-xs font-medium text-text-secondary">
-                Security code
-                <input type="text" placeholder="CVV" className="mt-1 w-full rounded-xl border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/60 focus:border-[#A0D8CC] focus:outline-none focus:ring-2 focus:ring-[#C4E9E0]" />
-              </label>
-            </div>
-
-            <button
-              type="button"
-              onClick={onComplete}
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#33A476] px-5 py-3 text-base font-semibold text-white shadow-[0_10px_24px_rgba(51,164,118,0.28)]"
-            >
-              <span className="text-lg">🔒</span> CONTINUE
-            </button>
+            {pubKey && stripePromise && clientSecret ? (
+              <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
+                <CardPaymentSection onComplete={onComplete} setError={setCardError} />
+              </Elements>
+            ) : (
+              <div className="text-sm text-text-secondary">Loading secure card form…</div>
+            )}
+            {cardError && <div className="mt-2 text-sm text-red-500">{cardError}</div>}
           </div>
         </div>
       </motion.div>
     </motion.div>
+  )
+}
+
+function CardPaymentSection({ onComplete, setError }: { onComplete: () => void; setError: (msg: string | null) => void }) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [submitting, setSubmitting] = useState(false)
+  const handlePay = async () => {
+    setError(null)
+    if (!stripe || !elements) return
+    setSubmitting(true)
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: typeof window !== 'undefined' ? `${window.location.origin}/success` : undefined,
+        },
+        redirect: 'if_required',
+      })
+      if (error) {
+        setError(error.message || 'Payment failed. Please try again.')
+        setSubmitting(false)
+        return
+      }
+      const status = paymentIntent?.status
+      if (status === 'succeeded' || status === 'processing' || status === 'requires_capture') {
+        onComplete()
+      } else if (status === 'requires_action') {
+        // Additional action handled via redirect when needed; we used redirect: 'if_required'
+        // If not redirected, treat as pending
+        onComplete()
+      } else {
+        setError(`Unexpected status: ${status}`)
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Payment exception')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+  return (
+    <div className="mt-2">
+      <PaymentElement options={{ layout: 'tabs' }} />
+      <button
+        type="button"
+        onClick={handlePay}
+        disabled={!stripe || !elements || submitting}
+        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#33A476] px-5 py-3 text-base font-semibold text-white shadow-[0_10px_24px_rgba(51,164,118,0.28)] disabled:opacity-60"
+      >
+        <span className="text-lg">🔒</span> {submitting ? 'Processing…' : 'Pay now'}
+      </button>
+    </div>
   )
 }
 

@@ -45,6 +45,13 @@ export default function BmsRing({ size = 240, thickness = 28, scores, overall, i
   const inView = useInView(ref, { once: true, amount: 0.4 })
   const radius = size / 2 - thickness / 2
 
+  const LABELS: Record<SegmentKey, string> = {
+    skin: 'Skin',
+    hair: 'Hair',
+    physic: 'Body',
+    mental: 'Mental',
+  }
+
   const skin = scores.skin ?? 0
   const hair = scores.hair ?? 0
   const physic = scores.physic ?? 0
@@ -75,6 +82,13 @@ export default function BmsRing({ size = 240, thickness = 28, scores, overall, i
   }, [inView, overall, skin, hair, physic, mental])
 
   const computed = useMemo(() => {
+    const defaultAngles: Record<SegmentKey, number> = {
+      skin: 0, // top
+      hair: 90, // right
+      physic: 180, // bottom
+      mental: 270, // left
+    }
+
     const segments = [
       { key: 'skin' as SegmentKey, score: animSeg.skin, color: colors?.skin ?? getBandColor(scores.skin) },
       { key: 'hair' as SegmentKey, score: animSeg.hair, color: colors?.hair ?? getBandColor(scores.hair) },
@@ -110,13 +124,13 @@ export default function BmsRing({ size = 240, thickness = 28, scores, overall, i
     })
 
     const iconPositions = (['skin', 'hair', 'physic', 'mental'] as SegmentKey[]).reduce((acc, key) => {
-        const item = items.find(it => it.key === key)
-        // If an item has score 0, it won't be in `items`. We need to calculate a default position.
-        // This part is simplified for clarity. If you need icons for 0-score items, this logic can be expanded.
-        const angle = item ? item.midAngle : 0 
-        const pos = polarToCartesian(size / 2, size / 2, radius, angle);
-        acc[key] = { cx: pos.x, cy: pos.y };
-        return acc;
+      const item = items.find(it => it.key === key)
+      // If an item has score 0, it won't be in `items`. We need to calculate a default position.
+      // This part is simplified for clarity. If you need icons for 0-score items, this logic can be expanded.
+      const angle = item ? item.midAngle : defaultAngles[key]
+      const pos = polarToCartesian(size / 2, size / 2, radius, angle);
+      acc[key] = { cx: pos.x, cy: pos.y };
+      return acc;
     }, {} as Record<SegmentKey, { cx: number; cy: number }>)
 
     return { items, iconPositions }
@@ -126,7 +140,7 @@ export default function BmsRing({ size = 240, thickness = 28, scores, overall, i
 
   return (
     <div ref={ref} className="relative inline-block" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
+  <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         {/* Background track */}
         <circle
           cx={size / 2}
@@ -162,21 +176,20 @@ export default function BmsRing({ size = 240, thickness = 28, scores, overall, i
 
       {/* Icons */}
       {(Object.keys(computed.iconPositions) as SegmentKey[]).map((k) => {
-        if (!scores[k] || scores[k]! <= 0) return null; // Only show icons for segments with a score
         const pos = computed.iconPositions[k]
         const src = icons[k]
         if (!src) return null
         return (
           <div
             key={`icon-${k}`}
-            className="absolute rounded-full bg-white shadow-soft ring-1 ring-black/10 flex items-center justify-center dark:bg-surface/90"
+            className="absolute z-10 rounded-full bg-white shadow-soft ring-1 ring-black/10 dark:ring-white/10 flex items-center justify-center"
             style={{
               width: iconSize,
               height: iconSize,
               left: pos.cx - iconSize / 2,
               top: pos.cy - iconSize / 2,
             }}
-            title={`${k.charAt(0).toUpperCase()}${k.slice(1)}: ${scores[k]?.toFixed(1)}/10`}
+            title={`${LABELS[k]}: ${scores[k]?.toFixed(1)}/10`}
           >
             <Image src={src} alt={`${k} icon`} width={iconSize * 0.7} height={iconSize * 0.7} className="w-[70%] h-[70%] object-contain" />
           </div>

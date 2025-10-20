@@ -7,6 +7,15 @@ import * as admin from 'firebase-admin'
 import * as Sentry from '@sentry/node'
 import { logAPIEvent } from './monitoring'
 
+// Ensure Firebase Admin app is initialized even if this module is loaded before index.ts
+try {
+  if ((admin as any).apps ? (admin as any).apps.length === 0 : !(admin as any).getApps?.()?.length) {
+    admin.initializeApp()
+  }
+} catch (_) {
+  // Ignore initialization race conditions
+}
+
 const db = admin.firestore()
 
 // ===== RETRY MECHANISM =====

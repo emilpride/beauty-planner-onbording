@@ -88,6 +88,25 @@ export default function SuccessPage() {
     }
   }, [answers.PaymentCompleted, router])
 
+  // Fire Meta Pixel Purchase on load (place before conditional return to avoid hook-order issues)
+  useEffect(() => {
+    if (!answers.PaymentCompleted) return
+    try {
+      if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+        const planId = answers.SelectedPlan
+        // Map plan to total from local definition (mirror PricingStep values)
+        const planTotals: Record<string, number> = { '1w': 2.47, '4w': 6.99, '12w': 11.99 }
+        const value = planTotals[planId as keyof typeof planTotals] ?? undefined
+        window.fbq('track', 'Purchase', {
+          value,
+          currency: 'USD',
+          content_ids: planId ? [planId] : undefined,
+          content_type: 'product',
+        })
+      }
+    } catch { /* noop */ }
+  }, [answers.PaymentCompleted, answers.SelectedPlan])
+
   if (!answers.PaymentCompleted) {
     return null
   }

@@ -6,6 +6,17 @@
 import * as admin from 'firebase-admin'
 import * as Sentry from '@sentry/node'
 
+// Ensure Firebase Admin app is initialized even if this module is loaded before index.ts
+try {
+  // admin.apps is available in firebase-admin v11; for newer versions, this remains for compatibility
+  // Initialize only if not already initialized
+  if ((admin as any).apps ? (admin as any).apps.length === 0 : !(admin as any).getApps?.()?.length) {
+    admin.initializeApp()
+  }
+} catch (_) {
+  // Ignore initialization race conditions
+}
+
 const db = admin.firestore()
 
 export interface APIHealthMetrics {

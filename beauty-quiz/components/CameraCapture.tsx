@@ -1,6 +1,9 @@
 "use client"
 
 import { useRef, useEffect, useState } from "react"
+import * as tf from '@tensorflow/tfjs-core'
+import '@tensorflow/tfjs-backend-webgl'
+import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection'
 
 interface CameraCaptureProps {
   onCapture: (blobUrl: string, blob: Blob) => void
@@ -27,25 +30,30 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
   const detectTimerRef = useRef<number | null>(null)
   const sampleCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [hint, setHint] = useState<string | null>(null)
-  const [topInstruction, setTopInstruction] = useState<string>('Align your face within the guide')
+  const [topInstruction, setTopInstruction] = useState<string>('Center your face and press the camera button')
   const [flash, setFlash] = useState(false)
   const [finalizing, setFinalizing] = useState(false)
   const [videoBox, setVideoBox] = useState<{ w: number; h: number } | null>(null)
-  const [mirrorPreview, setMirrorPreview] = useState(true)
+  const [containerStyle, setContainerStyle] = useState<React.CSSProperties>({})
+  // Mirror preview only for the front camera (selfie) to match user expectations.
+  const mirrorPreview = facingMode === 'user'
+  const detectorRef = useRef<faceLandmarksDetection.FaceLandmarksDetector | null>(null)
+  const [detectorReady, setDetectorReady] = useState(false)
+  const [faceLandmarks, setFaceLandmarks] = useState<faceLandmarksDetection.Keypoint[] | null>(null)
 
   // Choose sensible mobile-first constraints to reduce letterboxing
   const buildConstraints = (fm: 'user' | 'environment'): MediaStreamConstraints => {
     // Match the stream aspect to the current viewport to avoid heavy cropping/zoom on mobile.
     const w = typeof window !== 'undefined' ? Math.max(360, Math.min(1280, window.innerWidth)) : 720
     const h = typeof window !== 'undefined' ? Math.max(640, Math.min(1920, window.innerHeight)) : 1280
-    // Avoid forcing aspectRatio which can cause iOS/Safari to digitally crop/zoom.
+    // Suggest aspect ratio ~3:4; some browsers may ignore this. Test on iOS/Android.
     return {
       audio: false,
       video: {
         facingMode: fm,
         width: { ideal: w },
         height: { ideal: h },
-        // Do not set aspectRatio to prevent camera from zoom-cropping.
+        aspectRatio: { ideal: 3 / 4 } as any,
       },
     }
   }
@@ -93,7 +101,7 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
 
   // Restart camera when facingMode changes
   useEffect(() => {
-    setMirrorPreview(facingMode === 'user')
+  // Keep preview unmirrored for both cameras; captured image is also unmirrored
     startCamera(facingMode)
     return () => {
       activeStreamRef.current?.getTracks().forEach((track) => track.stop())
@@ -106,18 +114,78 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
     // eslint-disable-next-line
   }, [facingMode])
 
-  // Track when the video element has enough data to capture frames
+  // Load Face Mesh AI model once when component mounts
+  useEffect(() => {
+    const loadDetector = async () => {
+      try {
+        await tf.setBackend('webgl')
+        await tf.ready()
+        
+        const detectorConfig = {
+          runtime: 'tfjs' as const,
+          maxFaces: 1,
+          refineLandmarks: true,
+        }
+        
+        const loadedDetector = await faceLandmarksDetection.createDetector(
+          faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh,
+          detectorConfig
+        )
+        detectorRef.current = loadedDetector
+        setDetectorReady(true)
+        console.log('Face Mesh model loaded.')
+      } catch (error) {
+        console.error("Error loading face mesh model", error)
+      }
+    }
+    loadDetector()
+
+    return () => {
+      if (detectorRef.current) {
+        detectorRef.current.dispose()
+      }
+    }
+  }, [])
+
+  // Track when the video element has enough data to capture frames and adjust layout
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
 
-    const computeVideoBox = () => {
+    const adjustLayout = () => {
+      if (!video.videoWidth || !video.videoHeight) return
+
       const container = containerRef.current
       if (!container) return
-      const cw = container.clientWidth
-      const ch = container.clientHeight
-      // With object-cover on the video, the displayed area fully covers the container
-      setVideoBox({ w: cw, h: ch })
+
+      // On mobile, stretch to full screen
+      if (window.innerWidth < 768) {
+        setContainerStyle({
+          width: '100vw',
+          height: '100dvh',
+        })
+        setVideoBox({ w: window.innerWidth, h: window.innerHeight })
+        return
+      }
+
+      // On desktop, compute proportions to match video aspect ratio
+      const videoAspectRatio = video.videoWidth / video.videoHeight
+      const screen_w = window.innerWidth * 0.9  // 90vw
+      const screen_h = window.innerHeight * 0.9 // 90vh
+
+      let newWidth = screen_h * videoAspectRatio
+      let newHeight = screen_h
+
+      if (newWidth > screen_w) {
+        newWidth = screen_w
+        newHeight = screen_w / videoAspectRatio
+      }
+
+      setContainerStyle({
+        width: `${newWidth}px`,
+        height: `${newHeight}px`,
+      })
+      setVideoBox({ w: newWidth, h: newHeight })
     }
 
     const handleReady = () => {
@@ -128,165 +196,95 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
           /* noop – user gesture will resume playback */
         })
       }
-      // After metadata, we can compute the displayed box for overlay sizing
-      computeVideoBox()
+      adjustLayout()
     }
 
     video.addEventListener('loadedmetadata', handleReady)
-    video.addEventListener('loadeddata', handleReady)
-    video.addEventListener('canplay', handleReady)
-    window.addEventListener('resize', handleReady)
+    window.addEventListener('resize', adjustLayout)
 
     return () => {
       video.removeEventListener('loadedmetadata', handleReady)
-      video.removeEventListener('loadeddata', handleReady)
-      video.removeEventListener('canplay', handleReady)
-      window.removeEventListener('resize', handleReady)
+      window.removeEventListener('resize', adjustLayout)
     }
   }, [stream])
 
-  // Lightweight detection to turn overlay green when well-positioned
+  // Face detection loop using Face Mesh AI model
   useEffect(() => {
-    if (!videoReady) return
+    if (!videoReady || !detectorReady) return
 
     const video = videoRef.current
-    if (!video) return
+    if (!video || !detectorRef.current) return
 
-    // Prepare a small offscreen canvas for sampling
-    if (!sampleCanvasRef.current) {
-      sampleCanvasRef.current = document.createElement('canvas')
-    }
-
-    const hasFaceDetector = typeof (window as any).FaceDetector !== 'undefined'
-    const faceDetector = hasFaceDetector ? new (window as any).FaceDetector({ fastMode: true, maxDetectedFaces: 1 }) : null
-
-    const evaluateFaceBoxes = (w: number, h: number, boxes: { width: number; height: number; top: number; left: number }[]) => {
-      if (!boxes || boxes.length === 0) return false
-      const b = boxes[0]
-      if (!b) return false
-      const cx = b.left + b.width / 2
-      const cy = b.top + b.height / 2
-      const centerDx = Math.abs(cx - w / 2) / w // 0..0.5
-      const centerDy = Math.abs(cy - h / 2) / h
-      const sizeRatio = Math.max(b.width / w, b.height / h)
-      if (mode === 'face' || mode === 'hair') {
-        // Slightly relaxed center threshold for iOS Safari variability
-        return centerDx < 0.22 && centerDy < 0.22 && sizeRatio > 0.24 && sizeRatio < 0.62
-      }
-      // body: face should be smaller and slightly upper half
-      return centerDx < 0.28 && cy / h < 0.62 && sizeRatio > 0.07 && sizeRatio < 0.38
-    }
-
-  const luminanceHeuristic = (w: number, h: number) => {
-      // Fallback: analyze a center crop for brightness and variance
-      const canvas = sampleCanvasRef.current!
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return false
-  const cropW = Math.floor(w * (mode === 'body' ? 0.30 : 0.40))
-  const cropH = Math.floor(h * (mode === 'body' ? 0.50 : 0.50))
-      canvas.width = cropW
-      canvas.height = cropH
-      const sx = Math.floor((w - cropW) / 2)
-      const sy = Math.floor((h - cropH) / 2)
-      try {
-        ctx.drawImage(video, sx, sy, cropW, cropH, 0, 0, cropW, cropH)
-      } catch {
-        return false
-      }
-      const img = ctx.getImageData(0, 0, cropW, cropH)
-      const data = img.data
-      let sum = 0
-      let sumSq = 0
-      const n = cropW * cropH
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i]!
-        const g = data[i + 1]!
-        const b = data[i + 2]!
-        // Rec. 601 luma approximation
-        const y = 0.299 * r + 0.587 * g + 0.114 * b
-        sum += y
-        sumSq += y * y
-      }
-      const mean = sum / n
-      const variance = Math.max(0, sumSq / n - mean * mean)
-      // Thresholds a чуть мягче для реальных условий и iOS
-      const meanOk = mean > 50 && mean < 210
-      const varOk = variance > 800
-      return meanOk && varOk
-    }
-
-    // Run at ~6Hz to limit CPU
     if (detectTimerRef.current) window.clearInterval(detectTimerRef.current)
+
     detectTimerRef.current = window.setInterval(async () => {
-      if (!video.videoWidth || !video.videoHeight) return
+      if (!video.videoWidth || !video.videoHeight || !detectorRef.current) {
+        setFaceLandmarks(null)
+        return
+      }
+
       const w = video.videoWidth
       const h = video.videoHeight
-
       let ok = false
       let nextHint: string | null = null
       let distanceHint: string | null = null
-      if (faceDetector) {
-        try {
-          // Draw to an offscreen canvas to feed detector with bitmap
-          const off = sampleCanvasRef.current!
-          const ctx = off.getContext('2d')
-          if (ctx) {
-            off.width = w
-            off.height = h
-            ctx.drawImage(video, 0, 0, w, h)
-            // Prefer detect on ImageBitmap if supported
-            let source: any = off
-            if ('createImageBitmap' in window) {
-              try {
-                source = await createImageBitmap(off)
-              } catch {}
-            }
-            const faces: any[] = await faceDetector.detect(source)
-            const boxes = faces.map((f: any) => (f.boundingBox ? f.boundingBox : f))
-            ok = evaluateFaceBoxes(w, h, boxes)
-            if (!ok && boxes.length) {
-              const b = boxes[0]
-              const cx = b.left + b.width / 2
-              const cy = b.top + b.height / 2
-              const centerDx = (cx - w / 2) / w
-              const centerDy = (cy - h / 2) / h
-              const sizeRatio = Math.max(b.width / w, b.height / h)
-              // Предложение: куда сдвинуться
+
+      try {
+        const faces = await detectorRef.current!.estimateFaces(video, {
+          flipHorizontal: false,
+        })
+
+        if (faces.length > 0 && faces[0]?.keypoints && faces[0]?.box) {
+          setFaceLandmarks(faces[0].keypoints)
+
+          const box = faces[0].box
+          const b = { left: box.xMin, top: box.yMin, width: box.width, height: box.height }
+
+          // Evaluate positioning using existing logic
+          const boxes = [b]
+          const cx = b.left + b.width / 2
+          const cy = b.top + b.height / 2
+          const centerDx = Math.abs(cx - w / 2) / w
+          const centerDy = Math.abs(cy - h / 2) / h
+          const sizeRatio = Math.max(b.width / w, b.height / h)
+
+          if (mode === 'face' || mode === 'hair') {
+            ok = centerDx < 0.20 && centerDy < 0.22 && sizeRatio > 0.22 && sizeRatio < 0.60
+            if (!ok) {
               if (Math.abs(centerDy) > Math.abs(centerDx)) {
                 nextHint = centerDy > 0 ? 'A bit higher' : 'A bit lower'
               } else {
                 nextHint = centerDx > 0 ? 'A bit left' : 'A bit right'
               }
-              // Distance suggestions for face/hair
-              if (mode === 'face' || mode === 'hair') {
-                if (sizeRatio < 0.28) distanceHint = 'Move closer'
-                else if (sizeRatio > 0.56) distanceHint = 'Move farther'
-              }
+              if (sizeRatio < 0.28) distanceHint = 'Move closer'
+              else if (sizeRatio > 0.56) distanceHint = 'Move farther'
             }
+          } else {
+            ok = centerDx < 0.28 && cy / h < 0.62 && sizeRatio > 0.07 && sizeRatio < 0.38
           }
-        } catch {
-          // Ignore detector errors; fallback below
+        } else {
+          setFaceLandmarks(null)
+          ok = false
         }
+      } catch (error) {
+        console.error("Face detection error:", error)
+        setFaceLandmarks(null)
+        ok = false
       }
-      if (!ok) {
-        ok = luminanceHeuristic(w, h)
-        if (!ok && !nextHint) {
-          nextHint = mode === 'body' ? 'Step back a little' : 'Move closer to the center'
-        }
-      }
+
       setGuideOk(ok)
       if (ok) {
         setHint(null)
-        setTopInstruction('Ready – tap the shutter')
+        setTopInstruction('Ready — tap the shutter')
       } else {
         setTopInstruction(
           mode === 'body'
-            ? 'Stand straight; keep your whole body within the outline'
-            : 'Align your face within the guide'
+            ? 'Stand straight; keep whole body in frame'
+            : 'Center your face and press the camera button'
         )
         setHint(distanceHint ? `${distanceHint}${nextHint ? ' · ' + nextHint : ''}` : nextHint)
       }
-    }, 160)
+    }, 100)
 
     return () => {
       if (detectTimerRef.current) {
@@ -294,7 +292,7 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
         detectTimerRef.current = null
       }
     }
-  }, [videoReady, mode])
+  }, [videoReady, mode, detectorReady])
 
   // Camera switch button
   const handleSwitchCamera = () => {
@@ -354,12 +352,20 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
   }
 
   return (
-  <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95" style={{ height: '100dvh', overscrollBehavior: 'contain' as any }}>
+  // Switch from flex centering to absolute centering to avoid layout conflicts
+  <div className="fixed inset-0 z-50 bg-black/95" style={{ height: '100dvh', overscrollBehavior: 'contain' as any }}>
       {/* Full-bleed camera on mobile; centered card on larger screens */}
       <div
         ref={containerRef}
-        className="relative w-screen h-[100dvh] overflow-hidden bg-black md:w-[56vmin] md:h-[74vmin] md:max-w-[90vw] md:max-h-[90vh] md:aspect-[3/4] md:rounded-xl md:flex md:flex-col md:items-center md:justify-center"
-        style={{ overscrollBehavior: 'contain' as any, touchAction: 'none' as any }}
+        className="relative overflow-hidden bg-black transition-all duration-300 ease-in-out"
+        style={{
+          ...containerStyle,
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          touchAction: 'none' as any,
+        }}
       >
         {error ? (
           <div className="text-white p-8">{error}</div>
@@ -369,20 +375,18 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
             autoPlay
             playsInline
             muted
-            className={`absolute inset-0 w-full h-full object-cover object-center bg-black [transform:translateZ(0)] ${mirrorPreview ? 'scale-x-[-1]' : ''} ${previewUrl && previewBlob ? 'opacity-0' : 'opacity-100'}`}
+            className={`absolute inset-0 w-full h-full object-contain object-center bg-black [transform:translateZ(0)] ${mirrorPreview ? 'scale-x-[-1]' : ''} ${previewUrl && previewBlob ? 'opacity-0' : 'opacity-100'}`}
           />
         )}
   {/* Overlay guides aligned to the displayed video box */}
-  <CameraOverlay mode={mode} ok={guideOk} videoBox={videoBox || undefined} />
-        {/* Top instructions */}
-        {!error && (
-          <div className="absolute left-1/2 -translate-x-1/2 px-2.5 py-1.5 md:px-3 rounded-full bg-black/55 text-white text-xs md:text-sm font-medium shadow"
-               style={{ top: 'max(env(safe-area-inset-top, 0px) + 8px, 8px)' }}>
-            {topInstruction}
-          </div>
-        )}
+  <CameraOverlay mode={mode} ok={guideOk} videoBox={videoBox || undefined} faceLandmarks={faceLandmarks} mirrorPreview={mirrorPreview} />
         {/* Flash overlay */}
-        {flash && <div className="absolute inset-0 bg-white/70 animate-pulse" />}
+        {flash && (
+          <div
+            className="absolute inset-0 bg-white animate-flash pointer-events-none"
+            onAnimationEnd={() => setFlash(false)}
+          />
+        )}
         <button
           onClick={handleCapture}
           disabled={!!error || capturing || !!previewUrl || !!previewBlob || finalizing}
@@ -396,26 +400,12 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white border-2 border-zinc-300 shadow-inner" />
           )}
         </button>
-        {!guideOk && !capturing && !error && (
-          <div className="absolute left-1/2 -translate-x-1/2 px-2.5 py-1.5 md:px-3 rounded-full bg-black/55 text-white text-xs md:text-sm font-medium shadow"
-               style={{ bottom: 'max(env(safe-area-inset-bottom, 0px) + 92px, 92px)' }}>
-            {hint || (mode === 'body' ? 'Step back a bit · keep centered' : 'Move closer · center your face')}
+        {!error && !previewUrl && (
+          <div className="absolute left-1/2 -translate-x-1/2 px-3 py-1.5 md:px-4 rounded-full bg-black/60 text-white text-xs md:text-sm font-medium shadow"
+               style={{ bottom: 'max(env(safe-area-inset-bottom, 0px) + 118px, 118px)' }}>
+            {topInstruction}{hint ? <span className="opacity-80"> · {hint}</span> : null}
           </div>
         )}
-        {/* Mirror toggle */}
-        <button
-          onClick={() => setMirrorPreview((m) => !m)}
-          className="absolute bg-black/60 text-white rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center hover:bg-black/80 border border-white/30"
-          style={{ left: '16px', bottom: 'max(env(safe-area-inset-bottom, 0px) + 20px, 20px)' }}
-          title={mirrorPreview ? 'Unmirror preview' : 'Mirror preview'}
-          aria-label="Toggle mirror"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 4v16M4 12h16" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M6 6h5v12H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" fill={mirrorPreview ? '#22c55e' : 'none'} stroke="#fff" strokeWidth="1.2"/>
-            <path d="M13 6h5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-5V6Z" stroke="#fff" strokeWidth="1.2"/>
-          </svg>
-        </button>
         <button
           onClick={handleSwitchCamera}
           className="absolute bg-black/60 text-white rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center hover:bg-black/80 border border-white/30"

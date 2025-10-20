@@ -639,10 +639,10 @@ export default function CurrentConditionAnalysisStep() {
                           mental: aiModel?.mentalCondition?.score ?? 6,
                         }}
                         icons={{
-                          skin: '/icons/misc/skin.svg',
-                          hair: '/icons/misc/hair.svg',
-                          physic: '/icons/misc/physic.svg',
-                          mental: '/icons/misc/psychology.svg',
+                          skin: '/custom-icons/bms/skin_bms.svg',
+                          hair: '/custom-icons/bms/hair_bms.svg',
+                          physic: '/custom-icons/bms/physical_bms.svg',
+                          mental: '/custom-icons/bms/mental_bms.svg',
                         }}
                         colors={CATEGORY_COLORS}
                       />

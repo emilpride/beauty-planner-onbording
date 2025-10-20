@@ -59,6 +59,13 @@ export default function SignUpStep() {
         console.warn('Failed to save user to Firestore:', saveErr)
       }
 
+      // Meta Pixel: CompleteRegistration
+      try {
+        if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+          window.fbq('track', 'CompleteRegistration', { status: true })
+        }
+      } catch { /* noop */ }
+
   // After successful signup, take the user to Current Condition Analysis
   goToStep(32)
   router.push('/quiz/32')
@@ -87,6 +94,12 @@ export default function SignUpStep() {
         } catch (saveErr) {
           console.warn('Failed to save social user to Firestore:', saveErr)
         }
+        // Meta Pixel: CompleteRegistration (social)
+        try {
+          if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+            window.fbq('track', 'CompleteRegistration', { status: true, method: 'Google' })
+          }
+        } catch { /* noop */ }
   // After social signup, take the user to Current Condition Analysis
   goToStep(32)
   router.push('/quiz/32')

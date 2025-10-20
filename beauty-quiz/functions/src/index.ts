@@ -1,7 +1,9 @@
 import { onRequest } from 'firebase-functions/v2/https'
+import { defineSecret } from 'firebase-functions/params'
 import * as admin from 'firebase-admin'
 import axios from 'axios'
 import Stripe from 'stripe'
+import * as crypto from 'crypto'
 import { 
 	retryWithBackoff, 
 	isCircuitBreakerOpen, 
@@ -17,9 +19,20 @@ import { callClaudeAnalysis, isClaudeFallbackEnabled } from './claude'
 import { getAPIHealthMetrics, periodicHealthCheck } from './monitoring'
 // Use dynamic require for Secret Manager to avoid TypeScript proto typing issues in build
 
-admin.initializeApp()
+// Initialize Admin SDK only once (avoid duplicate-app error if other modules initialized first)
+try {
+	if ((admin as any).apps ? (admin as any).apps.length === 0 : !(admin as any).getApps?.()?.length) {
+		admin.initializeApp()
+	}
+} catch (_) {
+	// ignore race conditions
+}
 const db = admin.firestore()
 let secretClient: any = null
+const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY')
+const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET')
+// Pixel ID is public; use env override if provided or default to the known ID
+const META_PIXEL_ID = process.env.META_PIXEL_ID || '785592354117222'
 const stripeSecret = process.env.STRIPE_SECRET_KEY || ''
 const stripe = stripeSecret ? new Stripe(stripeSecret, { apiVersion: '2024-06-20' }) : null
 
@@ -66,6 +79,55 @@ function addSecurityHeaders(res: any) {
   res.set('X-XSS-Protection', '1; mode=block')
   res.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   res.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=(self), payment=(self)')
+}
+
+// ===== Meta Conversions API =====
+function sha256Lower(s: string): string {
+	return crypto.createHash('sha256').update(s.trim().toLowerCase()).digest('hex')
+}
+
+async function sendMetaCapiEvent(params: {
+	eventName: string
+	value?: number
+	currency?: string
+	email?: string | null
+	clientIp?: string | null
+	userAgent?: string | null
+	eventSourceUrl?: string | null
+	eventId?: string | null
+}): Promise<void> {
+	try {
+		const token = process.env.META_CAPI_ACCESS_TOKEN
+		if (!token || !META_PIXEL_ID) {
+			return
+		}
+		const user_data: any = {}
+		if (params.email) user_data.em = [sha256Lower(params.email)]
+		if (params.clientIp) user_data.client_ip_address = params.clientIp
+		if (params.userAgent) user_data.client_user_agent = params.userAgent
+
+		const payload = {
+			data: [
+				{
+					event_name: params.eventName,
+					event_time: Math.floor(Date.now() / 1000),
+					action_source: 'website',
+					event_source_url: params.eventSourceUrl || undefined,
+					event_id: params.eventId || undefined,
+					user_data,
+					custom_data: {
+						currency: params.currency,
+						value: params.value,
+					},
+				},
+			],
+		}
+
+		const url = `https://graph.facebook.com/v18.0/${META_PIXEL_ID}/events`
+		await axios.post(url, payload, { params: { access_token: token } }).catch(() => {})
+	} catch (err) {
+		console.warn('[Meta CAPI] Event send failed:', (err as any)?.message || err)
+	}
 }
 
 // Sanitize objects before saving to Firestore: remove functions, symbols, undefined,
@@ -1260,7 +1322,7 @@ export const saveOnboardingSession = onRequest(async (req, res) => {
 // Simple Stripe payment endpoint for Payment Request Button / card fallback
 // Expects: POST { amount: number (cents), currency: string, paymentMethodId?: string }
 // Creates + confirms a PaymentIntent when paymentMethodId provided. Returns status + client_secret.
-export const processPayment = onRequest(async (req, res) => {
+export const processPayment = onRequest({ secrets: [STRIPE_SECRET_KEY] }, async (req, res) => {
 	// Add security headers
 	addSecurityHeaders(res)
 	res.set('Access-Control-Allow-Origin', '*')
@@ -1298,7 +1360,7 @@ export const processPayment = onRequest(async (req, res) => {
 			}
 		}
 
-		if (paymentMethodId) {
+			if (paymentMethodId) {
 			// Immediate confirmation path used by Payment Request Button
 			const intent = await stripe.paymentIntents.create({
 				...params,
@@ -1306,11 +1368,33 @@ export const processPayment = onRequest(async (req, res) => {
 				confirm: true,
 				return_url: 'https://quiz-beautymirror-app.web.app/success',
 			})
+				// Fire CAPI AddPaymentInfo server-side for PRB path
+				await sendMetaCapiEvent({
+					eventName: 'AddPaymentInfo',
+					value: amount / 100,
+					currency,
+					email: undefined,
+					clientIp: clientIp,
+					userAgent: (req.headers['user-agent'] as string) || null,
+					eventSourceUrl: req.headers.referer as string || null,
+					eventId: intent.id,
+				})
 			res.status(200).json({ id: intent.id, clientSecret: intent.client_secret, status: intent.status, nextAction: intent.next_action || null }); return
 		}
 
 		// Create only; client confirms with Elements/card fields if desired (not implemented here)
-		const intent = await stripe.paymentIntents.create(params)
+			const intent = await stripe.paymentIntents.create(params)
+			// Fire CAPI AddPaymentInfo for card fallback when intent created (user proceeded to payment form)
+			await sendMetaCapiEvent({
+				eventName: 'AddPaymentInfo',
+				value: amount / 100,
+				currency,
+				email: undefined,
+				clientIp: clientIp,
+				userAgent: (req.headers['user-agent'] as string) || null,
+				eventSourceUrl: req.headers.referer as string || null,
+				eventId: intent.id,
+			})
 		res.status(200).json({ id: intent.id, clientSecret: intent.client_secret, status: intent.status, nextAction: intent.next_action || null }); return
 	} catch (e: any) {
 		console.error('processPayment error', e)
@@ -1322,7 +1406,7 @@ export const processPayment = onRequest(async (req, res) => {
 
 // Stripe webhook to capture reliable payment events and persist to Firestore
 // Set env STRIPE_WEBHOOK_SECRET with the endpoint secret from Stripe dashboard
-export const stripeWebhook = onRequest(async (req, res) => {
+export const stripeWebhook = onRequest({ secrets: [STRIPE_WEBHOOK_SECRET, STRIPE_SECRET_KEY] }, async (req, res) => {
 	if (req.method !== 'POST') { res.status(405).send('Method not allowed'); return }
 	try {
 		if (!stripe) { res.status(500).send('Stripe not configured'); return }
@@ -1402,7 +1486,21 @@ export const stripeWebhook = onRequest(async (req, res) => {
 						}
 					}, { merge: true })
 				}
-				break
+							if (event.type === 'payment_intent.succeeded') {
+								// Try to capture email and send Purchase via CAPI
+								const receiptEmail = (intent.receipt_email || (intent as any).charges?.data?.[0]?.billing_details?.email || null) as string | null
+								await sendMetaCapiEvent({
+									eventName: 'Purchase',
+									value: amount ? amount / 100 : undefined,
+									currency: (currency as string) || undefined,
+									email: receiptEmail,
+									clientIp: null,
+									userAgent: null,
+									eventSourceUrl: null,
+									eventId: pid,
+								})
+							}
+							break
 			}
 			case 'charge.succeeded': {
 				const charge = event.data.object as Stripe.Charge

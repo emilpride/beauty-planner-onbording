@@ -1,0 +1,2353 @@
+皮肤分析-专业版 API
+版本
+1.7.6
+
+接口描述
+更专业的图片肤质分析接口，较高阶版增加更多功能，可实现更详细、数值化的干油性、敏感性、粗糙度、色素性和衰老性的维度分析：
+
+检测类目	检测项	普通版	高阶版	专业版
+肤质	肤质四分类	
+
+
+
+
+
+
+出油区域检测	
+
+
+
+（油光检测图、面积占比&严重程度）
+
+水分检测	
+
+
+
+（水分检测图、面积占比&严重程度）
+
+肤色	肤色五分类	
+
+
+	
+
+
+	
+
+
+肤色ITA分类	
+
+
+
+
+肤色HA分类	
+
+
+
+
+粗糙度	毛孔粗大检测	
+
+
+（4区检测分类检测）
+
+
+
+
+
+（大小&数量&严重程度分类&分数）
+
+黑头检测	
+
+
+（有无检测）
+
+
+
+
+
+（大小&数量&严重程度分类&分数）
+
+毛孔黑头黑白增强图
+
+
+
+
+
+纹理检测
+
+
+
+
+
+（纹理面积占比&严重程度分数）
+
+色素沉着	色斑检测	
+
+
+（有无）
+
+
+
+矩形区域
+
+
+
+（矩形区域+多边形+侧脸检测）
+
+色素沉着	
+
+
+
+（色素沉着面积占比&严重程度分数、区域检测图、轮廓坐标）
+
+痣检测	
+
+
+（有无）
+
+
+
+
+
+（矩形框+多边形）
+
+痤疮	痤疮有无	
+
+
+
+
+痤疮区域检测	
+
+
+矩形区域
+
+
+
+矩形区域+多边形
+
+痤疮分级	
+
+
+仅检测痤疮和闭口
+
+输出矩形区域
+
+
+
+检测闭口粉刺丘疹、脓包、结节
+
+矩形区域+多边形、严重程度及分数
+
+敏感性	红区图	
+
+
+
+
+红区检测	
+
+
+
+敏感区域坐标+多边形框
+
+敏感区域大小	
+
+
+
+
+敏感程度	
+
+
+
+
+衰老性	抬头纹	
+
+
+
+
+
+
+（严重程度及分数等12个详细参数）
+
+法令纹（左右）	
+
+
+(有无分类)
+
+
+
+（严重程度）
+
+
+
+（严重程度及分数等12个详细参数）
+
+鱼尾纹（左右）	
+
+
+
+
+
+
+（严重程度及分数等12个详细参数）
+
+眼部细纹（左右）	
+
+
+
+
+
+
+（严重程度及分数等12个详细参数）
+
+嘴角纹（左右）	
+
+
+
+（严重程度及分数等12个详细参数）
+
+眉间纹	
+
+
+
+（严重程度及分数等12个详细参数）
+
+额头纹	
+
+
+
+（严重程度及分数等12个详细参数）
+
+脸颊纹（左右）	
+
+
+
+（严重程度及分数等12个详细参数）
+
+皱纹&细纹检测	
+
+
+
+（严重程度及图谱）
+
+下颌线	
+
+
+
+（下颌线角度、坐标、程度）
+
+苹果肌	
+
+
+
+（苹果肌坐标）
+
+眼部问题	黑眼圈分类	
+
+
+
+
+
+
+（左右眼严重程度、类型、轮廓线坐标）
+
+眼袋分类	
+
+
+(有无分类)
+
+
+
+（严重程度）
+
+
+
+（严重程度、轮廓线坐标）
+
+自定义	轮廓颜色自定义	
+
+
+
+分数体系	各个功能分数	
+
+
+
+图片质量	
+人脸坐标值
+
+
+
+
+
+人脸大小占比	
+
+
+
+刘海占比	
+
+
+
+人脸角度值	
+
+
+
+判断是否带眼镜	
+
+
+
+图片要求
+图片格式：JPG(JPEG)
+
+图片像素尺寸：最小200*200像素，最大4096*4096像素 
+
+图片文件大小：最大 8 MB （单张图片）
+
+最小人脸像素尺寸： 为了保证效果，图片中人脸框（正方形）边长的最小值最好高于于400像素（可通过接口传参校验）。
+
+人脸质量：人脸质量越高，则皮肤分析越准确。影响人脸质量的因素包括：对人脸五官的遮挡、图片模糊、不当的光照（强光、暗光、逆光）、过大的人脸角度（推荐yaw ≤ ±30°, pitch ≤ ±40°）等。
+
+更新日志
+2021年10月26日：beta测试版
+
+2022年3月19日：V1.1.0版本更新，优化部分图片输出为透明底色的PNG格式图片，减小返回体积，提升响应时间
+
+2022年3月28日：V1.1.1版本更新，皱纹检测新增深浅纹检测
+
+2022年6月22日：V1.2.0版本更新，痤疮检测区分闭口粉刺、丘疹、脓包和结节的不同维度，新增痘印检测和黑眼圈严重程度
+
+2022年10月21日：V1.3.0版本更新，油光面积增加，黑头严重程度判断逻辑更新，新增毛孔程度接口、新增黑眼圈类型及程度判断，更新皱纹深浅纹判断维度
+
+2023年1月5日：V1.4.0版本更新，新功能水分检测（包含水分缺水面积占比&严重程度、水分检测图片），敏感区域&色沉区域多边形及坐标
+
+2023年1月10日：V1.4.1版本更新，新增皱纹及皱纹分数、严重等级等12个细节参数、粗糙功能（包含面部粗糙面积&&严重程度、纹理检测图片）
+
+2023年1月12日：V1.5.0版本更新，新增分数体系（包含皱纹、水分等功能分数）、眼袋矩形框坐标、面部轮廓线坐标
+
+2023年2月17日：V1.5.1版本更新，新增色斑、痘痘、毛孔、黑头等标注颜色自定义调整、面部斑点和痤疮坐标绘制图、左右眼黑眼圈轮廓线坐标、苹果肌坐标、下颌线角度判断
+
+2023年3月23日：V1.6.0版本更新，新增质量检测（包含人脸占比、人脸坐标、刘海占比、人脸角度值）
+
+2023年4月5日：V1.6.2版本更新，新增左右侧脸result可选参数
+
+2023年6月14日：V1.6.6版本更新，判断照片是否佩戴眼镜，新增左右黑眼圈、毛孔部分（额头、左右脸颊、下巴）分数、更新毛孔总分、黑眼圈总分计算逻辑
+
+2023年7月28日：V1.7.1版本更新，增加下颌线角度的程度判断
+
+2024年8月6日：V1.7.6版本更新，增加侧脸痤疮和色斑的检测维度
+
+
+
+调用URL
+https://api-cn.faceplusplus.com/facepp/v1/skinanalyze_pro
+
+调用方法
+POST
+
+请求体格式
+multipart/form-data
+
+请求参数
+1.必选字段说明：
+
+api_key & api_secret是账户信息相关的秘钥，用做身份认证使用。
+
+image_url 是正脸图片的参数，支持image_url、image_file、image_base64三种格式，此参数为必选。
+
+2.可选字段说明：
+
+可选字段“left_side_image_url”和可选字段“right_side_image_url“，和侧脸下颌线功能相关。如果您需要提供给客户下颌线相关功能，可以选择任意一个或者两个均选择。（接口不判断左右，如果有侧脸功能需求，建议两个都选择）。
+
+可选字段“return_maps”涉及多种皮肤检测的效果图，一般为JPG或者PNG格式，PNG格式可以直接跟原图叠加，JPG格式需要先转换为PNG格式再进行叠加，可根据需求来指定返回图片，包括红区、棕区、水分、皱纹等。需要说明的是，每个效果图都有一定的大小，传输会消耗一定的带宽和时延，选择返回的图片越多，传输的时间就需要更多，建议以必要的需求进行选择性的返回。
+
+可选字段“return_marks”涉及多个维度具体的坐标位置返回，包括人脸各区域的皱纹坐标以及对应的皱纹量化结果、敏感肌(红区)区域坐标、色素沉着(棕区)区域坐标、黑眼圈区域坐标以及苹果肌区域坐标。如对返回的结果有一定的视觉设计要求，可选择对应功能的坐标去进行绘制即可。
+
+可选字段“roi_outline_color”为颜色配置功能，如有更换绘制颜色的需求，可直接更改对应功能的6位值16进制字符串（例“ccooff”）即可，如没有更换颜色的需求，则无需更改，对应的功能已配置默认的颜色配置。
+
+以python2.7为例
+
+import base64
+
+# 图片base64编码的函数
+
+def encode_image(img_path):
+
+f = open(img_path, 'rb')
+
+return str(base64.b64encode(f.read()))
+
+#请求体构造
+
+payload={
+
+'api_key': your_api_key, # 必选字段api_key
+
+'api_secret': your_api_secret, # 必选字段api_secret
+
+'image_base64':encode_image(img_path), # 必选字段以image_base64为例
+
+'left_side_image_base64':encode_image(left_side_img_path), # 左侧脸参数可选字段，以left_side_image_base64为例
+
+'right_side_image_base64':encode_image(right_side_img_path), # 右侧脸参数可选字段，以right_side_image_base64为例
+
+'return_maps':'red_area,brown_area', # 可选字段return_maps
+
+'return_marks':"melanin_mark, wrinkle_mark, dark_circle_outline", # 可选字段return_marks
+
+'return_side_results':'jawline_info', # 可选字段return_side_results
+
+}
+
+# 请求
+
+import requests
+
+response = requests.request("POST", url, headers={}, data=payload)
+
+
+
+是否必选
+
+参数名
+
+类型
+
+说明
+
+必选
+
+api_key
+
+String
+
+调用此 API 的 API Key
+
+必选
+
+api_secret
+
+String
+
+调用此 API 的 API Secret
+
+必选
+
+image_url
+
+String
+
+图片的 URL
+
+image_file
+
+File
+
+图片的二进制文件，需要用 post multipart/form-data 的方式上传。
+
+image_base64
+
+String
+
+base64 编码的二进制图片数据
+
+如果同时传入了 image_url、image_file 和 image_base64参数，本 API 使用顺序为image_file 优先，image_url最低。
+
+可选
+
+left_side_image_url
+
+String
+
+侧脸图片的 URL
+
+left_side_image_file
+
+File
+
+侧脸图片的二进制文件，需要用 post multipart/form-data 的方式上传。
+
+left_side_image_base64
+
+String
+
+侧脸base64 编码的二进制图片数据
+
+如果同时传入了left_side_image_url、left_side_image_file 和left_side_image_base64参数，本 API 使用顺序为left_side_image_file 优先left_side_image_url最低。
+
+可选
+
+right_side_image_url
+
+String
+
+侧脸图片的 URL
+
+right_side_image_file
+
+File
+
+侧脸图片的二进制文件，需要用 post multipart/form-data 的方式上传。
+
+right_side_image_base64
+
+String
+
+侧脸base64 编码的二进制图片数据
+
+如果同时传入了right_side_image_url、right_side_image_file 和right_side_image_base64参数，本 API 使用顺序为right_side_image_file 优先，right_side_image_url最低。
+
+可选
+
+return_maps
+
+String
+
+输入一个逗号分隔的字符串，内含需要返回的皮肤问题检测图谱图片类型，目前支持的元素包含：
+
+元素	描述	返回图片
+red_area	红区图，可展示面部敏感、炎症引起的泛红区域	白底红区图，红色深浅表征敏感程度
+brown_area	褐色区域图，可展示面部色素沉着区域	白底棕区图，棕色深浅表征色沉程度
+texture_enhanced_pores	面部毛孔粗大区域图	透明底PNG，标注毛孔粗大区域，图片大小与原图相同，可叠图查看
+texture_enhanced_blackheads	面部黑头区域图	透明底PNG，标注黑头区域，图片大小与原图相同，可叠图查看
+texture_enhanced_oily_area	面部油光区域图	透明底PNG，标注面部油光区域，图片大小与原图相同，可叠图查看
+texture_enhanced_lines	面部纹理图，标出面部比较明显的深纹、浅纹	白底PNG，标注面部皱纹，图片大小与原图相同
+（新增）water_area	面部水分图，展示面部缺水区域，蓝色越深表示皮肤越越缺水	白底PNG，标注面部缺水区域，图片大小与原图相同
+（新增）rough_area	面部粗糙图，展示面部粗糙区域	透明底PNG，标注面部粗糙区域，图片大小与原图相同，可叠图查看
+（新增）roi_outline_map	面部斑点和痤疮坐标绘制图	透明底PNG，标注面部斑点和痤疮区域，图片大小与原图相同，可与原图叠加查看
+（新增）
+
+texture_enhanced_bw
+
+面部黑头&毛孔粗大黑白增强图	JPG，有裁剪，接口有返回坐标及裁剪的比例，可对应原图中的像素坐标
+right_roi_outline_map	右边面部斑点和痤疮坐标绘制图	透明底PNG，标注面部斑点和痤疮区域，图片大小与原图相同，可与原图叠加查看
+left_roi_outline_map	左边面部斑点和痤疮坐标绘制图	透明底PNG，标注面部斑点和痤疮区域，图片大小与原图相同，可与原图叠加查看
+元素会在将来更新拓展。
+
+输入样例："red_area,brown_area,texture_enhanced_lines"
+
+若传入相应元素参数，接口会返回一张原图大小的图片，您可以后续与原图进行叠图操作查看效果。
+
+该输入默认为空字符串。
+
+可选
+
+
+
+return_marks
+
+
+
+String
+
+
+
+输入一个逗号分隔的字符串，内含需要返回的皮肤问题检测图谱图片类型，目前支持的元素包含：
+
+元素
+
+描述
+
+字段
+
+wrinkle_mark	面部额头、鼻子、鱼尾纹、脸颊、眉间区域轮廓坐标	字段
+right_nasolabial_list
+
+右法令纹子皱纹坐标、深度、长度
+
+字段
+
+right_mouth_list
+
+右嘴角子皱纹坐标、深度、长度
+
+字段
+
+right_eye_wrinkle_list
+
+右眼部子皱纹坐标、深度、长度
+
+字段
+
+right_crowsfeet_list
+
+右眼部鱼尾纹子皱纹坐标、深度、长度
+
+字段
+
+right_cheek_list
+
+右脸颊子皱纹纹路、深度、长度
+
+字段
+
+left_nasolabial_list
+
+左法令纹子皱纹坐标、深度、长度
+
+字段
+
+left_mouth_list
+
+左嘴角子皱纹坐标、深度、长度
+
+字段
+
+left_eye_wrinkle_list
+
+左眼部子皱纹坐标、深度、长度
+
+字段
+
+left_crowsfeet_list
+
+左眼部鱼尾纹子皱纹坐标、深度、长度
+
+字段
+
+left_cheek_list
+
+左脸颊子皱纹纹路、深度、长度
+
+字段
+
+glabella_wrinkle_list
+
+眉间子皱纹坐标、深度、长度
+
+字段
+
+forehead_wrinkle_list
+
+额头子皱纹坐标、深度、长度
+
+字段
+
+dark_circle_outline
+
+左右眼黑眼圈轮廓线坐标
+
+字段
+
+sensitivity_mark
+
+红区坐标，可提供面部敏感、炎症引起的泛红区域坐标
+
+字段
+
+melanin_mark
+
+沉着区域坐标，可提供面部色素沉着区域坐标
+
+字段
+
+dark_circle_outline
+
+左右眼黑眼圈轮廓线坐标
+
+字段
+
+cheekbone_mark
+
+面部苹果肌坐标
+
+字段
+
+blackheads_mark	黑头坐标	字段
+pores_mark	毛孔坐标	字段
+可选
+
+
+
+roi_outline_color
+
+
+
+json string
+
+
+
+从上到下字段分别为毛孔绘制颜色、黑头绘制颜色、深纹绘制颜色、细纹绘制颜色、闭口绘制颜色、脓包型丘疹颜色、痤疮结节绘制颜色、轻型丘疹绘制颜色、色斑颜色，以下显示的示例为默认颜色
+
+{
+"pores_color": "0000FF",
+"blackhead_color": "FF0000",
+"wrinkle_color": "6E9900",
+"fine_line_color": "8DFE2A",
+"closed_comedones_color": "00FF00",
+"acne_pustule_color": "9F21F6",
+"acne_nodule_color": "FF00FD",
+"acne_color": "FE0100",
+"brown_spot_color": "7E2A28"
+}
+
+举例说明：“CC00FF”格式分别代表R:CC，G：00，B：FF，
+
+注意：
+
+1.输入格式限制为6位16进制字符串，不区分大小写
+
+2.如不修改会直接使用默认参数颜色进行绘制
+
+可选
+
+
+
+return_side_results
+
+
+
+String
+
+
+
+输入一个逗号分隔的字符串，内含需要返回的侧脸信息，目前支持的元素包含：
+
+元素
+
+描述
+
+返回文件
+
+jawline_info
+
+用户选择jawline_info元素且上传左右侧脸图片参数，即可返回对应的侧脸结果，可在left_side_result、right_side_result结构中返回侧脸图片质量判断、下颌线角度、下颌线坐标三个字段
+
+字段
+
+元素会在将来更新拓展。
+输入样例："jawline_info"
+
+返回值说明
+字段
+
+类型
+
+说明
+
+request_id
+
+String
+
+用于区分每一次请求的唯一的字符串
+
+result
+
+dict
+
+人脸皮肤分析的结果，具体包含的返回值信息见下表
+
+left_side_result	dict	侧脸分析的结果，具体包含的返回值信息见下表
+right_side_result
+
+dict
+
+侧脸分析的结果，具体包含的返回值信息见下表
+
+face_rectangle
+
+Object
+
+人脸矩形框的位置，包括以下属性。每个属性的值都是整数：
+
+top：矩形框左上角像素点的纵坐标
+
+left：矩形框左上角像素点的横坐标
+
+width：矩形框的宽度
+
+height：矩形框的高度
+
+time_used
+
+Int
+
+整个请求所花费的时间，单位为毫秒。
+
+error_message
+
+String
+
+当请求失败时才会返回此字符串，具体返回内容见后续错误信息章节。否则此字段不存在。
+
+result格式及注释如下：
+
+
+图片质量模块：
+
+能够返回人脸在图片中的占比、人脸坐标、人脸角度值、刘海占比。人脸坐标可以将人脸抠出来做自定义的交互设计；
+
+人脸在图片中的占比、人脸角度值、刘海占比则可以作为图片上传是否合格的自定义限制，举例，刘海占比超过0.4要重新拍摄等限制逻辑。如你没有特殊需求，可直接采用接口的默认配置即可。
+
+能力模块
+
+字段
+
+类型
+
+说明
+
+图片质量
+
+image_quality
+
+json
+
+可根据输出的数值进行照片质量的判断，各字段含义如下：
+
+1.face_ratio：人脸占整张照片的比例，数值越大，证明人脸占比越大，默认阈值为0.5
+
+2.face_orientation：人脸3D角度判断，具体为：
+
+pitch 俯仰角：绕X轴（指向脸右侧）转动的角度，表现为头俯、仰
+yaw 偏航角：绕Y轴（指向脸下方）转动的角度，表现为头向左侧或右侧水平转动
+roll 滚动角：绕Z轴（指向脸正前）转动的角度，表现为正面看到的人脸照片旋转
+3.face_rect：人脸的坐标值，根据人脸关键点返回人脸坐标值，可以将人脸抠出
+
+4.hair_occlusion：刘海占人脸的比例。数值越大，证明刘海的占比越大
+
+5.glasses：0为检测出无眼镜，1为检测出有眼镜
+
+{
+"face_rect": {
+"left": 673,
+"top": 506,
+"width": 797,
+"height": 1104
+},
+"face_ratio": 0.16068818,
+"hair_occlusion": 0.045923647,
+"face_orientation": {
+"yaw": -3.256891,
+"pitch": 14.657196,
+"roll": 0.9804751
+},
+"glasses": 0
+}
+
+
+
+肤质分析模块：
+
+可以分析皮肤的干油指数，“skin_type”作为整体分类，判断用户为哪种肤质类型，“oily_intensity”和“water”则是来分析用户当前皮肤状态的水分程度和油光程度。
+
+能力模块
+
+字段
+
+类型
+
+说明
+
+ 肤质分析
+
+skin_type
+
+Object
+
+肤质检测结果：
+
+0：油性皮肤
+
+1：干性皮肤
+
+2：中性皮肤
+
+3：混合型皮肤
+
+同步返回每个分类的置信度以供参考
+
+{ "skin_type": 0,
+
+"details": {
+
+0: {"value": 1, "confidence": 0.89 },
+
+1: { "value": 0, "confidence": 0.01 },
+
+2: { "value": 0, "confidence": 0.01 },
+
+3: { "value": 0, "confidence": 0.09 },
+
+}
+
+}
+
+肤质分析
+
+oily_intensity
+
+Object
+
+ 出油程度检测，输出T区、面颊部位、全脸油光面积比：
+
+"intensity"字段对应的出油严重程度：
+
+0：没有油光或轻微泛油光
+
+1：中度油光现象
+
+2：出油严重
+
+"oily_intensity":
+
+{
+
+"t_zone":{"area":0.12,"intensity":2},
+
+"left_cheek":{"area":0.02,"intensity":0},
+
+"right_cheek":{"area":0.02,"intensity":0}
+
+"chin_area":{"area":0.02,"intensity":0}
+
+"full_face": {"area": 0.39,"intensity": 2}
+
+}
+
+肤质分析
+
+water
+
+Object
+
+输出额头和左右面颊皮肤缺水面积占比 ，整体面部缺水面积占比以及缺水严重程度
+
+{"water_severity"；36"water_area": 0.056
+
+"water_forehead": {"area": 0.299},"water_leftcheek": {"area": 0.39},"water_rightcheek": {"area": 0.37}
+
+
+
+肤色分析模块：
+
+“skintone_ita”为“skin_tone”的升级版本，两者二选一即可，建议直接调用“skintone_ita”和“skin_hue_ha”的组合。
+
+能力模块
+
+字段
+
+类型
+
+说明
+
+肤色分析
+
+
+
+skintone
+
+Object
+
+皮肤颜色检测结果：
+
+0：透白
+
+1：白皙
+
+2：自然
+
+3：小麦
+
+4：黝黑/古铜
+
+"skintone":{"value":0,"confidence":0.890}
+
+肤色分析
+
+skintone_ita
+
+Object
+
+返以ITA（Individual Typology Angle）为标准的肤色分类：
+
+ITA：返回ITA角度值，单位角度(°)，取值范围[-90°，90°]
+
+skintone：返回根据ITA的肤色分类，共有以下几类：
+
+0: verylight（透白）
+
+1: light（白皙）
+
+2: intermediate（自然中等肤色）
+
+3: tan（小麦色）
+
+4: brown（棕色）
+
+5: dark（深棕）
+
+6: 异常的色值，可能由于光线环境较弱或过曝引起
+
+{
+
+"ita": 38,
+
+"skintone":0
+
+}
+
+
+
+注：ITA(Individual Typology Angle)为国际上通用的肤色标准，是通过测量肤色Lab空间的颜色属性来为肤色分类的方法。该方法对环境光的依赖性较强，我们建议使用闪光灯拍摄高清人脸照片上传处理，在自然光或暗光环境下测出的ITA角度值可能不准或异常。
+
+根据手机后置闪光灯拍摄数据，当前肤色分类参考：
+
+Very light ：56<ITA<90
+
+Light :43<ITA<=56
+
+intermediate: 36<ITA<=43
+
+tan: 20<ITA<=36
+
+brown: 10<ITA<=20
+
+Dark: -90<ITA<=10
+
+异常值：其他ITA返回值
+
+您也可以使用返回的ITA数值，在接入时根据返回的ITA角度定义您的分类。
+
+肤色分析
+
+skin_hue_ha
+
+Object
+
+返回以HA（Hue Angle）为标准的肤色色调分类：
+
+HA：返回HA角度值，单位角度°，[0°，90°]
+
+skin_hue:返回根据HA的肤色色调分类，共有以下几类：
+
+0: 偏黄
+
+1：中性
+
+2：偏红
+
+3：异常的色调值，可能是因为环境光色调异常或光线环境较弱、过曝引起
+
+{
+
+"HA": 20,
+
+"skin_hue":2
+
+}
+
+注：HA(Hue Angle)为国际上通用的肤色标准，是通过测量肤色Lab空间的颜色属性来为肤色分类的方法。该方法对环境光的依赖性较强，我们建议使用闪光灯拍摄高清人脸照片上传处理，在自然光或暗光环境下测出的HA角度值可能不准或异常。
+
+根据手机后置闪光灯拍摄数据，当前肤色色调分类参考：
+
+偏黄： 53<HA<=90
+
+中性：49.5<=HA<53
+
+偏红：10<=HA<49.5
+
+异常：其他值
+
+您也可以使用返回的HA数值，在接入时根据返回的HA角度定义您的分类。
+
+
+
+粗糙分析模块：
+
+“blackhead”为黑头的程度判断，“blackhead_count”为黑头的个数；“enlarged_pore_count”为毛孔的数量，“pores_forehead”、“pores_rightcheek”、“ pores_leftcheek”、“ pores_jaw”为毛孔各部位的严重程度，毛孔整体的严重可根据毛孔的数量或者分数判断。“rough”为面部皮肤纹理粗糙接口，可以输出全脸的粗糙占比，及各部位的面积占比。
+
+能力模块
+
+字段
+
+类型
+
+说明
+
+粗糙度分析
+
+blackhead
+
+Object
+
+0：无黑头，黑头数量∈[0,45]1：轻度，黑头数量∈[46,90]2：中度，黑头数量∈[91,150]3：重度，黑头数量∈[151以上]"blackhead":{"value": 0,"confidence": 1}
+
+粗糙度分析
+
+blackhead_count
+
+Int
+
+输出鼻头区域黑头个数，返回一个整数值。
+
+粗糙度分析
+
+enlarged_pore_count
+
+Object
+
+输出额头、左右面颊和下巴粗大毛孔个数
+
+"enlarged_pore_count": {"forehead_count": 460,"left_cheek_count": 161,"right_cheek_count": 158,"chin_count": 20}
+
+粗糙度分析
+
+pores_forehead
+
+Object
+
+输出额头毛孔粗大的严重程度 0：无毛孔，毛孔数量∈[0,100] 1：轻度，毛孔数量∈[101,300] 2：中度，毛孔数量∈[301,500] 3：重度，毛孔数量∈[501以上]
+
+"pores_forehead": {"value": 2,"confidence": 1}
+
+粗糙度分析
+
+pores_right_cheek
+
+Object
+
+输出右脸颊毛孔粗大的严重程度 0：无毛孔，毛孔数量∈[0,45] 1：轻度，毛孔数量∈[46,136] 2：中度，毛孔数量∈[137,227] 3：重度，毛孔数量∈[228以上]
+
+"pores_right_cheek": {"value": 2,"confidence": 1}
+
+粗糙度分析
+
+pores_left_cheek
+
+Object
+
+输出左脸颊毛孔粗大的严重程度 0：无毛孔，毛孔数量∈[0,45] 1：轻度，毛孔数量∈[46,136] 2：中度，毛孔数量∈[137,227] 3：重度，毛孔数量∈[228以上]
+
+"pores_left_cheek": {"value": 2,"confidence": 1}
+
+粗糙度分析
+
+pores_jaw
+
+Object
+
+输出下巴毛孔粗大的严重程度 0：无毛孔，毛孔数量∈[0,63] 1：轻度，毛孔数量∈[64,188] 2：中度，毛孔数量∈[189,313] 3：重度，毛孔数量∈[314以上]
+
+"pores_jaw": {"value": 0,"confidence": 1}
+
+粗糙度分析
+
+rough
+
+Object
+
+输出额头、面颊和下巴皮肤粗糙面积占比，整体面部粗粗面积占比以及粗糙严重程度
+
+{"rough_severity": 15,"rough_area": 0.253,"rough_forehead": {"area": 0.228},"rough_leftcheek": {"area": 0.293},"rough_rightcheek": {"area": 0.289},"rough_jaw": {"area": 0.281}
+
+粗糙度分析	blackheads_mark	Object	
+返回黑头坐标和半径
+
+"blackheads_mark":{"coord":[{"x": 5,"y": 3,"radius": 1},{"x": 10,"y": 3,"radius": 2}]}
+
+粗糙度分析	pores_mark	Object	
+返回毛孔坐标和半径
+
+"pores_mark":{"coord":[{"x": 5,"y": 3,"radius": 1},{"x": 10,"y": 3,"radius": 2}]}
+
+
+
+色素沉着分析模块：
+
+“melanin”为人脸色素沉着程度和面积占比，此处的程度即为分数，数字越大证明色素问题越严重；色素沉着分数的计算可直接用score_info{ melanin _score}字段；“melanin_mark”为色素沉着区域的坐标，可以直接根据此坐标绘制；如果你不需要返回用户详细的色沉结果（例如痣、色斑）等，可以只使用整个色沉区域的绘制结果即可。如你有详细绘制色斑问题的需求，可以通过“mole”、“ brown_spot”字段返回的矩形框或者多边形框绘制结果。新增“melasma”和“freckle”的黄褐斑和雀斑二分类模型，只能判断有无，无程度判断。
+
+能力模块
+
+字段
+
+类型
+
+说明
+
+色素沉着
+
+melanin
+
+Object
+
+返回照片内人脸皮肤色素沉着情况判断，分为2个指标：
+
+色素沉着区域面积(brown_area)：色素沉着区域全脸面积占比，输出一个0到1的小数。
+
+色素沉着程度(melanin_concentration)：色素沉着程度，输出一个0-100的数值
+
+新增输出额头区域、左右脸颊区域的色素沉着面积占比，输出为一个0到1的小数
+
+{
+"brown_area": 0.10126318,
+"melanin_concentration": 17,
+"brown_forehead": 0.12206949,
+"brown_leftcheek": 0.09510468,
+"brown_rightcheek": 0.10782476
+}
+
+色素沉着
+
+melanin_mark
+
+Object
+
+返回棕区图色素沉着区域的多边形框的位置
+
+"polygon":[ [{"x":23  ,"y":4},{"x"23: ,"y":15 } ,{"x":16 ,"y":12 }], [{"x": ,"y":},{"x": ,"y": } ,{"x": ,"y": } ] ]，polygon表示棕区图内的多边形坐标集合，每个多边形表示一个色素沉着区域外轮廓线的x、y坐标值。
+
+色素沉着
+
+mole
+
+Object
+
+返回每个痣区域的矩形框和更细致的多边形框
+
+{ "rectangle":[{"width": 3, "top": 17, "height": 1,"left": 35},{"width": 4, "top": 20, "height": 1,"left": 35}],"confidence":[0.85,0.70]， "polygon":[ [{"x":23  ,"y":4},{"x"23: ,"y":15 } ,{"x":16 ,"y":12 }], [{"x": ,"y":},{"x": ,"y": } ,{"x": ,"y": } ] ]}，rectangle表示每个痣框的位置，"width":"框的宽度"，"height":"框的高度"，"left":"框左上角距离图片最左边的距离"，"top":"框左上角距离图片最上边的距离"polygon表示每个痣框内，问题区域更细节的多边形轮廓线，返回每个多边形痣区域的顶点x、y坐标值。
+
+色素沉着
+
+brown_spot
+
+Object
+
+返回每个色斑区域的矩形框和更细致的多边形框
+
+{ "rectangle":[{"width": 3, "top": 17, "height": 1,"left": 35},{"width": 4, "top": 20, "height": 1,"left": 35}],"confidence":[0.85,0.70], "polygon":[ [{"x":23  ,"y":4},{"x"23: ,"y":15 } ,{"x":16 ,"y":12 }], [{"x": ,"y":},{"x": ,"y": } ,{"x": ,"y": } ] ]}，rectangle表示每个色斑框的位置，"width":"框的宽度"，"height":"框的高度"，"left":"框左上角距离图片最左边的距离"，"top":"框左上角距离图片最上边的距离"polygon表示每个色斑框内，问题区域更细节的多边形轮廓线，返回每个多边形痘痘区域的顶点x、y坐标值。
+
+色素沉着
+
+melasma
+
+黄褐斑
+
+Object
+
+ 返回接口："melasma":{"value": 0，confidence": 0.89}
+
+0:无黄褐斑
+
+1:有黄褐斑
+
+色素沉着
+
+freckle
+
+雀斑
+
+Object
+
+返回接口："freckle":{"value": 0，confidence": 0.89}
+
+0:无雀斑
+
+1:有雀斑
+
+
+
+痤疮分析模块：
+
+ “acne”、“acne_pustule”、“ acne_nodule“、”acne_mark“、”closed_comedones“为痤疮分析的几种类型，可根据返回的坐标绘制矩形框和多边形框；如需要判断痤疮的程度，可根据score_info{ acne_score}字段分数判断程度。
+
+能力模块
+
+字段
+
+类型
+
+说明
+
+痤疮分析
+
+acne
+
+Object
+
+痤疮检测-轻型丘疹检测（轻型丘疹是一类症状较轻的痤疮现象，症状表现为米粒至黄豆大小的凸起，伴随炎症发红，并伴有疼痛、瘙痒等症状）返回每个丘疹区域的矩形框和更细致的多边形框，{ "rectangle":[{"width": 3, "top": 17, "height": 1,"left": 35},{"width": 4, "top": 20, "height": 1,"left": 35}],"confidence":[0.85,0.70]， "polygon":[ [{"x":23  ,"y":4},{"x"23: ,"y":15 } ,{"x":16 ,"y":12 }], [{"x": ,"y":},{"x": ,"y": } ,{"x": ,"y": } ] ]，}rectangle表示每个丘疹框的位置，"width":"框的宽度"，"height":"框的高度"，"left":"框左上角距离图片最左边的距离"，"top":"框左上角距离图片最上边的距离"polygon表示每个丘疹框内，问题区域更细节的多边形轮廓线，返回每个多边形丘疹区域的顶点x、y坐标值。
+
+痤疮分析
+
+acne_pustule
+
+Object
+
+痤疮检测-脓包型丘疹检测（脓包型丘疹是肉眼可见有乳白色、淡黄色脓液的痤疮现象，表现为带有乳白色、淡黄色脓包的丘状凸起）返回每个脓包型痤疮区域的矩形框和更细致的多边形框，{ "rectangle":[{"width": 3, "top": 17, "height": 1,"left": 35},{"width": 4, "top": 20, "height": 1,"left": 35}],"confidence":[0.85,0.70]， "polygon":[ [{"x":23  ,"y":4},{"x"23: ,"y":15 } ,{"x":16 ,"y":12 }], [{"x": ,"y":},{"x": ,"y": } ,{"x": ,"y": } ] ]，}rectangle表示每个脓包框的位置，"width":"框的宽度"，"height":"框的高度"，"left":"框左上角距离图片最左边的距离"，"top":"框左上角距离图片最上边的距离"polygon表示每个脓包框内，问题区域更细节的多边形轮廓线，返回每个多边形脓包区域的顶点x、y坐标值。
+
+痤疮分析
+
+acne_nodule
+
+Object
+
+痤疮检测-痤疮结节检测（痤疮结节是一类比较严重的痤疮现象，表现为皮下脂质、脓液堆积造成的豌豆大小的小型块状凸起，触感较硬）返回每个痤疮结节区域的矩形框和更细致的多边形框，{ "rectangle":[{"width": 3, "top": 17, "height": 1,"left": 35},{"width": 4, "top": 20, "height": 1,"left": 35}],"confidence":[0.85,0.70]， "polygon":[ [{"x":23  ,"y":4},{"x"23: ,"y":15 } ,{"x":16 ,"y":12 }], [{"x": ,"y":},{"x": ,"y": } ,{"x": ,"y": } ] ]，}rectangle表示每个结节框的位置，"width":"框的宽度"，"height":"框的高度"，"left":"框左上角距离图片最左边的距离"，"top":"框左上角距离图片最上边的距离"polygon表示每个结节框内，问题区域更细节的多边形轮廓线，返回每个多边形结节区域的顶点x、y坐标值。
+
+痤疮分析
+
+acne_mark
+
+Object
+
+红痘印检测-检测面部痤疮愈合后出现的红紫色痘印返回每个痘印区域的矩形框和更细致的多边形框，{ "rectangle":[{"width": 3, "top": 17, "height": 1,"left": 35},{"width": 4, "top": 20, "height": 1,"left": 35}],"confidence":[0.85,0.70]，"polygon":[ [{"x":23  ,"y":4},{"x"23: ,"y":15 } ,{"x":16 ,"y":12 }], [{"x": ,"y":},{"x": ,"y": } ,{"x": ,"y": } ] ]，}rectangle表示每个痘印框的位置，"width":"框的宽度"，"height":"框的高度"，"left":"框左上角距离图片最左边的距离"，"top":"框左上角距离图片最上边的距离" polygon表示每个痘印框内，问题区域更细节的多边形轮廓线，返回每个多边形痘印区域的顶点x、y坐标值。
+
+痤疮分析
+
+closed_comedones
+
+Object
+
+返回每个闭口粉刺区域的矩形框和更细致的多边形框，{ "rectangle":[{"width": 3, "top": 17, "height": 1,"left": 35},{"width": 4, "top": 20, "height": 1,"left": 35}],"confidence":[0.85,0.70]， "polygon":[ [{"x":23  ,"y":4},{"x"23: ,"y":15 } ,{"x":16 ,"y":12 }], [{"x": ,"y":},{"x": ,"y": } ,{"x": ,"y": } ] ]}rectangle表示每个闭口粉刺框的位置，"width":"框的宽度"，"height":"框的高度"，"left":"框左上角距离图片最左边的距离"，"top":"框左上角距离图片最上边的距离"polygon表示每个闭口粉刺框内，问题区域更细节的多边形轮廓线，返回每个多边形闭口粉刺区域的顶点x、y坐标值。
+
+
+
+敏感分析模块：
+
+“sensitivity”为人脸敏感程度和面积占比，此处的程度即为分数，数字越大证明敏感问题越严重；色素沉着分数的计算可直接用score_info{ sensitivity _score}字段；“sensitivity_mark”为人脸敏感区域的坐标，可以直接根据此坐标绘制。
+
+能力模块
+
+字段
+
+类型
+
+说明
+
+敏感性分析
+
+sensitivity
+
+Object
+
+返回照片内人脸的敏感程度判断，该返回值必须与红区图搭配使用，您需要先在输入参数return_maps中设置返回红区图（"red_area"）详细分为2个指标：
+
+敏感皮肤全脸面积占比(sensitivity_area)：敏感泛红区域包括面颊、T区等，输出一个0到1的小数。
+
+敏感程度(sensitivity_intensity)：敏感区域泛红的强度，输出一个0-100的数值
+
+{
+"sensitivity_area": 0.0022246174,
+"sensitivity_intensity": 7
+}
+
+敏感性分析
+
+sensitivity_mark
+
+Object
+
+返回红区图敏感肌区域的多边形框的位置，
+
+ "polygon":[ [{"x":23  ,"y":4},{"x"23: ,"y":15 } ,{"x":16 ,"y":12 }], [{"x": ,"y":},{"x": ,"y": } ,{"x": ,"y": } ] ]，polygon表示红区图内的多边形坐标集合，每个多边形表示一个敏感肌区域外轮廓线的x、y坐标值。
+
+
+
+衰老分析模块：
+
+skin_age”为人脸整体皮肤的判断、根据皮肤的状态、衰老性来去进行判断。
+
+“forehead_wrinkle_info”系列是每个部位皱纹内容的详细补充，包含每个部位的严重程度、分数等，但拿到此内容需要根据“forehead_wrinkle_severity”“left_eye_finelines_severity”“ right_eye_finelines_severity”严重程度等接口判断是否有对应内容，如果返回为0（无），则不会返回wrinkle_info的细节参数。
+
+建议以“nasolabial_fold_severity”“left_mouth_wrinkle_severity”“right _mouth_wrinkle_severity”“forehead_wrinkle_severity”“left_crows_feet_severity”“right_crows_feet_severity”“left_eye_finelines_severity”“right_eye_finelines_severity”“glabella_wrinkle_severity”“left_nasolabial_fold_severity”“right_nasolabial_fold_severity”“left_cheek_wrinkle_severity”“right_cheek_wrinkle_severity”配合“forehead_wrinkle_info”“left_eye_wrinkle_info”“right_eye_wrinkle_info”“left_crowsfeet_wrinkle_info”“right_crowsfeet_wrinkle_info”“glabella_wrinkle_info”“left_mouth_wrinkle_info”“right_mouth_wrinkle_info”“left_nasolabial_wrinkle_info”“right_nasolabial_wrinkle_info”“left_cheek_wrinkle_info”“right_cheek_wrinkle_info”进行配置。
+
+能力模块
+
+字段
+
+类型
+
+说明
+
+衰老性分析
+
+skin_age
+
+Object
+
+肤龄检测结果："skin_age":{"value": "9"}，value表示人脸肤龄值，范围为[0,100)间的整数
+
+衰老性分析
+
+forehead_wrinkle
+
+Object
+
+抬头纹检测结果：0：无抬头纹 1：有抬头纹"forehead_wrinkle":{"value": 0,"confidence": 0.89}
+
+衰老性分析
+
+crows_feet
+
+Object
+
+鱼尾纹检测结果：0：无鱼尾纹 1：有鱼尾纹"crows_feet":{"value": 0,"confidence": 0.89}
+
+衰老性分析
+
+eye_finelines
+
+Object
+
+眼部细纹检测结果：0：无眼部细纹 1：有眼部细纹"eye_finelines":{"value": 0,"confidence": 0.89}
+
+衰老性分析
+
+glabella_wrinkle
+
+Object
+
+眉间纹检测结果：0：无眉间纹 1：有眉间纹"glabella_wrinkle":{"value": 0,"confidence": 0.89}
+
+衰老性分析
+
+nasolabial_fold
+
+Object
+
+法令纹检测结果：0：无法令纹 1：有法令纹"nasolabial_fold":{"value": 0,"confidence": 0.89}
+
+衰老性分析
+
+nasolabial_fold
+
+Object
+
+法令纹严重程度（法令纹检测结果为1时返回）：0：轻度 1：中度 2：重度"nasolabial_fold":{"value":0, "confidence":0.67}
+
+衰老性分析
+
+left_mouth_wrinkle_severity
+
+Object
+
+左脸木偶纹有无&严重程度0:无1:轻度 2:中度3:重度"left_mouth_wrinkle_severity":{"value":0}
+
+衰老性分析
+
+right_mouth_wrinkle_severity
+
+Object
+
+右脸木偶纹有无&严重程度0:无1:轻度 2:中度3:重度"right_mouth_wrinkle_severity":{"value":0}
+
+衰老性分析
+
+forehead_wrinkle_severity
+
+Object
+
+抬头纹严重程度(抬头纹检测结果为1时返回)1:轻度 2:中度3:重度"forehead_wrinkle_severity":{"value":0}
+
+衰老性分析
+
+left_crows_feet_severity
+
+Object
+
+左脸鱼尾纹有无&严重程度0:无1:轻度 2:中度3:重度"left_crows_feet_severity":{"value":0}
+
+衰老性分析
+
+right_crows_feet_severity
+
+Object
+
+右脸鱼尾纹有无&严重程度0:无1:轻度 2:中度3:重度"right_crows_feet_severity":{"value":0}
+
+衰老性分析
+
+left_eye_finelines_severity
+
+Object
+
+左脸眼部细纹有无&严重程度：0:无1:轻度 2:中度3:重度"left_eye_finelines_severity":{"value":0}
+
+衰老性分析
+
+right_eye_finelines_severity
+
+Object
+
+右脸眼部细纹有无&严重程度0:无1:轻度 2:中度3:重度"right_eye_finelines_severity":{"value":0}
+
+衰老性分析
+
+glabella_wrinkle_severity
+
+Object
+
+眉间细纹有无&严重程度：0:无1:轻度 2:中度3:重度"glabella_wrinkle_severity":{"value":0}
+
+衰老性分析
+
+left_nasolabial_fold_severity
+
+Object
+
+左脸法令纹有无&严重程度：0:无1:轻度 2:中度3:重度"left_nasolabial_fold_severity":{"value":0}
+
+衰老性分析
+
+right_nasolabial_fold_severity
+
+Object
+
+右脸法令纹有无&严重程度:0:无1:轻度 2:中度3:重度"right_nasolabial_fold_severity":{"value":0}
+
+衰老性分析
+
+left_cheek_wrinkle_severity
+
+Object
+
+左脸颊纹有无&严重程度:0:无1:轻度 2:中度3:重度"left_cheek_wrinkle_severity":{"value":0}
+
+衰老性分析
+
+right_cheek_wrinkle_severity
+
+Object
+
+右脸颊纹路纹有无&严重程度:0:无1:轻度 2:中度3:重度"right_cheek_wrinkle_severity":{"value":0}
+
+衰老性分析
+
+fine_line
+
+Object
+
+细纹检测，返回额头、眼下区域、脸颊、鱼尾纹、眉间纹细纹数量：
+
+"fine_line":
+
+{
+
+"forehead_count": 17,（额头）
+
+"left_undereye_count":3,（左眼细纹）
+
+"right_undereye_count":2（右眼细纹）
+
+"left_cheek_count":3,（左脸颊）
+
+"right_cheek_count":2（右脸颊）
+
+"left_crowsfeet_count":2（左眼鱼尾纹）
+
+"right_crowsfeet_count":2（右眼鱼尾纹）
+
+"glabella_count":2（眉间纹）
+
+}
+
+衰老性分析
+
+wrinkle_count
+
+Object
+
+深纹检测数量，返回额头、眼下区域、脸颊、嘴角、法令纹、眉间纹、鱼尾纹的深纹数量：
+
+"wrinkle_count":
+
+{
+
+"forehead_count": 17,（额头）
+
+"left_undereye_count":3,（左眼细纹）
+
+"right_undereye_count":2（右眼细纹）
+
+"left_mouth_count":1（左嘴角木偶纹）
+
+"right_mouth_count":0（右嘴角木偶纹）
+
+"left_nasolabial_count":0（左法令纹）
+
+"right_nasolabial_count":1（右法令纹）
+
+"glabella_count":2（眉间纹）
+
+"left_cheek_count":3,（左脸颊）
+
+"right_cheek_count":2（右脸颊）
+
+"left_crowsfeet_count":2（左眼鱼尾纹）
+
+"right_crowsfeet_count":2（右眼鱼尾纹）
+
+}
+
+衰老性分析
+
+forehead_wrinkle_info额头皱纹信息
+
+Object
+
+1 皱纹分数 0-100  2 皱纹严重等级 3 皱纹归一化长度 4 皱纹归一化深度 5 皱纹像素密度 6皱纹面积占比 7深纹长度占比 8 深纹数量 9浅纹数量 10 子皱纹像素坐标 11 子皱纹深度 12 子皱纹长度
+
+"forehead_wrinkle_info": {"wrinkle_score": 0,"wrinkle_severity_level": 0,"wrinkle_norm_length": 0,"wrinkle_norm_depth": 0,"wrinkle_pixel_density": 0,"wrinkle_area_ratio": 0,"wrinkle_deep_ratio": 0,"wrinkle_deep_num": 0,"wrinkle_shallow_num": 0}，"forehead_wrinkle_list: [[wrinkle_coord, wrinkle_depth, wrinkle_length]] }
+
+可根据皱纹深纹数量选取同等数量坐标组，即为深纹，剩余的则为浅玟
+
+衰老性分析
+
+left_eye_wrinkle_info左眼皱纹信息
+
+Object
+
+1 皱纹分数 0-100  2 皱纹严重等级 3 皱纹归一化长度 4 皱纹归一化深度 5 皱纹像素密度 6皱纹面积占比 7深纹长度占比 8 深纹数量 9浅纹数量 10 子皱纹像素坐标 11 子皱纹深度 12 子皱纹长度
+
+left_eye_wrinkle_info = {wrinkle_score:25, wrinkle_severity_level:0, wrinkle_norm_length:11.5, wrinkle_norm_depth:0.5, wrinkle_pixel_density:7.62, wrinkle_area_ratio:0.074, wrinkle_deep_ratio:0.44, wrinkle_deep_num:55, wrinkle_shallow_num:72, left_eye_wrinkle_list: [[wrinkle_coord, wrinkle_depth, wrinkle_length]] }
+
+可根据皱纹深纹数量选取同等数量坐标组，即为深纹，剩余的则为浅玟
+
+衰老性分析
+
+right_eye_wrinkle_info右眼皱纹信息
+
+Object
+
+1 皱纹分数 0-100  2 皱纹严重等级 3 皱纹归一化长度 4 皱纹归一化深度 5 皱纹像素密度 6皱纹面积占比 7深纹长度占比 8 深纹数量 9浅纹数量 10 子皱纹像素坐标 11 子皱纹深度 12 子皱纹长度
+
+right_eye_wrinkle_info = {wrinkle_score:25, wrinkle_severity_level:0, wrinkle_norm_length:11.5, wrinkle_norm_depth:0.5, wrinkle_pixel_density:7.62, wrinkle_area_ratio:0.074, wrinkle_deep_ratio:0.44, wrinkle_deep_num:55, wrinkle_shallow_num:72, right_eye_wrinkle_list:[[wrinkle_coord, wrinkle_depth, wrinkle_length]]}
+
+可根据皱纹深纹数量选取同等数量坐标组，即为深纹，剩余的则为浅玟
+
+衰老性分析
+
+left_crowsfeet_wrinkle_info左鱼尾纹信息
+
+Object
+
+1 皱纹分数 0-100  2 皱纹严重等级 3 皱纹归一化长度 4 皱纹归一化深度 5 皱纹像素密度 6皱纹面积占比 7深纹长度占比 8 深纹数量 9浅纹数量 10 子皱纹像素坐标 11 子皱纹深度 12 子皱纹长度
+
+left_crowsfeet_wrinkle_info = {wrinkle_score:25, wrinkle_severity_level:0, wrinkle_norm_length:11.5, wrinkle_norm_depth:0.5, wrinkle_pixel_density:7.62, wrinkle_area_ratio:0.074, wrinkle_deep_ratio:0.44, wrinkle_deep_num:55, wrinkle_shallow_num:72, left_crowsfeet_wrinkle_list:[[wrinkle_coord, wrinkle_depth, wrinkle_length]]}
+
+可根据皱纹深纹数量选取同等数量坐标组，即为深纹，剩余的则为浅玟
+
+衰老性分析
+
+right_crowsfeet_wrinkle_info右鱼尾纹信息
+
+Object
+
+1 皱纹分数 0-100  2 皱纹严重等级 3 皱纹归一化长度 4 皱纹归一化深度 5 皱纹像素密度 6皱纹面积占比 7深纹长度占比 8 深纹数量 9浅纹数量 10 子皱纹像素坐标 11 子皱纹深度 12 子皱纹长度
+
+right_crowsfeet_wrinkle_info = {wrinkle_score:25, wrinkle_severity_level:0, wrinkle_norm_length:11.5, wrinkle_norm_depth:0.5, wrinkle_pixel_density:7.62, wrinkle_area_ratio:0.074, wrinkle_deep_ratio:0.44, wrinkle_deep_num:55, wrinkle_shallow_num:72, right_crowsfeet_wrinkle_list:[[wrinkle_coord, wrinkle_depth, wrinkle_length]]}
+
+可根据皱纹深纹数量选取同等数量坐标组，即为深纹，剩余的则为浅玟
+
+衰老性分析
+
+glabella_wrinkle_info眉间纹信息
+
+Object
+
+1 皱纹分数 0-100  2 皱纹严重等级 3 皱纹归一化长度 4 皱纹归一化深度 5 皱纹像素密度 6皱纹面积占比 7深纹长度占比 8 深纹数量 9浅纹数量 10 子皱纹像素坐标 11 子皱纹深度 12 子皱纹长度
+
+glabella_wrinkle_info = {wrinkle_score:25, wrinkle_severity_level:0, wrinkle_norm_length:11.5, wrinkle_norm_depth:0.5, wrinkle_pixel_density:7.62, wrinkle_area_ratio:0.074, wrinkle_deep_ratio:0.44, wrinkle_deep_num:55, wrinkle_shallow_num:72, glabella_wrinkle_list: [[wrinkle_coord, wrinkle_depth, wrinkle_length]]}
+
+可根据皱纹深纹数量选取同等数量坐标组，即为深纹，剩余的则为浅玟
+
+衰老性分析
+
+left_mouth_wrinkle_info左嘴角纹信息
+
+Object
+
+1 皱纹分数 0-100  2 皱纹严重等级 3 皱纹归一化长度 4 皱纹归一化深度 5 皱纹像素密度 6皱纹面积占比 7深纹长度占比 8 深纹数量 9浅纹数量 10 子皱纹像素坐标 11 子皱纹深度 12 子皱纹长度
+
+left_mouth_wrinkle_info = {wrinkle_score:25, wrinkle_severity_level:0, wrinkle_norm_length:11.5, wrinkle_norm_depth:0.5, wrinkle_pixel_density:7.62, wrinkle_area_ratio:0.074, wrinkle_deep_ratio:0.44, wrinkle_deep_num:55, wrinkle_shallow_num:72, left_mouth_wrinkle_list: [[wrinkle_coord, wrinkle_depth, wrinkle_length]] }
+
+衰老性分析
+
+right_mouth_wrinkle_info右嘴角纹信息
+
+Object
+
+1 皱纹分数 0-100  2 皱纹严重等级 3 皱纹归一化长度 4 皱纹归一化深度 5 皱纹像素密度 6皱纹面积占比 7深纹长度占比 8 深纹数量 9浅纹数量 10 子皱纹像素坐标 11 子皱纹深度 12 子皱纹长度
+
+right_mouth_wrinkle_info = {wrinkle_score:25, wrinkle_severity_level:0, wrinkle_norm_length:11.5, wrinkle_norm_depth:0.5, wrinkle_pixel_density:7.62, wrinkle_area_ratio:0.074, wrinkle_deep_ratio:0.44, wrinkle_deep_num:55, wrinkle_shallow_num:72, right_mouth_wrinkle_list:[[wrinkle_coord, wrinkle_depth, wrinkle_length]] }
+
+衰老性分析
+
+left_nasolabial_wrinkle_info左法令纹信息
+
+Object
+
+1 皱纹分数 0-100  2 皱纹严重等级 3 皱纹归一化长度 4 皱纹归一化深度 5 皱纹像素密度 6皱纹面积占比 7深纹长度占比 8 深纹数量 9浅纹数量 10 子皱纹像素坐标 11 子皱纹深度 12 子皱纹长度
+
+left_nasolabial_wrinkle_info = {wrinkle_score:25, wrinkle_severity_level:0, wrinkle_norm_length:11.5, wrinkle_norm_depth:0.5, wrinkle_pixel_density:7.62, wrinkle_area_ratio:0.074, wrinkle_deep_ratio:0.44, wrinkle_deep_num:55, wrinkle_shallow_num:72, left_nasolabial_wrinkle_list: [[wrinkle_coord, wrinkle_depth, wrinkle_length]]}
+
+衰老性分析
+
+right_nasolabial_wrinkle_info右法令纹信息
+
+Object
+
+1 皱纹分数 0-100  2 皱纹严重等级 3 皱纹归一化长度 4 皱纹归一化深度 5 皱纹像素密度 6皱纹面积占比 7深纹长度占比 8 深纹数量 9浅纹数量 10 子皱纹像素坐标 11 子皱纹深度 12 子皱纹长度
+
+right_nasolabial_wrinkle_info = {wrinkle_score:25, wrinkle_severity_level:0, wrinkle_norm_length:11.5, wrinkle_norm_depth:0.5, wrinkle_pixel_density:7.62, wrinkle_area_ratio:0.074, wrinkle_deep_ratio:0.44, wrinkle_deep_num:55, wrinkle_shallow_num:72, right_nasolabial_wrinkle_list:[[wrinkle_coord, wrinkle_depth, wrinkle_length]]}
+
+衰老性分析
+
+left_cheek_wrinkle_info左脸皱纹信息
+
+Object
+
+1 皱纹分数 0-100  2 皱纹严重等级 3 皱纹归一化长度 4 皱纹归一化深度 5 皱纹像素密度 6皱纹面积占比 7深纹长度占比 8 深纹数量 9浅纹数量 10 子皱纹像素坐标 11 子皱纹深度 12 子皱纹长度
+
+left_cheek_wrinkle_info = {wrinkle_score:25, wrinkle_severity_level:0, wrinkle_norm_length:11.5, wrinkle_norm_depth:0.5, wrinkle_pixel_density:7.62, wrinkle_area_ratio:0.074, wrinkle_deep_ratio:0.44, wrinkle_deep_num:55, wrinkle_shallow_num:72, left_cheek_wrinkle_list[[wrinkle_coord, wrinkle_depth, wrinkle_length]]}
+
+可根据皱纹深纹数量选取同等数量坐标组，即为深纹，剩余的则为浅玟
+
+衰老性分析
+
+right_cheek_wrinkle_info右脸皱纹信息
+
+Object
+
+1 皱纹分数 0-100  2 皱纹严重等级 3 皱纹归一化长度 4 皱纹归一化深度 5 皱纹像素密度 6皱纹面积占比 7深纹长度占比 8 深纹数量 9浅纹数量 10 子皱纹像素坐标 11 子皱纹深度 12 子皱纹长度
+
+right_cheek_wrinkle_info = {wrinkle_score:25, wrinkle_severity_level:0, wrinkle_norm_length:11.5, wrinkle_norm_depth:0.5, wrinkle_pixel_density:7.62, wrinkle_area_ratio:0.074, wrinkle_deep_ratio:0.44, wrinkle_deep_num:55, wrinkle_shallow_num:72, right_cheek_wrinkle_list:[[wrinkle_coord, wrinkle_depth, wrinkle_length]]}
+
+可根据皱纹深纹数量选取同等数量坐标组，即为深纹，剩余的则为浅玟
+
+衰老性分析
+
+cheekbone_mark苹果肌坐标
+
+Object
+
+接口返回左苹果肌坐标及右苹果肌坐标数组
+
+cheekbone_mark={"left_cheekbone_mark":[{"x":198,"y":533},{"x":197,"y":534}],"right_cheekbone_mark":[{"x":198,"y":533},{"x":197,"y":534}]}
+
+
+
+眼部分析模块：
+
+“eye_pouch”为判断是否有眼袋，判断结果是1时才会返回“eye_pouch_severity”眼袋严重程度结果；“dark_circle”和“dark_circle_severity同理。黑眼圈类型新增左右眼类型判断，建议直接使用新版参数“left_dark_circle_rete”等细节参数。如需要对黑眼圈眼袋等位置进行绘制，可根据“left_eye_pouch_rectangle”“ right_eye_pouch_rectangle”“ dark_circle_mark”进行绘制。
+
+能力模块
+
+字段
+
+类型
+
+说明
+
+眼部分析
+
+eye_pouch
+
+Object
+
+眼袋检测结果：0：无眼袋  1：有眼袋"eye_pouch":{"value": 0,"confidence": 0.89}
+
+眼部分析
+
+eye_pouch_severity
+
+Object
+
+眼袋严重程度（眼袋检测结果为1时返回）0：轻度  1：中度  2：重度"eye_pouch_severity":{"value":0,"confidence":0.90}
+
+眼部分析
+
+left_eye_pouch_rectangle
+
+Object
+
+left_eye_pouch_rectangle=[{"width": 3, "top": 17, "height": 1,"left": 35}rectangle表示左眼眼袋框的位置，"width":"框的宽度"，"height":"框的高度"，"left":"框左上角距离图片最左边的距离"，"top":"框左上角距离图片最上边的距离"
+
+眼部分析
+
+right_eye_pouch_rectangle
+
+Object
+
+right_eye_pouch_rectangle=[{"width": 3, "top": 17, "height": 1,"left": 35}rectangle表示右眼眼袋框的位置，"width":"框的宽度"，"height":"框的高度"，"left":"框左上角距离图片最左边的距离"，"top":"框左上角距离图片最上边的距离"
+
+眼部分析
+
+dark_circle
+
+Object
+
+黑眼圈类型检测  0：无黑眼圈  1：色素型黑眼圈  2：血管型黑眼圈  3：阴影型黑眼圈"dark_circle":{"value": 0,"confidence": 0.89}
+
+眼部分析
+
+dark_circle_severity
+
+Object
+
+黑眼圈严重程度  当dark_circle.value返回值不为0时返回："dark_circle_severity":{"value": 1,"confidence": 0.89}  value值描述：0：轻度黑眼圈  1：中度黑眼圈  2：重度黑眼圈
+
+眼部分析
+
+left_dark_circle_rete
+
+Object
+
+左眼血管型黑眼圈严重程度"right_dark_circle_rete":{"value": 1}value值描述：0：无血管型黑眼圈1：轻度血管型黑眼圈2：中度血管型黑眼圈3：重度血管型黑眼圈
+
+眼部分析
+
+right_dark_circle_rete
+
+Object
+
+右眼血管型黑眼圈严重程度"left_dark_circle_rete":{"value": 1}value值描述：0：无血管型黑眼圈1：轻度血管型黑眼圈2：中度血管型黑眼圈3：重度血管型黑眼圈
+
+眼部分析
+
+left_dark_circle_pigment
+
+Object
+
+左眼色素型黑眼圈严重程度"left_dark_circle_pigment":{"value": 1}value值描述：0：无色素型黑眼圈1：轻度色素型黑眼圈2：中度色素型黑眼圈3：重度色素型黑眼圈
+
+眼部分析
+
+right_dark_circle_pigment
+
+Object
+
+右眼色素型黑眼圈严重程度"right_dark_circle_pigment":{"value": 1}value值描述：0：无色素型黑眼圈1：轻度色素型黑眼圈2：中度色素型黑眼圈3：重度色素型黑眼圈
+
+眼部分析
+
+left_dark_circle_structural
+
+Object
+
+左眼结构型黑眼圈严重程度："left_dark_circle_structural":{"value": 1}value值描述：0：无结构型黑眼圈1：轻度结构型黑眼圈2：中度结构型黑眼圈3：重度结构型黑眼圈
+
+眼部分析
+
+right_dark_circle_structural
+
+Object
+
+右眼结构型黑眼圈严重程度："right_dark_circle_structuralt":{"value": 1}value值描述：0：无结构型黑眼圈1：轻度结构型黑眼圈2：中度结构型黑眼圈3：重度结构型黑眼圈
+
+眼部分析
+
+dark_circle_mark
+
+Object
+
+返回左、右眼黑眼圈的矩形框坐标位置{'left_eye_rect': {'left': 272, 'top': 397, 'width': 93, 'height': 93}, 'right_eye_rect': {'left': 506, 'top': 393, 'width': 102, 'height': 102}}
+
+眼部分析
+
+left_eye_pouch_rect
+左眼袋矩形框位置
+
+Object
+
+
+
+left_eye_pouch_rect={"width": 3, "top": 17, "height": 1,"left": 35}
+
+rect表示矩形框的位置，"width":"框的宽度"，"height":"框的高度"，"left":"框左上角距离图片最左边的距离"，"top":"框左上角距离图片最上边的距离"
+
+眼部分析
+
+right_eye_pouch_rect
+
+右眼袋矩形框位置
+
+Object
+
+
+
+right_eye_pouch_rect={"width": 3, "top": 17, "height": 1,"left": 35}
+
+rect表示矩形框的位置，"width":"框的宽度"，"height":"框的高度"，"left":"框左上角距离图片最左边的距离"，"top":"框左上角距离图片最上边的距离"
+
+眼部分析
+
+wrinkle_mark皱纹轮廓线坐标
+
+Object
+
+
+
+面部轮廓区域坐标，包含左右眼、左右脸颊、左右法令纹、左右眼角、左右嘴角、额头、眉间12个区域坐标，如在入参时进行选择，即可返回
+
+{"left_eye_wrinkle_outline":[{"x":198,"y":533}],"right_eye_wrinkle_outline":[{"x":198,"y":533}],"left_cheek_wrinkle_outline":[{"x":198,"y":533}],"right_cheek_wrinkle_outline":[{"x":198,"y":533}],"glabella_wrinkle_outline":[{"x":198,"y":533}],"left_nasolabial_wrinkle_outline":[{"x":198,"y":533}],"right_nasolabial_wrinkle_outline":[{"x":198,"y":533}],"left_crowsfeet_wrinkle_outline":[{"x":198,"y":533}],"right_crowsfeet_wrinkle_outline":[{"x":198,"y":533}],"left_mouth_wrinkle_outline":[{"x":198,"y":533}],"right_mouth_wrinkle_outline":[{"x":198,"y":533}],"head_wrinkle_outline":[{"x":198,"y":533}]}
+
+眼部分析
+
+dark_circle_mark
+
+Object
+
+
+
+左右黑眼圈轮廓坐标
+
+"left_dark_circle_mark"=[{"x":198,"y":533},{"x":197,"y":534}],"right_dark_circle_mark":[{"x":198,"y":533},{"x":197,"y":534}]}
+
+
+
+
+
+数字化分数体系模块：
+
+包含总分等12个参数，可直接根据参数判断各维度的程度。
+
+能力模块
+
+字段
+
+类型
+
+说明
+
+整体分数
+
+score_info
+
+分数接口
+
+Object
+
+分数接口，包含黑眼圈、肤质、皱纹、出油、毛孔、黑头、痘痘、棕区、红区、水分分数
+
+{
+"dark_circle_score": 100,
+"skin_type_score": 50,
+"wrinkle_score": 76,
+"oily_intensity_score": 39,
+"pores_score": 70,
+"blackhead_score": 81,
+"acne_score": 92,
+"sensitivity_score": 93,
+"melanin_score": 83,
+"water_score": 62,
+"rough_score": 85,
+"total_score": 77,
+"pores_type_score": {
+"pores_forehead_score": 54,
+"pores_leftcheek_score": 65,
+"pores_rightcheek_score": 65,
+"pores_jaw_score": 97
+},
+"dark_circle_type_score": {
+"left_dark_circle_score": 100,
+"right_dark_circle_score": 100
+}
+
+
+
+自定义模块：
+
+自定义：“return_maps”返回的“texture_enhanced_bw”黑白增强图有一定剪裁比例，此接口可根据剪裁比例还原人脸关键点位置。
+
+能力模块
+
+字段
+
+类型
+
+说明
+
+自定义
+
+enhanced_bw_info
+
+黑白增强图坐标位置
+
+Object
+
+接口返回黑白增强图坐标框及裁剪比例，裁剪比例用于获取与原图相对应的人脸关键点位置
+
+{
+"enhanced_bw_rect": {
+"left": 272,
+"top": 397,
+"width": 93,
+"height": 93
+},
+"ratio": 0.34
+}
+
+如果要获取与原图相对应的人脸关键点位置，可采用以下公式换算：
+
+x_enhance = (x_img - left) * ratio
+y_enhance = (y_img - top) * ratio
+x_img,y_img表示原图坐标，x_enhance,y_enhance表示黑白增强图坐标
+
+
+
+
+
+
+
+下颌线模块：
+
+包含“left_side_result”和“right_side_result”，里面会返回“jawline_quality”下颌线图片质量判断，只有返回值为1时才会有下颌线角度值“jawline_angle”和下颌线坐标值“jawline_mark”的返回。
+
+left_side_result格式如下：
+能力模块
+
+字段
+
+类型
+
+说明
+
+侧脸下颌线
+
+left_jawline_info 
+
+Json
+
+接口返回：
+
+{
+" left_jawline_info": {
+" left_jawline_quality": 1,
+" left_jawline_angle": 122.73,
+" left_jawline_mark": [
+{
+"x": 518,
+"y": 1256
+},
+{
+"x": 531,
+"y": 1260
+}
+],
+"left_jawline_angle_level": 1
+}
+}
+
+left_jawline_quality指 侧脸照片质量判断，当客户在入参时选择下颌线功能，即可拍摄对应图片调用接口，对侧脸进行判断，判断结果为1则会返回角度和坐标结果，判断结果为非1时则不会返回角度和坐标结果
+
+1：质量过关，上传照片的人脸侧脸拍摄角度为20°~120°
+
+2：侧脸角度略低，照片侧脸角度低于20°
+
+3：侧脸角度略大，照片侧脸角度大于120° 
+
+4：没有检测到人脸
+
+5：无效的人脸
+
+6：其它情况
+
+left_jawline_angle：下颌线的角度
+
+left_jawline_mark：下颌线人脸关键点坐标
+
+left_jawline_angle_level：下颌线标准程度，0为标准（116°～120°），1为不标准
+
+侧脸痤疮检测	left_acne_info	Json	
+接口返回：
+
+"acne_info": {
+            { score:95,
+              acne:
+                {
+                  count: 0,
+                  confidence: [0.85,0.70],
+                  rectangle:[
+                              width: 3
+                              top: 17
+                              height: 15
+                              left: 3
+                             ],
+                  polygon：[
+                       {"x":23 ,"y":4}
+                       {"x"23: ,"y":15 } 
+                       {"x":16 ,"y":12 }
+                           ],
+                 }, 
+               
+               acne_pustule: 
+                 {
+                   count: 0,
+                   confidence: [0.85,0.70],
+                   rectangle:[
+                               width: 3
+                               top: 17
+                               height: 15
+                               left: 3
+                              ],
+                   polygon：[
+                       {"x":23 ,"y":4}
+                       {"x"23: ,"y":15 } 
+                       {"x":16 ,"y":12 }
+                            ]
+                 }, 
+                }
+侧脸痤疮检测	left_melanin_info	Json	
+接口返回：
+
+ "melanin_info": {
+                  mole:
+                    {
+                     count: 0,
+                     confidence:[0.85,0.70],
+                     rectangle:[
+                      {  
+                       "width": 3
+                       "top": 17
+                       "height": 1
+                       "left": 35
+                       }
+                       ],
+                  polygon：[
+                       {"x":23 ,"y":4}
+                       {"x"23: ,"y":15 } 
+                       {"x":16 ,"y":12 }
+                       ]
+                     }, 
+
+                   brown_spot:
+                       {
+                        count: 2,
+                        confidence:[0.85,0.70],
+                        rectangle: [
+                           "width": 3
+                           "top": 17
+                           "height": 1
+                           "left": 35
+                         ]                  
+                        polygon：[
+                            {"x":23 ,"y":4}
+                            {"x"23: ,"y":15 } 
+                            {"x":16 ,"y":12 }
+                         ]
+       
+     }
+right_side_result格式如下：
+能力模块
+
+字段
+
+类型
+
+说明
+
+侧脸下颌线
+
+right_jawline_info 
+
+Json
+
+接口返回：
+
+{
+" right_jawline_info": {
+" right_jawline_quality": 1,
+" right_jawline_angle": 122.73,
+" right_jawline_mark": [
+{
+"x": 518,
+"y": 1256
+},
+{
+"x": 531,
+"y": 1260
+}
+],
+"right_jawline_angle_level": 1
+}
+}
+right_jawline_quality指 侧脸照片质量判断，当客户在入参时选择下颌线功能，即可拍摄对应图片调用接口，对侧脸进行判断，判断结果为1则会返回角度和坐标结果，判断结果为非1时则不会返回角度和坐标结果
+
+1：质量过关，上传照片的人脸侧脸拍摄角度为20°~120°
+
+2：侧脸角度略低，照片侧脸角度低于20°
+
+3：侧脸角度略大，照片侧脸角度大于120° 
+
+4：没有检测到人脸
+
+5：无效的人脸
+
+6：其它情况
+
+right_jawline_angle：下颌线的角度
+
+right_jawline_mark：下颌线人脸关键点坐标
+
+right_jawline_angle_level：下颌线标准程度，0为标准（116°～120°），1为不标准
+
+侧脸痤疮检测	right_acne_info	Json	
+接口返回：
+
+"acne_info": {
+            { score:95,
+              acne:
+                {
+                  count: 0,
+                  confidence: [0.85,0.70],
+                  rectangle:[
+                              width: 3
+                              top: 17
+                              height: 15
+                              left: 3
+                             ],
+                  polygon：[
+                       {"x":23 ,"y":4}
+                       {"x"23: ,"y":15 } 
+                       {"x":16 ,"y":12 }
+                           ],
+                 }, 
+               
+               acne_pustule: 
+                 {
+                   count: 0,
+                   confidence: [0.85,0.70],
+                   rectangle:[
+                               width: 3
+                               top: 17
+                               height: 15
+                               left: 3
+                              ],
+                   polygon：[
+                       {"x":23 ,"y":4}
+                       {"x"23: ,"y":15 } 
+                       {"x":16 ,"y":12 }
+                            ]
+                 }, 
+                }
+侧脸痤疮检测	right_melanin_info	Json	
+接口返回：
+
+ "melanin_info": {
+                  mole:
+                    {
+                     count: 0,
+                     confidence:[0.85,0.70],
+                     rectangle:[
+                      {  
+                       "width": 3
+                       "top": 17
+                       "height": 1
+                       "left": 35
+                       }
+                       ],
+                  polygon：[
+                       {"x":23 ,"y":4}
+                       {"x"23: ,"y":15 } 
+                       {"x":16 ,"y":12 }
+                       ]
+                     }, 
+
+                   brown_spot:
+                       {
+                        count: 2,
+                        confidence:[0.85,0.70],
+                        rectangle: [
+                           "width": 3
+                           "top": 17
+                           "height": 1
+                           "left": 35
+                         ]                  
+                        polygon：[
+                            {"x":23 ,"y":4}
+                            {"x"23: ,"y":15 } 
+                            {"x":16 ,"y":12 }
+                         ]
+       
+     }
+当前 API 特有的 ERROR_MESSAGE
+HTTP状态代码
+
+错误信息
+
+说明
+
+400
+
+IMAGE_ERROR_UNSUPPORTED_FORMAT:<param>
+
+参数<param>对应的图像无法正确解析，有可能不是一个图像文件、或有数据破损、或图片文件格式不符合要求。
+
+400	NO_FACE_FOUND	没有检测到人脸
+400	INVALID_IMAGE_FACE	无效的人脸
+400
+
+INVALID_IMAGE_SIZE:<param>
+
+客户上传的图像像素尺寸太大或太小，图片要求请参照本API描述。<param>对应图像太大的那个参数的名称
+
+400	INVALID_FACE_SIZE	客户上传的图像中人脸的尺寸不满足条件，图片要求请参照本API描述
+400
+
+INVALID_IMAGE_URL
+
+无法从指定的image_url下载图片，图片URL错误或者无效
+
+400	IMAGE_FILE_TOO_LARGE:<param>	客户通过参数<param>上传的图片文件太大。本 API 要求图片文件大小不超过 8 MB
+412
+
+IMAGE_DOWNLOAD_TIMEOUT
+
+下载图片超时
+
+通用的ERROR_MESSAGE
+HTTP 状态代码
+
+错误信息
+
+说明
+
+401
+
+AUTHENTICATION_ERROR
+
+api_key和api_secret不匹配。
+
+403
+
+AUTHORIZATION_ERROR:<reason>
+
+api_key没有调用本API的权限，具体原因为：用户自己禁止该api_key调用、管理员禁止该api_key调用、由于账户余额不足禁止调用。
+
+目前的<reason>有：
+
+Denied by Client（用户自己禁止该api_key调用）
+Denied by Admin（管理员禁止该api_key调用）
+Insufficient Account Balance（由于账户余额不足禁止调用）
+403
+
+CONCURRENCY_LIMIT_EXCEEDED
+
+并发数超过限制。
+
+注：这里的并发控制数超出限制，是指该API Key的QPS已经达到上限。如需要提高API Key的QPS配额请查看价格方案或者联系我们。
+
+400
+
+MISSING_ARGUMENTS: <key>
+
+缺少某个必选参数。
+
+400
+
+BAD_ARGUMENTS:<key>
+
+某个参数解析出错（比如必须是数字，但是输入的是非数字字符串; 或者长度过长，etc.）
+
+400	COEXISTENCE_ARGUMENTS	同时传入了要求是二选一或多选一的参数。如有特殊说明则不返回此错误。
+413	Request Entity Too Large	客户发送的请求大小超过了 24 MB限制。该错误的返回格式为纯文本，不是json格式。
+404
+
+API_NOT_FOUND
+
+所调用的API不存在。
+
+500
+
+INTERNAL_ERROR
+
+服务器内部错误，当此类错误发生时请再次请求，如果持续出现此类错误，请及时联系技术支持团队。
+
+
+

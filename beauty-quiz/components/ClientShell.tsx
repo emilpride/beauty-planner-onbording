@@ -63,6 +63,19 @@ export default function ClientShell({ children }: { children: ReactNode }) {
       window.removeEventListener('unhandledrejection', onUnhandled)
     }
   }, [sessionId, pathname])
+
+  // Meta Pixel: track PageView on route change and a generic ViewContent
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+        window.fbq('track', 'PageView')
+        window.fbq('track', 'ViewContent', {
+          content_name: pathname || '/',
+          content_category: 'page',
+        })
+      }
+    } catch { /* noop */ }
+  }, [pathname])
   return (
     <>
       {/* Global hamburger menu (also used inline inside quiz app bar) */}
