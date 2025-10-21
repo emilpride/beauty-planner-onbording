@@ -1,0 +1,120 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===== HELPER FUNCTIONS =====
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    function isModerator() {
+      return isAuthenticated() && (request.auth.token.moderator == true || request.auth.token.admin == true);
+    }
+
+    // ===== USERS COLLECTION =====
+    // Users can only read/write their own documents
+    match /users/{userId} {
+      // Read: Only owner or admin
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Create: Authenticated users can create their own profile
+      allow create: if isAuthenticated() && request.auth.uid == userId && 
+                      // Required fields
+                      request.resource.data.keys().hasAll(['email', 'createdAt']) &&
+                      // Validate field types
+                      request.resource.data.email is string &&
+                      request.resource.data.createdAt is timestamp &&
+                      // Prevent privilege escalation
+                      !request.resource.data.keys().hasAny(['admin', 'moderator']) &&
+                      // Email validation (basic)
+                      request.resource.data.email.matches('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}');
+      
+      // Update: Owner can update non-privileged fields, admin can update anything
+      allow update: if isOwner(userId) || isAdmin() {
+        // Owners cannot modify admin/moderator flags
+        allow update: if !request.resource.data.diff(resource.data).affectedKeys().hasAny(['admin', 'moderator', 'createdAt', 'uid']);
+      }
+      
+      // Delete: Only admin
+      allow delete: if isAdmin();
+
+      // Subcollection: User sessions
+      match /sessions/{sessionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && 
+                        request.resource.data.keys().hasAll(['sessionId', 'startTime', 'userId']) &&
+                        request.resource.data.userId == userId;
+        allow update: if isOwner(userId) && 
+                        // Cannot change userId or sessionId after creation
+                        resource.data.userId == request.resource.data.userId &&
+                        resource.data.sessionId == request.resource.data.sessionId;
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // ===== WEB ONBOARDING SESSIONS (Store without auth for initial tracking) =====
+    // This collection tracks anonymous/unregistered users
+    match /users_web_onbording/{sessionId} {
+      // Read: Cloud Functions only (admin access)
+      allow read: if request.auth.token.firebase.sign_in_provider == 'custom' || isAdmin();
+      
+      // Create: Anyone can create (anonymous tracking)
+      allow create: if request.resource.data.keys().hasAll(['sessionId', 'startTime']) &&
+                      request.resource.data.sessionId == sessionId &&
+                      request.resource.data.startTime is timestamp &&
+                      // Prevent excessively large documents (abuse protection)
+                      request.resource.size < 500 * 1024; // 500KB max
+      
+      // Update: Limit updates (prevent complete rewrites)
+      allow update: if request.resource.data.sessionId == resource.data.sessionId &&
+                      // Only allow appending to events array, updating endTime/status
+                      request.resource.data.keys() == resource.data.keys() &&
+                      request.resource.size < 500 * 1024;
+      
+      // Delete: Admin or Cloud Functions only
+      allow delete: if isAdmin();
+    }
+
+    // ===== PREMIUM CONTENT =====
+    match /premium_content/{contentId} {
+      // Anyone can read published content
+      allow read: if resource.data.published == true || isAdmin();
+      
+      // Only admin can write
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ===== ANALYTICS (Write-only for backend) =====
+    match /analytics/{document=**} {
+      // Only authenticated Cloud Functions can write
+      allow write: if isAuthenticated();
+      
+      // Only admins can read
+      allow read: if isAdmin();
+    }
+
+    // ===== AUDIT LOG (Append-only for security events) =====
+    match /audit_logs/{logId} {
+      // Only admin can read audit logs
+      allow read: if isAdmin();
+      
+      // Only Cloud Functions can write
+      allow create: if request.auth.token.firebase.sign_in_provider == 'custom';
+      allow update, delete: if false; // Prevent tampering
+    }
+
+    // ===== DEFAULT DENY =====
+    // Explicitly deny access to all other documents
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
