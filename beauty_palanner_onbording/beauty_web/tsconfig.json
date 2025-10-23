@@ -37,6 +37,9 @@
       ],
       "@/styles/*": [
         "src/styles/*"
+      ],
+      "@/data/*": [
+        "src/data/*"
       ]
     },
     "allowJs": true,

@@ -3,16 +3,24 @@
 @tailwind utilities;
 
 :root {
-  --bg: 255 255 255;
-  --surface: 255 255 255;
-  --text: 17 17 17;
-  --accent: 163 133 233; /* #A385E9 */
+  --bg: 248 248 252;          /* page background */
+  --surface: 255 255 255;      /* cards */
+  --surface-hover: 245 246 248;/* subtle hover */
+  --text-primary: 28 28 35;    /* #1C1C23 */
+  --text-secondary: 150 154 183; /* #969AB7 */
+  --border-subtle: 228 231 236;  /* #E4E7EC */
+  --border-strong: 201 192 217;  /* #C9C0D9 */
+  --accent: 163 133 233;       /* #A385E9 */
 }
 
-[data-theme='dark'] {
-  --bg: 24 26 32;       /* #181A20 */
-  --surface: 53 56 63;  /* #35383F */
-  --text: 255 255 255;  /* white */
+.dark {
+  --bg: 24 26 32;              /* #181A20 */
+  --surface: 53 56 63;         /* #35383F */
+  --surface-hover: 61 61 92;   /* #3D3D5C */
+  --text-primary: 255 255 255; /* white */
+  --text-secondary: 150 154 183; /* keep for contrast */
+  --border-subtle: 60 63 72;   /* dark subtle borders */
+  --border-strong: 90 90 120;  /* stronger borders */
 }
 
 html, body, #__next {
@@ -21,7 +29,7 @@ html, body, #__next {
 
 body {
   background-color: rgb(var(--bg));
-  color: rgb(var(--text));
+  color: rgb(var(--text-primary));
 }
 
 .container-page {
@@ -41,5 +49,17 @@ body {
 
 .chip {
   @apply inline-flex items-center rounded-lg px-3 py-1 text-sm font-semibold border;
-  border-color: rgb(var(--surface));
+  border-color: rgb(var(--border-subtle));
+}
+
+.chip-active {
+  background: #A385E9;
+  color: #fff;
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(163,133,233,0.2);
+}
+
+.section-title {
+  color: rgb(var(--text-secondary));
+  @apply text-sm font-semibold;
 }

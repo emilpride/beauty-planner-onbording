@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
 import '@/styles/globals.css'
 import { AppProviders } from '@/components/providers/AppProviders'
-import { AppHeader } from '@/components/common/AppHeader'
+import { AppShell } from '@/components/layout/AppShell'
+import { Raleway } from 'next/font/google'
+
+const raleway = Raleway({ subsets: ['latin'], variable: '--font-raleway' })
 
 export const metadata: Metadata = {
   title: 'Beauty Mirror Web',
@@ -12,10 +15,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body className={raleway.className}>
         <AppProviders>
-          <AppHeader />
-          {children}
+          <AppShell>
+            {children}
+          </AppShell>
         </AppProviders>
       </body>
     </html>

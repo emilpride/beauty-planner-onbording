@@ -1,6 +1,7 @@
 "use client"
 
 import type { PeriodOption } from '@/lib/report'
+import { Select } from '@/components/common/Select'
 
 const DEFAULT_PERIODS: PeriodOption[] = [
   'Today',
@@ -19,24 +20,21 @@ export function GraphHeader({
 }: {
   title: string
   selected: string
-  onChange: (v: PeriodOption | string) => void
+  onChange: (PeriodOption | string) => void
   items?: string[] // for calendar months
 }) {
   const options = items ?? DEFAULT_PERIODS
   return (
-    <div className="flex items-center justify-between gap-3">
-      <h3 className="font-semibold text-lg">{title}</h3>
-      <select
-        className="rounded-md border border-black/10 bg-white px-3 py-1.5 text-sm"
+    <div className="flex items-center justify-between gap-2 w-full">
+      <h3 className="font-medium text-lg text-[#5C4688] dark:text-text-primary flex-1">
+        {title}
+      </h3>
+      <Select
+        options={options}
         value={selected}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
+        onChange={(v) => onChange(String(v))}
+        buttonClassName="py-1.5 px-5 text-sm bg-[#F8F8F8] dark:bg-surface-hover rounded-lg"
+      />
     </div>
   )
 }
