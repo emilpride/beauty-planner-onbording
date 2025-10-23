@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 255 255 255;
+  --surface: 255 255 255;
+  --text: 17 17 17;
+  --accent: 163 133 233; /* #A385E9 */
+}
+
+[data-theme='dark'] {
+  --bg: 24 26 32;       /* #181A20 */
+  --surface: 53 56 63;  /* #35383F */
+  --text: 255 255 255;  /* white */
+}
+
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--text));
+}
+
+.container-page {
+  @apply max-w-5xl mx-auto px-4;
+}
+
+.card {
+  @apply rounded-lg shadow-sm;
+  background-color: rgb(var(--surface));
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium;
+  background-color: rgb(var(--accent));
+  color: white;
+}
+
+.chip {
+  @apply inline-flex items-center rounded-lg px-3 py-1 text-sm font-semibold border;
+  border-color: rgb(var(--surface));
+}

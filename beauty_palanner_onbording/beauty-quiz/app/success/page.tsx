@@ -1,11 +1,12 @@
 ﻿'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import confettiAnimation from '@/public/images/animations/confetti.json'
 import { useRouter } from 'next/navigation'
 import { useQuizStore } from '@/store/quizStore'
 import AnimatedBackground from '@/components/AnimatedBackground'
+import { finalizeOnboarding } from '@/lib/firebase'
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
@@ -126,6 +127,24 @@ export default function SuccessPage() {
 }
 
 function SuccessCard() {
+  const { answers } = useQuizStore()
+  const [isFinalizing, setIsFinalizing] = useState(false)
+
+  const handleContinueWeb = useCallback(async () => {
+    if (isFinalizing) return
+    try {
+      setIsFinalizing(true)
+      const sid = (answers.sessionId || '').trim()
+      if (!sid) throw new Error('Missing session id')
+      await finalizeOnboarding(sid)
+      window.location.assign('https://web.beautymirror.app/')
+    } catch (e: any) {
+      console.error('Finalize error:', e?.message || e)
+      alert('We could not complete setup automatically. Please try again in a moment.')
+      setIsFinalizing(false)
+    }
+  }, [answers.sessionId, isFinalizing])
+
   return (
     <div className="relative overflow-hidden rounded-[20px] bg-white dark:bg-[#171621] shadow-[0_24px_60px_rgba(92,70,136,0.12)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
       <ConfettiLayer />
@@ -185,9 +204,11 @@ function SuccessCard() {
           <button
             type="button"
             className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[#D6D6F2] dark:border-[#3A3A59] bg-[#F2F2FF] dark:bg-[#1A1A28] px-4 py-3 font-semibold text-[#5C4688] dark:text-[#D6D6F2] transition hover:bg-[#E4E4FF] dark:hover:bg-[#222235]"
+            onClick={handleContinueWeb}
+            disabled={isFinalizing}
           >
             <GlobeIcon />
-            Continue in Web version
+            {isFinalizing ? 'Preparing your Web app…' : 'Continue in Web version'}
           </button>
         </div>
 

@@ -78,7 +78,14 @@
           "region": "us-central1"
         }
       },
-        {
+      {
+        "source": "/api/finalize",
+        "function": {
+          "functionId": "finalizeOnboarding",
+          "region": "us-central1"
+        }
+      },
+      {
           "source": "**",
           "destination": "/index.html"
         }

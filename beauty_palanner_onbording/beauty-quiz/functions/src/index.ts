@@ -190,6 +190,300 @@ function sanitizeForFirestore(value: any, maxDepth = 10) {
 	}
 }
 
+// ===== AUTH HELPERS =====
+async function verifyIdTokenFromRequest(req: any): Promise<string | null> {
+	try {
+		const bodyToken = typeof req?.body?.idToken === 'string' ? (req.body.idToken as string) : ''
+		let token: string = bodyToken
+		if (!token) {
+			const rawHeader = String((req?.headers?.['authorization'] || req?.headers?.['Authorization'] || ''))
+			if (rawHeader) {
+			const parts = rawHeader.split(' ')
+			const bearerVal: string = parts.length >= 2 ? (parts[1] || '') : ''
+			const scheme: string = parts.length >= 1 ? (parts[0] || '') : ''
+			token = /^Bearer$/i.test(scheme) ? bearerVal : rawHeader
+			}
+		}
+		if (!token) return null
+		const decoded = await admin.auth().verifyIdToken(token)
+		return decoded?.uid || null
+	} catch {
+		return null
+	}
+}
+
+// ===== FLUTTER SCHEMA MAPPING =====
+type TimeHM = { Hour: number; Minute: number }
+
+function toTimeHM(s?: any): TimeHM | null {
+	try {
+		if (!s || typeof s !== 'string') return null
+		const [hh, mm] = s.split(':')
+		const h = Number(hh)
+		const m = Number(mm)
+		if (Number.isNaN(h) || Number.isNaN(m)) return null
+		return { Hour: h, Minute: m }
+	} catch { return null }
+}
+
+function mapAssistant(v?: any): number {
+	if (!v) return 1
+	const s = String(v).toLowerCase()
+	return s.includes('ellie') ? 2 : 1
+}
+
+function mapTheme(v?: any): number {
+	const s = (v ? String(v) : '').toLowerCase()
+	if (s === 'system' || s === 'auto') return 0
+	if (s === 'dark') return 2
+	return 1
+}
+
+function ensureHex(color?: any, fallback = '#A385E9'): string {
+	const s = color ? String(color).trim() : ''
+	if (!s) return fallback
+	return s.startsWith('#') ? s : `#${s}`
+}
+
+function pickLast<T = any>(arr: any[], predicate: (e: any) => boolean): T | null {
+	if (!Array.isArray(arr)) return null
+	for (let i = arr.length - 1; i >= 0; i--) {
+		try { if (predicate(arr[i])) return arr[i] as T } catch {}
+	}
+	return null
+}
+
+function findInEvent(e: any, keys: string[]): any {
+	if (!e || typeof e !== 'object') return undefined
+	for (const k of keys) {
+		if (k in e) return (e as any)[k]
+		// case-insensitive search
+		const key = Object.keys(e).find(x => x.toLowerCase() === k.toLowerCase())
+		if (key) return (e as any)[key]
+	}
+	return undefined
+}
+
+function extractFromSession(session: any): {
+	assistant?: string
+	theme?: string
+	primaryColor?: string
+	name?: string
+	email?: string
+	language?: string
+	wakeUp?: string
+	endDay?: string
+	morningStartsAt?: string
+	afternoonStartsAt?: string
+	eveningStartsAt?: string
+	reminderTime?: string
+	activities?: any[]
+} {
+	const out: any = {}
+	try {
+		const events: any[] = Array.isArray(session?.events) ? session.events : []
+
+		// Assistant
+		const eAssistant = pickLast(events, (e) => {
+			const en = String(e?.eventName || '').toLowerCase()
+			return en.includes('assistant') ||
+						 typeof findInEvent(e, ['assistant']) !== 'undefined'
+		})
+		const assistantVal = eAssistant ? (findInEvent(eAssistant, ['assistant', 'value', 'option', 'answer']) ?? eAssistant?.assistant) : undefined
+		if (assistantVal) out.assistant = String(assistantVal)
+
+		// Theme
+		const eTheme = pickLast(events, (e) => {
+			const en = String(e?.eventName || '').toLowerCase()
+			return en.includes('theme') || typeof findInEvent(e, ['theme', 'themeMode']) !== 'undefined'
+		})
+		const themeVal = eTheme ? (findInEvent(eTheme, ['theme', 'themeMode', 'value']) ?? eTheme?.theme) : undefined
+		if (themeVal) out.theme = String(themeVal)
+
+		// Primary color
+		const eColor = pickLast(events, (e) => {
+			const en = String(e?.eventName || '').toLowerCase()
+			return en.includes('color') || typeof findInEvent(e, ['primaryColor', 'color', 'colorHex']) !== 'undefined'
+		})
+		const colorVal = eColor ? (findInEvent(eColor, ['primaryColor', 'color', 'colorHex', 'value']) ?? eColor?.color) : undefined
+		if (colorVal) out.primaryColor = String(colorVal)
+
+		// Name / Email / Language (if present in any final step)
+		const eProfile = pickLast(events, (e) => {
+			return typeof findInEvent(e, ['name', 'email', 'language', 'languageCode']) !== 'undefined'
+		})
+		if (eProfile) {
+			const name = findInEvent(eProfile, ['name'])
+			const email = findInEvent(eProfile, ['email'])
+			const lang = findInEvent(eProfile, ['language', 'languageCode'])
+			if (name) out.name = String(name)
+			if (email) out.email = String(email)
+			if (lang) out.language = String(lang)
+		}
+
+		// Times
+		const eTimes = pickLast(events, (e) => {
+			return typeof findInEvent(e, ['wakeUp', 'endDay', 'morningStartsAt', 'afternoonStartsAt', 'eveningStartsAt', 'reminderTime']) !== 'undefined'
+		})
+		if (eTimes) {
+			const keys = ['wakeUp','endDay','morningStartsAt','afternoonStartsAt','eveningStartsAt','reminderTime']
+			for (const k of keys) {
+				const v = findInEvent(eTimes, [k])
+				if (v) out[k] = String(v)
+			}
+		}
+
+		// Activities (optional)
+		const eAct = pickLast(events, (e) => {
+			return Array.isArray(findInEvent(e, ['activities']))
+		})
+		if (eAct) {
+			out.activities = findInEvent(eAct, ['activities'])
+		}
+	} catch {}
+	return out
+}
+
+function buildFlutterUserDoc(input: {
+	uid: string
+	name?: string
+	email?: string
+	language?: string
+	assistant?: string
+	theme?: string
+	primaryColor?: string
+	wakeUp?: string
+	endDay?: string
+	morningStartsAt?: string
+	afternoonStartsAt?: string
+	eveningStartsAt?: string
+	reminderTime?: string
+	activities?: any[]
+}) {
+	const doc: any = {
+		Id: input.uid,
+		Name: input.name || '',
+		Email: input.email || '',
+		LanguageCode: input.language || 'en',
+		Assistant: mapAssistant(input.assistant),
+		Theme: mapTheme(input.theme),
+		PrimaryColor: ensureHex(input.primaryColor, '#A385E9'),
+		Onboarding2Completed: true,
+	}
+
+	const times: Record<string, TimeHM | null> = {
+		WakeUp: toTimeHM(input.wakeUp),
+		EndDay: toTimeHM(input.endDay),
+		MorningStartsAt: toTimeHM(input.morningStartsAt),
+		AfternoonStartsAt: toTimeHM(input.afternoonStartsAt),
+		EveningStartsAt: toTimeHM(input.eveningStartsAt),
+		ReminderTime: toTimeHM(input.reminderTime),
+	}
+	for (const [k, v] of Object.entries(times)) if (v) (doc as any)[k] = v
+
+	if (Array.isArray(input.activities) && input.activities.length) {
+		doc.Activities = input.activities.map((a) => {
+			const id = a?.Id || a?.id || (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : String(Date.now()))
+			const timeStr = a?.Time || a?.time
+			const color = a?.Color || a?.color
+			return {
+				Id: id,
+				Name: a?.Name ?? a?.name ?? '',
+				Illustration: a?.Illustration ?? a?.illustration ?? '',
+				Category: a?.Category ?? a?.category ?? '',
+				CategoryId: a?.CategoryId ?? a?.categoryId ?? '',
+				Note: a?.Note ?? a?.note ?? '',
+				IsRecommended: Boolean(a?.IsRecommended ?? a?.isRecommended ?? false),
+				Type: a?.Type ?? a?.type ?? 'regular',
+				ActiveStatus: Boolean(a?.ActiveStatus ?? a?.active ?? true),
+				Time: typeof timeStr === 'string' ? toTimeHM(timeStr) : (a?.Time && typeof a.Time === 'object' && 'Hour' in a.Time ? a.Time : null),
+				Frequency: a?.Frequency ?? a?.frequency ?? 'daily',
+				SelectedDays: Array.isArray(a?.SelectedDays ?? a?.selectedDays) ? (a?.SelectedDays ?? a?.selectedDays) : [],
+				WeeksInterval: Number(a?.WeeksInterval ?? a?.weeksInterval ?? 1),
+				SelectedMonthDays: Array.isArray(a?.SelectedMonthDays ?? a?.selectedMonthDays) ? (a?.SelectedMonthDays ?? a?.selectedMonthDays) : [],
+				NotifyBefore: a?.NotifyBefore ?? a?.notifyBefore ?? '',
+				Cost: Number(a?.Cost ?? a?.cost ?? 0),
+				SelectedNotifyBeforeUnit: a?.SelectedNotifyBeforeUnit ?? a?.selectedNotifyBeforeUnit ?? '',
+				SelectedNotifyBeforeFrequency: a?.SelectedNotifyBeforeFrequency ?? a?.selectedNotifyBeforeFrequency ?? '',
+				Color: ensureHex(color || '#FFA385E9'),
+				EnabledAt: a?.EnabledAt ?? new Date().toISOString(),
+				LastModifiedAt: a?.LastModifiedAt ?? new Date().toISOString(),
+				EndBeforeUnit: a?.EndBeforeUnit ?? a?.endBeforeUnit ?? '',
+				EndBeforeType: a?.EndBeforeType ?? a?.endBeforeType ?? 'date',
+				SelectedEndBeforeDate: a?.SelectedEndBeforeDate ?? a?.selectedEndBeforeDate ?? null,
+			}
+		})
+	}
+	return doc
+}
+
+export const finalizeOnboarding = onRequest(async (req, res) => {
+	// CORS + headers
+	addSecurityHeaders(res)
+	res.set('Access-Control-Allow-Origin', '*')
+	res.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+	res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+	if (req.method === 'OPTIONS') { res.status(204).send(''); return }
+	if (req.method !== 'POST') { res.status(405).send({ error: 'Method not allowed' }); return }
+
+	try {
+		// Rate limit per IP
+		const xffHeader = req.headers['x-forwarded-for'] as string | undefined
+		const clientIp = (xffHeader?.split(',')?.[0]?.trim()) || (typeof req.ip === 'string' ? req.ip : undefined) || 'unknown'
+		const rlKey = `finalize_${clientIp}`
+		const allowed = await checkRateLimit(rlKey, 20, 60000)
+		if (!allowed) { res.status(429).json({ error: 'Too many requests' }); return }
+		await incrementRateLimit(rlKey, 60000)
+
+		// Auth
+		const uidFromToken = await verifyIdTokenFromRequest(req)
+		if (!uidFromToken) { res.status(401).json({ error: 'Unauthorized' }); return }
+
+		const body = req.body || {}
+		const sessionId = body.sessionId as string | undefined
+		if (!sessionId) { res.status(400).json({ error: 'sessionId required' }); return }
+
+		const sessionRef = db.collection('users_web_onbording').doc(sessionId)
+		const snap = await sessionRef.get()
+		if (!snap.exists) { res.status(404).json({ error: 'session not found' }); return }
+		const session = snap.data() || {}
+
+		// Build doc: prioritize explicit overrides from body.profile over session-derived values
+		const fromSession = extractFromSession(session)
+		const profile = body.profile || {}
+		const input = {
+			uid: uidFromToken,
+			name: profile.name ?? fromSession.name,
+			email: profile.email ?? fromSession.email,
+			language: profile.language ?? profile.languageCode ?? fromSession.language,
+			assistant: profile.assistant ?? fromSession.assistant,
+			theme: profile.theme ?? fromSession.theme,
+			primaryColor: profile.primaryColor ?? fromSession.primaryColor,
+			wakeUp: profile.wakeUp ?? fromSession.wakeUp,
+			endDay: profile.endDay ?? fromSession.endDay,
+			morningStartsAt: profile.morningStartsAt ?? fromSession.morningStartsAt,
+			afternoonStartsAt: profile.afternoonStartsAt ?? fromSession.afternoonStartsAt,
+			eveningStartsAt: profile.eveningStartsAt ?? fromSession.eveningStartsAt,
+			reminderTime: profile.reminderTime ?? fromSession.reminderTime,
+			activities: Array.isArray(profile.activities) ? profile.activities : fromSession.activities,
+		}
+
+		const userDoc = buildFlutterUserDoc(input)
+
+		// Write to Users/{uid}
+		const userRef = db.collection('Users').doc(uidFromToken)
+		await userRef.set({ ...userDoc, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true })
+
+		// Mark session finalized (idempotency)
+		await sessionRef.set({ finalizedAt: admin.firestore.FieldValue.serverTimestamp(), finalizedByUid: uidFromToken }, { merge: true })
+
+		res.status(200).json({ ok: true })
+	} catch (e: any) {
+		console.error('finalizeOnboarding error', e?.message || e)
+		res.status(500).json({ error: 'internal' })
+	}
+})
+
 type AIAnalysisModel = {
 	bmi: number | null
 	bmiCategory: string

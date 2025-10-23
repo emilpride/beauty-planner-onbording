@@ -164,3 +164,42 @@ export default {
   saveOnboardingSession,
   saveUserToFirestore,
 }
+
+// Finalize onboarding on the server and upsert the Flutter-compatible Users/{uid} doc
+export async function finalizeOnboarding(sessionId: string, overrides?: Record<string, any>) {
+  if (typeof sessionId !== 'string' || sessionId.trim().length === 0) {
+    throw new Error('finalizeOnboarding: sessionId is required')
+  }
+
+  const user = await ensureAuthUser()
+  const idToken = await user?.getIdToken?.()
+  if (!idToken) {
+    throw new Error('finalizeOnboarding: missing auth token')
+  }
+
+  const endpoint =
+    typeof window !== 'undefined'
+      ? '/api/finalize'
+      : process.env['FINALIZE_ONBOARDING_URL'] ||
+        process.env['NEXT_PUBLIC_FINALIZE_ONBOARDING_URL'] ||
+        'https://us-central1-beauty-planner-26cc0.cloudfunctions.net/finalizeOnboarding'
+
+  const payload = { sessionId, overrides }
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      // Prefer Authorization header; server also supports idToken in body as fallback
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Finalize failed: HTTP ${res.status} ${res.statusText} ${text}`)
+  }
+
+  return res.json()
+}

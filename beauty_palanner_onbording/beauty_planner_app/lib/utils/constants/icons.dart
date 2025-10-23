@@ -1,0 +1,37 @@
+import 'image_strings.dart';
+
+class ActivityIcons {
+  static Map<String, String> icons = {
+    'Cleanse & Hydrate': AppImages.cleanseAndHydrate,
+    'Deep Hydration': AppImages.deepHydration,
+    'Exfoliate': AppImages.exfoliate,
+    'Face Massage': AppImages.faceMassage,
+    'Lip & Eye Care': AppImages.lipEyeCare,
+    'SPF Protection': AppImages.spfProtection,
+    'Wash & Care': AppImages.washCare,
+    'Deep Nourishment': AppImages.deepNourishment,
+    'Scalp Detox': AppImages.scalpDetox,
+    'Heat Protection': AppImages.heatProtection,
+    'Scalp Massage': AppImages.scalpMassage,
+    'Trim Split Ends': AppImages.trimSplitEnds,
+    'Post-Color Care': AppImages.postColorCare,
+    'Morning Stretch': AppImages.morningStretch,
+    'Cardio Boost': AppImages.cardioBoost,
+    'Strength Training': AppImages.strengthTraining,
+    'Yoga & Flexibility': AppImages.yogaFlexibility,
+    'Dance It Out': AppImages.danceItOut,
+    'Swimming Time': AppImages.swimmingTime,
+    'Cycling': AppImages.cycling,
+    'Posture Fix': AppImages.postureFix,
+    'Evening Stretch': AppImages.eveningStretch,
+    'Mindful Meditation': AppImages.mindfulMeditation,
+    'Breathing Exercises': AppImages.breathingExercises,
+    'Gratitude Journal': AppImages.gratitudeJournal,
+    'Mood Check-In': AppImages.moodCheckIn,
+    'Learn & Grow': AppImages.learnGrow,
+    'Social Media Detox': AppImages.socialMediaDetox,
+    'Positive Affirmations': AppImages.positiveAffirmations,
+    'Talk It Out': AppImages.talkItOut,
+    'Stress Relief': AppImages.stressRelief,
+  };
+}
