@@ -36,7 +36,7 @@ class SectionHeading extends StatelessWidget {
           TextButton(
               onPressed: onPressed,
               child: Text(buttonTitle,
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary,

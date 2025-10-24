@@ -46,7 +46,7 @@ class RoundedContainer extends StatelessWidget {
                 ? [
                   BoxShadow(
                     color: AppColors.black.withOpacity(0.15),
-                    offset: Offset(1, 2),
+                    offset: const Offset(1, 2),
                     blurRadius: 4,
                   ),
                 ]

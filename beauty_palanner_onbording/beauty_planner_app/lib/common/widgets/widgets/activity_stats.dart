@@ -68,7 +68,7 @@ class ActivityStats extends StatelessWidget {
                             Image.asset(AppImages.fire, height: 80, width: 80),
                             Text(
                               perfectDays.toString(),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: AppColors.textPrimary,
                                 fontSize: 40,
                                 fontWeight: FontWeight.w700,

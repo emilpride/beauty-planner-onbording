@@ -268,7 +268,7 @@ class _ExpandablePickerState<T> extends State<ExpandablePicker<T>> {
     } else {
       _filteredKeys =
           _sortedKeys.where((key) {
-            final value = widget.items[key]!;
+            final value = widget.items[key] as T;
             return widget.filterLogic?.call(key, value, _searchQuery) ??
                 key.toLowerCase().contains(_searchQuery.toLowerCase());
           }).toList();
@@ -377,7 +377,7 @@ class _ExpandablePickerState<T> extends State<ExpandablePicker<T>> {
                                   crossAxisAlignment: WrapCrossAlignment.center,
                                   children:
                                       collapsedKeys.map((key) {
-                                        final item = widget.items[key]!;
+                                        final item = widget.items[key] as T;
                                         return GestureDetector(
                                           onTap: () {
                                             widget.onItemSelected(item);
@@ -406,7 +406,7 @@ class _ExpandablePickerState<T> extends State<ExpandablePicker<T>> {
                     runSpacing: 12,
                     children:
                         _filteredKeys.map((key) {
-                          final item = widget.items[key]!;
+                          final item = widget.items[key] as T;
                           return GestureDetector(
                             onTap: () {
                               widget.onItemSelected(item);

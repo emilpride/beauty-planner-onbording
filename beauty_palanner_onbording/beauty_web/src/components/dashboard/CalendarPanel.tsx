@@ -2,6 +2,11 @@
 
 import { useMemo, useState } from 'react'
 import { Select } from '@/components/common/Select'
+import { useAuth } from '@/hooks/useAuth'
+import { useUpdatesInDateRange } from '@/hooks/useUpdates'
+import type { Activity } from '@/types/activity'
+import { getActivityMeta } from '@/data/activityMeta'
+import { generateTasksForDate } from '@/lib/clientTaskGenerator'
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
@@ -24,7 +29,20 @@ function monthMatrix(year: number, month: number) {
   return rows
 }
 
-export function CalendarPanel() {
+export function CalendarPanel({
+  selectedDate,
+  onSelectDate,
+  category,
+  onCategoryChange,
+  activities = [],
+}: {
+  selectedDate: Date
+  onSelectDate: (d: Date) => void
+  category: 'all' | 'skin' | 'hair' | 'physical' | 'mental'
+  onCategoryChange: (c: 'all' | 'skin' | 'hair' | 'physical' | 'mental') => void
+  activities?: Activity[]
+}) {
+  const { user } = useAuth()
   const now = new Date()
   const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() })
   const grid = useMemo(() => monthMatrix(ym.y, ym.m), [ym])
@@ -32,13 +50,74 @@ export function CalendarPanel() {
     Array.from({ length: 12 }, (_, i) => new Date(2000, i, 1).toLocaleString(undefined, { month: 'long' })), []
   )
 
+  const monthStart = new Date(ym.y, ym.m, 1)
+  const monthEnd = new Date(ym.y, ym.m + 1, 0)
+  const { data: monthUpdates } = useUpdatesInDateRange(user?.uid, monthStart, monthEnd)
+  const activityById = useMemo(() => new Map(activities.map(a => [a.id, a])), [activities])
+  const dayInfo = useMemo(() => {
+    const map = new Map<number, { has: boolean; icon?: string }>()
+
+    // 1) Use Firestore updates (if any)
+    for (const inst of monthUpdates?.items ?? []) {
+      const [y, m, d] = inst.date.split('-').map((x) => Number(x))
+      if (y !== ym.y || m !== ym.m + 1) continue
+      const act = activityById.get(inst.activityId)
+      const cat = (act?.category || '').toLowerCase()
+      const matches =
+        category === 'all' ||
+        (category === 'skin' && cat === 'skin') ||
+        (category === 'hair' && cat === 'hair') ||
+        (category === 'physical' && (cat === 'physical' || cat === 'physical health')) ||
+        (category === 'mental' && (cat === 'mental' || cat === 'mental wellness'))
+      if (!matches) continue
+      if (!map.has(d)) {
+        const meta = getActivityMeta(act?.id || '', act?.name)
+        map.set(d, { has: true, icon: meta.iconPath })
+      }
+    }
+
+    // 2) Also derive from scheduled activities (fallback if Updates are empty)
+    const daysInMonth = new Date(ym.y, ym.m + 1, 0).getDate()
+    for (let day = 1; day <= daysInMonth; day++) {
+      if (map.has(day)) continue
+      const date = new Date(ym.y, ym.m, day)
+      const generated = generateTasksForDate(activities, date)
+      const first = generated.find((g) => {
+        const act = activityById.get(g.activityId)
+        const cat = (act?.category || '').toLowerCase()
+        return (
+          category === 'all' ||
+          (category === 'skin' && cat === 'skin') ||
+          (category === 'hair' && cat === 'hair') ||
+          (category === 'physical' && (cat === 'physical' || cat === 'physical health')) ||
+          (category === 'mental' && (cat === 'mental' || cat === 'mental wellness'))
+        )
+      })
+      if (first) {
+        const act = activityById.get(first.activityId)
+        const meta = getActivityMeta(act?.id || '', act?.name)
+        map.set(day, { has: true, icon: meta.iconPath })
+      }
+    }
+
+    return map
+  }, [monthUpdates?.items, ym, activityById, category, activities])
+
   return (
     <aside className="rounded-lg bg-surface p-4 w-full max-w-[382px] border border-border-subtle shadow-sm">
       {/* Filters row */}
       <div className="flex items-center justify-between gap-2 text-sm mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-text-secondary text-xs font-bold">Filter by:</span>
-          <Select options={["Name"]} value={"Name"} onChange={() => {}} buttonClassName="py-1 text-xs" />
+          <span className="text-text-secondary text-xs font-bold">Category:</span>
+          <Select 
+            options={["All","Skin","Hair","Physical","Mental"]}
+            value={{ all:"All", skin:"Skin", hair:"Hair", physical:"Physical", mental:"Mental" }[category]}
+            onChange={(v) => {
+              const val = String(v).toLowerCase() as 'all'|'skin'|'hair'|'physical'|'mental'
+              onCategoryChange(val)
+            }}
+            buttonClassName="py-1 text-xs" 
+          />
         </div>
       </div>
 
@@ -69,15 +148,32 @@ export function CalendarPanel() {
       {/* Days grid */}
       <div className="grid grid-cols-7 gap-1">
         {grid.flatMap((row, rIdx) => row.map((d, cIdx) => {
-          const isToday = d === 23 && ym.y === now.getFullYear() && ym.m === now.getMonth()
+          const isToday = d === new Date().getDate() && ym.y === now.getFullYear() && ym.m === now.getMonth()
+          const info = d ? dayInfo.get(d) : undefined
+          const isSelected = d
+            ? (selectedDate.getFullYear() === ym.y && selectedDate.getMonth() === ym.m && selectedDate.getDate() === d)
+            : false
           return (
-            <div
+            <div 
               key={`${rIdx}-${cIdx}`}
-              className={`h-10 grid place-items-center rounded-[13px] text-sm ${
-                d ? (isToday ? 'bg-[#A385E9] text-white font-semibold' : 'bg-surface-hover text-text-primary') : ''
-              }`}
+              className={`h-10 grid place-items-center rounded-[13px] text-sm ${d ? 'bg-surface-hover text-text-primary cursor-pointer' : ''}`}
+              onClick={() => { if (d) onSelectDate(new Date(ym.y, ym.m, d)) }}
             >
-              {d ?? ''}
+              {d && (
+                <div className={`relative flex items-center justify-center w-full h-full rounded-[13px] ${isSelected ? 'bg-[#A385E9] text-white font-semibold' : isToday ? 'border border-[#A385E9]' : ''}`}>
+                  <span>{d}</span>
+                  {info?.has && (
+                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-4 w-4 rounded-full bg-surface flex items-center justify-center overflow-hidden">
+                      {info.icon ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={info.icon} alt="" className="h-3 w-3 object-contain" />
+                      ) : (
+                        <span className="block h-1.5 w-1.5 rounded-full bg-[#A385E9]" />
+                      )}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )
         }))}
@@ -85,28 +181,10 @@ export function CalendarPanel() {
 
       <div className="border-t border-border-subtle my-3" />
 
-      <button className="w-full h-11 rounded-[11px] bg-[#A385E9] text-white font-semibold text-sm">Add activity</button>
+  <button className="w-full h-11 rounded-[11px] bg-[#A385E9] text-white font-semibold text-sm">Add activity</button>
 
-  <div className="mt-4 space-y-3">
-        {/* Schedule items */}
-        <div className="flex items-start gap-3">
-          <div className="h-9 w-9 rounded-full bg-[#FB7988] grid place-items-center text-white shrink-0">📋</div>
-          <div className="flex-1 min-w-0">
-            <div className="text-text-secondary/80 text-xs font-semibold">10:00</div>
-            <div className="text-text-primary font-normal">Set Small Goals</div>
-            <div className="text-text-secondary text-xs">Everyday</div>
-          </div>
-          <button className="text-[#8F9BB3]">⋮</button>
-        </div>
-        <div className="flex items-start gap-3">
-          <div className="h-9 w-9 rounded-full bg-[#9AC058] grid place-items-center text-white shrink-0">🧘</div>
-          <div className="flex-1 min-w-0">
-            <div className="text-text-secondary/80 text-xs font-semibold">10:00</div>
-            <div className="text-text-primary font-normal">Meditation</div>
-            <div className="text-text-secondary text-xs">5 days per week</div>
-          </div>
-          <button className="text-[#8F9BB3]">⋮</button>
-        </div>
+  <div className="mt-4 space-y-3 text-xs text-text-secondary">
+        <div className="opacity-80">Tap a date to load its activities on the dashboard.</div>
       </div>
     </aside>
   )

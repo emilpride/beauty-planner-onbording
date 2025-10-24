@@ -30,6 +30,14 @@ service cloud.firestore {
         allow delete: if isOwner(userId);
       }
 
+      // Mood entries
+      match /Moods/{moodId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
+
       // AI analysis snapshots (read owner). Writes may be by backend or app.
       match /AIAnalysis/{analysisId} {
         allow read: if isOwner(userId) || isAdmin();

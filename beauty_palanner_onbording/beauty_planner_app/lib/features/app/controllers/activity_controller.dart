@@ -1536,7 +1536,7 @@ class ActivityController extends GetxController {
       );
     } catch (e, s) {
       _logger.e("Error syncing with remote", error: e, stackTrace: s);
-      throw e;
+      rethrow;
     }
   }
 

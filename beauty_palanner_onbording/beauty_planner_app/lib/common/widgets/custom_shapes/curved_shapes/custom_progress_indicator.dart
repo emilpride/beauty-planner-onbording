@@ -172,15 +172,14 @@ class CustomRoundedProgressIndicator extends StatefulWidget {
   final double value;
 
   const CustomRoundedProgressIndicator({
-    Key? key,
+    super.key,
     this.color = AppColors.textPrimary,
     this.strokeWidth = 4.0,
     this.value = 0.0,
   }) : assert(
          value >= 0.0 && value <= 1.0,
          "Value must be between 0.0 and 1.0, or 0.0 for indeterminate.",
-       ),
-       super(key: key);
+       );
 
   @override
   State<CustomRoundedProgressIndicator> createState() =>

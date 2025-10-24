@@ -108,7 +108,7 @@ class _HomeCalendarWidgetState extends State<HomeCalendarWidget> {
 
             return Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFFFFF).withOpacity(0.5),
+                color: const Color(0x00ffffff).withOpacity(0.5),
                 borderRadius: const BorderRadius.all(Radius.circular(28)),
               ),
               margin: const EdgeInsets.only(

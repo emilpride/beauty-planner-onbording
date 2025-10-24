@@ -1,6 +1,10 @@
 cd beauty-quiz; npm run dev
+cd beauty_web; npm run dev
 
 npm run build
 firebase login --reauth
 firebase use beauty-planner-26cc0
 firebase deploy --only hosting --project beauty-planner-26cc0
+
+raianxrp@gmail.com
+testPassword1234!

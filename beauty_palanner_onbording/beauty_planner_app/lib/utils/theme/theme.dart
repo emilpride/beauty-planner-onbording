@@ -20,13 +20,11 @@ class AppTheme {
     primaryColor: AppColors.primary,
     scaffoldBackgroundColor: Colors.white,
     cardColor: Colors.white,
-    colorScheme: ColorScheme.light(
+    colorScheme: const ColorScheme.light(
       primary: AppColors.primary,
       surface: Colors.white,
-      background: Colors.white,
       onPrimary: Colors.white,
       onSurface: Colors.black,
-      onBackground: Colors.black,
       secondary: AppColors.primary,
     ),
     textTheme: MyTextTheme.lightTextTheme,
@@ -46,13 +44,12 @@ class AppTheme {
     primaryColor: AppColors.primary,
     scaffoldBackgroundColor: const Color(0xFF181A20), // Dark background #181A20
     cardColor: const Color(0xFF35383F), // Card background #35383F
-    colorScheme: ColorScheme.dark(
+    colorScheme: const ColorScheme.dark(
       primary: AppColors.primary,
-      surface: const Color(0xFF35383F), // Card/Container background
-      background: const Color(0xFF181A20), // Screen background
+      surface: Color(0xFF35383F), // Card/Container background
+      background: Color(0xFF181A20), // Screen background
       onPrimary: Colors.white,
       onSurface: Colors.white,
-      onBackground: Colors.white,
       secondary: AppColors.primary,
     ),
     textTheme: MyTextTheme.darkTextTheme,

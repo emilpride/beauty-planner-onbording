@@ -10,7 +10,7 @@ class MyOutlinedButtonTheme {
       style: OutlinedButton.styleFrom(
     elevation: 0,
     foregroundColor: Colors.black,
-    side: BorderSide(color: AppColors.grey),
+    side: const BorderSide(color: AppColors.grey),
     textStyle: TextStyle(
         fontFamily: GoogleFonts.comicNeue().fontFamily,
         fontFamilyFallback: [

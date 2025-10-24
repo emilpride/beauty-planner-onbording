@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
 import { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 
 const items = [
   { href: '/dashboard', label: 'Dashboard', icon: '/icons/misc/home_icon.svg', tint: '#A385E9' },
@@ -17,13 +17,18 @@ const items = [
   { href: '/preferences', label: 'Preferences', icon: '/icons/preferences.svg', tint: '#969AB7' },
 ]
 
-export function SidebarNav() {
+type Props = { mobileOpen: boolean; setMobileOpen: (open: boolean) => void }
+
+export function SidebarNav({ mobileOpen, setMobileOpen }: Props) {
   const pathname = usePathname()
   const { logout } = useAuth()
   const [expanded, setExpanded] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const navRef = useRef<HTMLDivElement>(null)
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([])
+  // Mobile-only controls
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => (typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light'))
+  const [language, setLanguage] = useState<string>(() => (typeof window !== 'undefined' ? (localStorage.getItem('language') || 'en') : 'en'))
 
   useEffect(() => {
     const idx = items.findIndex((it) => pathname?.startsWith(it.href))
@@ -32,12 +37,31 @@ export function SidebarNav() {
     }
   }, [pathname])
   
+  // Persist language for parity with header mock
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    localStorage.setItem('language', language)
+  }, [language])
+  
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light'
+    setTheme(next)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', next)
+      document.documentElement.classList.toggle('dark', next === 'dark')
+    }
+  }
+  
   return (
-    <aside 
-      className={`sticky top-0 h-screen shrink-0 border-r border-border-subtle bg-surface shadow-[10px_14px_56px_rgba(0,0,0,0.12)] flex flex-col items-start py-6 transition-all duration-300 ${
-        expanded ? 'w-[240px]' : 'w-[72px]'
-      }`}
-    >
+    <>
+      {/* Desktop sidebar (hover to expand) */}
+      <aside
+        className={`hidden sm:flex sticky top-0 h-screen shrink-0 border-r border-border-subtle bg-surface shadow-[10px_14px_56px_rgba(0,0,0,0.12)] flex-col items-start py-6 transition-all duration-200 ${
+          expanded ? 'w-[240px]' : 'w-[72px]'
+        }`}
+        onMouseEnter={() => setExpanded(true)}
+        onMouseLeave={() => setExpanded(false)}
+      >
       {/* Logo and Toggle */}
       <div className={`flex items-center gap-3 mb-10 ${expanded ? 'px-4' : 'justify-center w-full'}`}>
         <Link href="/" className="h-14 w-14 rounded-2xl bg-[rgb(var(--accent))] text-white grid place-items-center font-bold overflow-hidden shrink-0">
@@ -49,54 +73,10 @@ export function SidebarNav() {
             className="w-full h-full object-cover"
           />
         </Link>
-        {expanded && (
-          <button
-            onClick={() => setExpanded(false)}
-            className="ml-auto text-text-secondary hover:text-text-primary transition"
-            aria-label="Collapse sidebar"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-            </svg>
-          </button>
-        )}
-        {!expanded && (
-          <button
-            onClick={() => setExpanded(true)}
-            className="absolute left-[60px] top-8 bg-surface border border-border-subtle rounded-full p-1 shadow-md hover:shadow-lg transition z-10"
-            aria-label="Expand sidebar"
-          >
-            <svg className="w-4 h-4 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-            </svg>
-          </button>
-        )}
       </div>
       
       {/* Navigation */}
       <nav ref={navRef} className="flex-1 flex flex-col gap-2 overflow-y-auto w-full px-3 relative">
-        {/* Animated background indicator */}
-        {itemRefs.current[activeIndex] && (
-          <motion.div
-            layoutId="sidebar-active"
-            className="absolute left-3 bg-[rgb(var(--accent))] rounded-lg"
-            initial={false}
-            animate={{
-              top: itemRefs.current[activeIndex]?.offsetTop ?? 0,
-              height: itemRefs.current[activeIndex]?.offsetHeight ?? 44,
-              width: expanded 
-                ? (itemRefs.current[activeIndex]?.offsetWidth ?? 0) 
-                : 44,
-            }}
-            transition={{
-              type: 'spring',
-              stiffness: 300,
-              damping: 30,
-              mass: 0.8,
-            }}
-          />
-        )}
-
         {items.map((it, idx) => {
           const active = pathname?.startsWith(it.href)
           const isImage = it.icon.endsWith('.svg') || it.icon.endsWith('.png')
@@ -109,7 +89,7 @@ export function SidebarNav() {
                 expanded ? 'px-3 py-2.5' : 'justify-center h-11 w-11 mx-auto'
               } ${
                 active 
-                  ? 'text-white' 
+                  ? 'bg-[rgb(var(--accent))] text-white' 
                   : 'bg-transparent text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
               title={!expanded ? it.label : undefined}
@@ -122,7 +102,7 @@ export function SidebarNav() {
                   width={24}
                   height={24}
                   className={`${expanded ? 'w-5 h-5' : 'w-6 h-6'} object-contain shrink-0`}
-                  style={{ filter: active ? 'brightness(0) invert(1)' : 'none' }}
+                  style={{ filter: active ? 'brightness(0) invert(1)' : 'grayscale(1) brightness(0.9)' }}
                 />
               ) : (
                 <span className="text-[18px] leading-none shrink-0" aria-hidden>
@@ -159,6 +139,109 @@ export function SidebarNav() {
           )}
         </button>
       </div>
-    </aside>
+      </aside>
+
+      {/* Mobile sidebar (burger menu) */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/40"
+              onClick={() => setMobileOpen(false)}
+            />
+            {/* Drawer */}
+            <motion.aside
+              key="drawer"
+              initial={{ x: -320 }}
+              animate={{ x: 0 }}
+              exit={{ x: -320 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 30 }}
+              className="fixed left-0 top-0 bottom-0 z-50 w-[84vw] max-w-[300px] bg-surface border-r border-border-subtle shadow-2xl flex flex-col items-start py-6 px-3"
+            >
+              <div className="flex items-center gap-3 mb-8 w-full">
+                <Link href="/" className="h-12 w-12 rounded-2xl bg-[rgb(var(--accent))] text-white grid place-items-center font-bold overflow-hidden shrink-0">
+                  <Image src="/logo.png" alt="Beauty Mirror" width={48} height={48} className="w-full h-full object-cover" />
+                </Link>
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="ml-auto h-10 w-10 grid place-items-center rounded-xl border border-border-subtle hover:bg-surface-hover"
+                  aria-label="Close menu"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-text-primary">
+                    <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              </div>
+
+              <nav ref={navRef} className="flex-1 flex flex-col gap-2 overflow-y-auto w-full relative">
+                {items.map((it, idx) => {
+                  const active = pathname?.startsWith(it.href)
+                  const isImage = it.icon.endsWith('.svg') || it.icon.endsWith('.png')
+                  return (
+                    <Link
+                      key={it.href}
+                      href={it.href as Route}
+                      onClick={() => setMobileOpen(false)}
+                      className={`relative z-10 flex items-center gap-3 rounded-lg transition px-3 py-2.5 ${
+                        active ? 'bg-[rgb(var(--accent))] text-white' : 'bg-transparent text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+                      }`}
+                    >
+                      {isImage ? (
+                        <Image
+                          src={it.icon}
+                          alt={it.label}
+                          width={20}
+                          height={20}
+                          className={`w-5 h-5 object-contain shrink-0`}
+                          style={{ filter: active ? 'brightness(0) invert(1)' : 'grayscale(1) brightness(0.9)' }}
+                        />
+                      ) : (
+                        <span className="text-[18px] leading-none shrink-0" aria-hidden>
+                          {it.icon}
+                        </span>
+                      )}
+                      <span className="font-medium text-sm whitespace-nowrap">{it.label}</span>
+                    </Link>
+                  )
+                })}
+              </nav>
+
+              <div className="w-full mt-4">
+                {/* Mobile-only language and theme controls */}
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    {['en','de','es'].map((code) => (
+                      <button key={code} onClick={() => setLanguage(code)} className={`px-3 py-1.5 rounded-lg text-xs border ${language===code? 'bg-[rgb(var(--accent))] text-white border-transparent':'bg-surface hover:bg-surface-hover border-border-subtle text-text-primary'}`}>
+                        {code.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={toggleTheme} className="h-9 w-9 grid place-items-center rounded-lg border border-border-subtle hover:bg-surface-hover" aria-label="Toggle theme">
+                    {theme === 'dark' ? (
+                      <svg className="w-5 h-5 text-[#A385E9]" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-[#FFB800]" viewBox="0 0 24 24" fill="none"><path d="M12 17.5C14.7614 17.5 17 15.2614 17 12.5C17 9.73858 14.7614 7.5 12 7.5C9.23858 7.5 7 9.73858 7 12.5C7 15.2614 9.23858 17.5 12 17.5ZM12 5.5V3M12 22V19.5M19.0708 6.42923L20.4851 5.01501M3.51489 20.9851L4.92911 19.5709M21 12.5H18.5M5.5 12.5H3M19.0708 18.5708L20.4851 19.985M3.51489 4.01501L4.92911 5.42923" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                    )}
+                  </button>
+                </div>
+                <button
+                  onClick={() => { setMobileOpen(false); logout() }}
+                  className="w-full flex items-center gap-3 rounded-lg text-red-500 border border-border-subtle hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 transition px-3 py-2.5"
+                >
+                  <Image src="/icons/logout.svg" alt="Logout" width={20} height={20} className="w-5 h-5 object-contain shrink-0" />
+                  <span className="font-medium text-sm whitespace-nowrap">Logout</span>
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   )
 }

@@ -21,16 +21,21 @@ export function useAchievements(userId?: string | null) {
     enabled: !!userId,
   })
 
-  // Local completed count from all-time updates (optional fast path)
-  // We can skip fetching all-time for now to avoid heavy reads; rely on server.
+  // Local fallback: compute from updates if server progress is missing
+  const { data: allUpdates } = useUpdatesSince(userId, new Date(2000, 0, 1))
   const effective: AchievementProgress | null = useMemo(() => {
-    if (!serverProgress) return null
-    const pct = progressToNextLevel(
-      serverProgress.totalCompletedActivities,
-      serverProgress.currentLevel,
-    )
-    return { ...serverProgress, lastUpdated: serverProgress.lastUpdated }
-  }, [serverProgress])
+    if (serverProgress) return { ...serverProgress, lastUpdated: serverProgress.lastUpdated }
+    if (!allUpdates) return null
+    const completed = allUpdates.stats.completed
+    const level = calculateLevel(completed)
+    return {
+      totalCompletedActivities: completed,
+      currentLevel: level,
+      lastUpdated: new Date(),
+      levelUnlockDates: {},
+      lastSeenLevel: 0,
+    }
+  }, [serverProgress, allUpdates])
 
   const levels = useMemo(() => {
     const current = effective?.currentLevel ?? 1

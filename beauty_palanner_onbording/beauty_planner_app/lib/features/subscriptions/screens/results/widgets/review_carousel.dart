@@ -18,7 +18,7 @@ class ReviewCarousel extends StatefulWidget {
 class _ReviewCarouselState extends State<ReviewCarousel> {
   late PageController _pageController;
   final List<ReviewModel> reviews = ReviewModel.reviews();
-  double _viewportFraction =
+  final double _viewportFraction =
       0.5; // Adjust this to control how much of the side items are visible
 
   @override

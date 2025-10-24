@@ -976,7 +976,7 @@ class ReportController extends GetxController {
     for (
       var date = startDate;
       date.isBefore(endDate) || date.isAtSameMomentAs(endDate);
-      date = date.add(Duration(days: 1))
+      date = date.add(const Duration(days: 1))
     ) {
       dailyCounts[DateTime(date.year, date.month, date.day)] = 0;
     }

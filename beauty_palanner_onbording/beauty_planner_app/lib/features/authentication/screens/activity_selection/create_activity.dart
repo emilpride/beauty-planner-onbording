@@ -123,7 +123,7 @@ class CreateActivityScreen extends StatelessWidget {
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Color(0xFFADB2D7)),
+                            borderSide: const BorderSide(color: Color(0xFFADB2D7)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),

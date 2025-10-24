@@ -1,15 +1,12 @@
 "use client"
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Image from 'next/image'
+import { useAuth } from '@/hooks/useAuth'
+import { useMoodsInRange, useUpsertMood } from '@/hooks/useMoods'
+import type { MoodEntry as StoredMood } from '@/types/mood'
 
 type MoodType = 'great' | 'good' | 'okay' | 'not_good' | 'bad'
-
-interface MoodEntry {
-  date: Date
-  mood: MoodType
-  note: string
-}
 
 const MOODS: Record<MoodType, { emoji: string; label: string; subLabel: string }> = {
   great: { emoji: '/icons/emojis/great_emoji.png', label: 'Great', subLabel: 'Confident' },
@@ -28,19 +25,18 @@ const FEELINGS = [
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 export function MoodStat() {
+  const { user } = useAuth()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [showModal, setShowModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [modalStep, setModalStep] = useState<1 | 2>(1)
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null)
   const [selectedFeeling, setSelectedFeeling] = useState<string>('')
-  
-  const [moodEntries, setMoodEntries] = useState<MoodEntry[]>([
-    { date: new Date(2024, 11, 22), mood: 'great', note: 'Happy' },
-    { date: new Date(2024, 11, 21), mood: 'okay', note: 'Bored' },
-    { date: new Date(2024, 11, 20), mood: 'good', note: 'Appreciated' },
-    { date: new Date(2024, 11, 19), mood: 'great', note: 'Happy' },
-  ])
+
+  const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+  const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+  const { data: moods } = useMoodsInRange(user?.uid ?? null, monthStart, monthEnd)
+  const upsert = useUpsertMood(user?.uid ?? null)
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
@@ -64,14 +60,21 @@ export function MoodStat() {
     calendarDays.push(day)
   }
 
+  const moodMap = useMemo(() => {
+    const map = new Map<string, StoredMood>()
+    for (const m of moods ?? []) map.set(m.id, m)
+    return map
+  }, [moods])
+
+  const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+
   const getMoodForDate = (day: number | null) => {
     if (!day) return null
-    const dateToCheck = new Date(year, month, day)
-    return moodEntries.find(entry => 
-      entry.date.getDate() === day &&
-      entry.date.getMonth() === month &&
-      entry.date.getFullYear() === year
-    )
+    const id = `${user?.uid ?? ''}_${ymd(new Date(year, month, day))}`
+    const found = moodMap.get(id)
+    if (!found) return null
+    const mood: MoodType = found.mood >= 5 ? 'great' : found.mood === 4 ? 'good' : found.mood === 3 ? 'okay' : found.mood === 2 ? 'not_good' : 'bad'
+    return { date: found.date, mood, note: found.feeling }
   }
 
   const isToday = (day: number | null) => {
@@ -108,16 +111,11 @@ export function MoodStat() {
     setSelectedFeeling(feeling)
   }
 
-  const handleSaveMood = () => {
-    if (selectedDate && selectedMood) {
-      const newEntry: MoodEntry = {
-        date: selectedDate,
-        mood: selectedMood,
-        note: selectedFeeling || MOODS[selectedMood].subLabel
-      }
-      setMoodEntries(prev => [...prev, newEntry])
-      setShowModal(false)
-    }
+  const handleSaveMood = async () => {
+    if (!user?.uid || !selectedDate || !selectedMood) return
+    const moodValue = selectedMood === 'great' ? 5 : selectedMood === 'good' ? 4 : selectedMood === 'okay' ? 3 : selectedMood === 'not_good' ? 2 : 1
+    await upsert.mutateAsync({ date: selectedDate, mood: moodValue, feeling: selectedFeeling || MOODS[selectedMood].subLabel })
+    setShowModal(false)
   }
 
   const handleCancel = () => {
@@ -219,11 +217,13 @@ export function MoodStat() {
 
       {/* Mood History List */}
       <div className="space-y-3 pt-4 border-t border-border-subtle">
-        {moodEntries
+        {(moods ?? [])
+          .slice()
           .sort((a, b) => b.date.getTime() - a.date.getTime())
           .slice(0, 4)
           .map((entry, index) => {
-            const mood = MOODS[entry.mood]
+            const moodKey: MoodType = entry.mood >= 5 ? 'great' : entry.mood === 4 ? 'good' : entry.mood === 3 ? 'okay' : entry.mood === 2 ? 'not_good' : 'bad'
+            const mood = MOODS[moodKey]
             const isRecent = index === 0
             
             return (
@@ -243,7 +243,7 @@ export function MoodStat() {
                     </span>
                     <span className="text-sm text-text-secondary">•</span>
                     <span className="text-sm text-text-secondary">
-                      {entry.note}
+                      {entry.feeling}
                     </span>
                   </div>
                   <div className="text-xs text-text-secondary">

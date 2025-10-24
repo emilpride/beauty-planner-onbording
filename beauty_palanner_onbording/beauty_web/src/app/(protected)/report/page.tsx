@@ -5,7 +5,7 @@ import { Protected } from '@/components/auth/Protected'
 import { PageContainer } from '@/components/common/PageContainer'
 import { useAuth } from '@/hooks/useAuth'
 import { useLatestAIAnalysis } from '@/hooks/useAIAnalysis'
-import { useUpdatesSince } from '@/hooks/useUpdates'
+import { useUpdatesInDateRange } from '@/hooks/useUpdates'
 import { useMoodsInRange } from '@/hooks/useMoods'
 import {
   activitiesCompletedData,
@@ -59,7 +59,7 @@ export default function ReportPage() {
     return [a, c, m].sort((x, y) => x.getTime() - y.getTime())[0]
   }, [activityPeriod, completionPeriod, calendarMonth])
 
-  const { data: updates } = useUpdatesSince(user?.uid, earliest)
+  const { data: updates } = useUpdatesInDateRange(user?.uid, earliest, new Date())
 
   // Moods fetch window based on selected period
   const moodsStart = useMemo(() => getStartDate(moodPeriod), [moodPeriod])

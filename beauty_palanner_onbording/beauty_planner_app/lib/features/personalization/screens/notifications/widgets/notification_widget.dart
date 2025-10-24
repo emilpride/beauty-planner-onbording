@@ -29,10 +29,10 @@ class NotificationWidget extends StatelessWidget {
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                   color: Colors.black.withOpacity(0.6))),
-          SizedBox(height: AppSizes.xs),
+          const SizedBox(height: AppSizes.xs),
           Text(
             notification.body,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
           )
         ],
       ),

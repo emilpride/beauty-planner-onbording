@@ -1,5 +1,7 @@
 import * as admin from 'firebase-admin'
-import { onSchedule } from 'firebase-functions/lib/v2/providers/scheduler'
+import { onSchedule } from 'firebase-functions/v2/scheduler'
+import { onRequest } from 'firebase-functions/v2/https'
+import { onDocumentWritten } from 'firebase-functions/v2/firestore'
 import nodemailer from 'nodemailer'
 
 // Initialize Admin SDK once
@@ -323,3 +325,124 @@ export const sendMobilePushReminders = onSchedule({ schedule: 'every 5 minutes',
 
     return null
   })
+
+// =====================
+// Achievements compute
+// Lightweight server-side authoritative computation
+// =====================
+
+type ServerAchievementProgress = {
+  totalCompletedActivities: number
+  currentLevel: number
+  lastUpdated: admin.firestore.FieldValue
+  levelUnlockDates?: Record<string, any>
+}
+
+// Keep thresholds modest and monotonic
+const ACHIEVEMENT_LEVELS_SERVER: { level: number; requiredActivities: number }[] = [
+  { level: 1, requiredActivities: 0 },
+  { level: 2, requiredActivities: 5 },
+  { level: 3, requiredActivities: 15 },
+  { level: 4, requiredActivities: 30 },
+  { level: 5, requiredActivities: 60 },
+  { level: 6, requiredActivities: 100 },
+  { level: 7, requiredActivities: 150 },
+  { level: 8, requiredActivities: 220 },
+  { level: 9, requiredActivities: 300 },
+]
+
+function calcLevelServer(completed: number): number {
+  let lvl = 1
+  for (let i = ACHIEVEMENT_LEVELS_SERVER.length - 1; i >= 0; i--) {
+    const step = ACHIEVEMENT_LEVELS_SERVER[i]!
+    if (completed >= step.requiredActivities) { lvl = step.level; break }
+  }
+  return lvl
+}
+
+async function recomputeAchievementsForUser(userId: string): Promise<ServerAchievementProgress> {
+  const col = db.collection('Users').doc(userId).collection('Updates')
+  const snap = await col.where('status', '==', 'completed').get()
+  const completed = snap.size
+  const level = calcLevelServer(completed)
+
+  const ref = db.collection('Users').doc(userId).collection('Achievements').doc('Progress')
+  const before = await ref.get()
+  const prev = before.exists ? (before.data() || {}) : {}
+  const levelUnlockDates: Record<string, any> = (prev['LevelUnlockDates'] || prev['levelUnlockDates'] || {}) as any
+  if (!levelUnlockDates[level]) levelUnlockDates[String(level)] = admin.firestore.FieldValue.serverTimestamp()
+
+  const payload: ServerAchievementProgress = {
+    totalCompletedActivities: completed,
+    currentLevel: level,
+    lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+    levelUnlockDates,
+  }
+  await ref.set({
+    TotalCompletedActivities: payload.totalCompletedActivities,
+    CurrentLevel: payload.currentLevel,
+    LastUpdated: payload.lastUpdated,
+    LevelUnlockDates: payload.levelUnlockDates,
+  }, { merge: true })
+  return payload
+}
+
+// Firestore trigger: recompute on any update write
+export const onUpdateWriteRecomputeAchievements = onDocumentWritten('Users/{userId}/Updates/{updateId}', async (event) => {
+  try {
+    const userId = event.params.userId as string
+    if (!userId) return
+    await recomputeAchievementsForUser(userId)
+  } catch (e) {
+    console.error('Recompute achievements trigger failed:', (e as any)?.message || e)
+  }
+})
+
+// Simple auth helper: verify Firebase ID token from Authorization header or body.idToken
+async function verifyIdTokenFromRequest(req: any): Promise<string | null> {
+  try {
+    const bodyToken = typeof req?.body?.idToken === 'string' ? (req.body.idToken as string) : ''
+    let token: string = bodyToken
+    if (!token) {
+      const rawHeader = String((req?.headers?.['authorization'] || req?.headers?.['Authorization'] || ''))
+      if (rawHeader) {
+        const parts = rawHeader.split(' ')
+        const bearerVal: string = parts.length >= 2 ? (parts[1] || '') : ''
+        const scheme: string = parts.length >= 1 ? (parts[0] || '') : ''
+        token = /^Bearer$/i.test(scheme) ? bearerVal : rawHeader
+      }
+    }
+    if (!token) return null
+    const decoded = await admin.auth().verifyIdToken(token)
+    return decoded?.uid || null
+  } catch {
+    return null
+  }
+}
+
+// CORS/security headers
+function addSecurityHeaders(res: any) {
+  res.set('X-Content-Type-Options', 'nosniff')
+  res.set('X-Frame-Options', 'SAMEORIGIN')
+  res.set('X-XSS-Protection', '1; mode=block')
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+}
+
+// HTTPS endpoint to recompute on demand (for the signed-in user)
+export const recomputeAchievements = onRequest(async (req, res) => {
+  addSecurityHeaders(res)
+  res.set('Access-Control-Allow-Origin', '*')
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return }
+  try {
+    const uid = await verifyIdTokenFromRequest(req)
+    if (!uid) { res.status(401).json({ error: 'Unauthorized' }); return }
+    const result = await recomputeAchievementsForUser(uid)
+    res.status(200).json({ ok: true, progress: result })
+  } catch (e) {
+    console.error('recomputeAchievements error', e)
+    res.status(500).json({ error: 'internal' })
+  }
+})

@@ -268,13 +268,6 @@ class _CustomDropdownEthnicGroupFieldState extends FormFieldState<String> {
     }
   }
 
-  @override
-  void didChange(String? value) {
-    super.didChange(
-      value,
-    ); // Important: Call super to update FormField's internal value
-    // No need to set RxString here, it's done in the builder's onTap when an item is selected.
-  }
 
   @override
   void initState() {

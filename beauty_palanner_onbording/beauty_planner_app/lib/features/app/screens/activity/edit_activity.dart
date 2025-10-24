@@ -291,7 +291,7 @@ class ActivityScheduleCard extends StatelessWidget {
       selectedValue: activity.frequency,
       onChanged: (newFrequency) {
         activity.frequency = newFrequency;
-        log('Frequency changed to: ${newFrequency}');
+        log('Frequency changed to: $newFrequency');
         controller.x.value++;
       },
     );

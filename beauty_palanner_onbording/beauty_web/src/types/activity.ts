@@ -7,6 +7,7 @@ export interface Activity {
   name: string
   category?: string
   categoryId?: string
+  illustration?: string | null
   note?: string
   isRecommended?: boolean
   type: ActivityType
@@ -45,6 +46,7 @@ export function parseActivity(data: Record<string, unknown>): Activity {
     name: asString(data['Name']),
     category: asString(data['Category']),
     categoryId: asString(data['CategoryId']),
+    illustration: asString(data['Illustration']) || null,
     note: asString(data['Note']),
     isRecommended: asBool(data['IsRecommended']),
     type: (asString(data['Type']) || 'regular') as ActivityType,
@@ -72,6 +74,7 @@ export function toFirebaseActivity(a: Activity): Record<string, unknown> {
     Name: a.name,
     Category: a.category ?? '',
     CategoryId: a.categoryId ?? '',
+    Illustration: a.illustration ?? '',
     Note: a.note ?? '',
     IsRecommended: a.isRecommended ?? false,
     Type: a.type ?? 'regular',

@@ -20,7 +20,7 @@ class ActivityHistoryCalendar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
       child: Column(
         children: [
-          ActivityCalendarHeader(),
+          const ActivityCalendarHeader(),
           const SizedBox(height: 12),
           const Divider(thickness: 0.5),
           const SizedBox(height: 12),

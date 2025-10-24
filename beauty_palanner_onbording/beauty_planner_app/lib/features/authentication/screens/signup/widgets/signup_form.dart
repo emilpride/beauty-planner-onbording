@@ -1,11 +1,9 @@
-import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../common/widgets/custom_shapes/containers/rounded_container.dart';
 import '../../../../../utils/constants/colors.dart';
@@ -14,8 +12,6 @@ import '../../../../../utils/constants/sizes.dart';
 import '../../../../../utils/validators/validation.dart';
 import '../../../controllers/signup/signup_controller.dart';
 import '../../login/login.dart';
-import 'privacy_policy_screen.dart';
-import 'term_conditions_screen.dart';
 
 class SignupForm extends StatelessWidget {
   const SignupForm({super.key});

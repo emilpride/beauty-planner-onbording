@@ -1,4 +1,16 @@
 {
+  "hosting": [
+    {
+      "site": "beauty-planner-26cc0",
+      "public": "out",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "cleanUrls": true
+    }
+  ],
   "firestore": {
     "rules": "firestore.rules"
   }

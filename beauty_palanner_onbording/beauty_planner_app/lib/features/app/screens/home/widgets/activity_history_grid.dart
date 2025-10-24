@@ -87,7 +87,7 @@ class ActivityHistoryGrid extends StatelessWidget {
   /// Builds a single dot based on its completion status.
   Widget _buildDot(bool isCompleted, BuildContext context) {
     final Color activeColor = activity.color ?? Theme.of(context).primaryColor;
-    final Color dotColor = isCompleted ? activeColor : Color(0xFFE0E0E0);
+    final Color dotColor = isCompleted ? activeColor : const Color(0xFFE0E0E0);
 
     return Container(
       width: 12,

@@ -41,9 +41,18 @@ function toYMD(d: Date) {
 export async function fetchUserUpdatesForDate(userId: string, date: Date): Promise<TaskInstance[]> {
   const db = getFirestoreDb()
   const col = collection(doc(collection(db, 'Users'), userId), 'Updates')
-  const q = query(col, where('date', '==', toYMD(date)), orderBy('updatedAt', 'asc'))
-  const snap = await getDocs(q)
-  const items = snap.docs.map((d) => parseTaskInstance(d.id, d.data()))
+  const ymd = toYMD(date)
+
+  // Some datasets use lowercase 'date', others PascalCase 'Date'. Query both and merge.
+  const qLower = query(col, where('date', '==', ymd), orderBy('updatedAt', 'asc'))
+  const qUpper = query(col, where('Date', '==', ymd), orderBy('updatedAt', 'asc'))
+
+  const [snapLower, snapUpper] = await Promise.all([getDocs(qLower), getDocs(qUpper)])
+  const map = new Map<string, TaskInstance>()
+  for (const d of snapLower.docs) map.set(d.id, parseTaskInstance(d.id, d.data()))
+  for (const d of snapUpper.docs) map.set(d.id, parseTaskInstance(d.id, d.data()))
+  const items = Array.from(map.values())
+  items.sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime())
   return items
 }
 
@@ -56,11 +65,14 @@ export async function fetchUserUpdatesInDateRange(
   const col = collection(doc(collection(db, 'Users'), userId), 'Updates')
   const fromStr = toYMD(from)
   const toStr = toYMD(to)
-  // Range query on string date works due to YYYY-MM-DD format
-  const q = query(col, where('date', '>=', fromStr), where('date', '<=', toStr), orderBy('date', 'asc'))
-  const snap = await getDocs(q)
-  const items = snap.docs.map((d) => parseTaskInstance(d.id, d.data()))
-  // stable sort by date then time
+  // Query lowercase and PascalCase variants, then merge
+  const qLower = query(col, where('date', '>=', fromStr), where('date', '<=', toStr), orderBy('date', 'asc'))
+  const qUpper = query(col, where('Date', '>=', fromStr), where('Date', '<=', toStr), orderBy('Date', 'asc'))
+  const [snapLower, snapUpper] = await Promise.all([getDocs(qLower), getDocs(qUpper)])
+  const map = new Map<string, TaskInstance>()
+  for (const d of snapLower.docs) map.set(d.id, parseTaskInstance(d.id, d.data()))
+  for (const d of snapUpper.docs) map.set(d.id, parseTaskInstance(d.id, d.data()))
+  const items = Array.from(map.values())
   items.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
   return items
 }

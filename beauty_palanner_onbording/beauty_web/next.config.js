@@ -5,7 +5,9 @@ const nextConfig = {
     typedRoutes: true
   },
   images: {
-    remotePatterns: []
-  }
+    remotePatterns: [],
+    unoptimized: true
+  },
+  output: 'export'
 };
 module.exports = nextConfig;

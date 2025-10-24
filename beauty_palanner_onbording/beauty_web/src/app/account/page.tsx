@@ -4,6 +4,7 @@ import { Protected } from '@/components/auth/Protected'
 import { PageContainer } from '@/components/common/PageContainer'
 import Image from 'next/image'
 import Link from 'next/link'
+import type { Route } from 'next'
 
 export default function AccountPage() {
   return (
@@ -59,7 +60,7 @@ export default function AccountPage() {
 
           {/* Personal Info */}
           <Link
-            href="/account/personal-info"
+            href={'/account/personal-info' as Route}
             className="bg-surface border border-border-subtle rounded-lg shadow-sm p-4 flex items-center gap-2 hover:bg-surface-hover transition"
           >
             <div className="w-[40px] h-[40px] flex items-center justify-center shrink-0">
@@ -100,7 +101,7 @@ export default function AccountPage() {
 
           {/* Billing & Subscriptions */}
           <Link
-            href="/account/billing"
+            href={'/account/billing' as Route}
             className="bg-surface border border-border-subtle rounded-lg shadow-sm p-4 flex items-center gap-2 hover:bg-surface-hover transition"
           >
             <div className="w-[40px] h-[40px] flex items-center justify-center shrink-0">
@@ -134,7 +135,7 @@ export default function AccountPage() {
 
           {/* Account & Security */}
           <Link
-            href="/account/security"
+            href={'/account/security' as Route}
             className="bg-surface border border-border-subtle rounded-lg shadow-sm p-4 flex items-center gap-2 hover:bg-surface-hover transition"
           >
             <div className="w-[40px] h-[40px] flex items-center justify-center shrink-0">
@@ -168,7 +169,7 @@ export default function AccountPage() {
 
           {/* Help & Support */}
           <Link
-            href="/account/help"
+            href={'/account/help' as Route}
             className="bg-surface border border-border-subtle rounded-lg shadow-sm p-4 flex items-center gap-2 hover:bg-surface-hover transition"
           >
             <div className="w-[40px] h-[40px] flex items-center justify-center shrink-0">

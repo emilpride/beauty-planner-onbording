@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../common/widgets/appbar/appbar.dart';
 import '../../../../utils/constants/sizes.dart';
-import 'widgets/reauth_form.dart';
 import 'widgets/reauth_header.dart';
 
 class ReauthScreen extends StatelessWidget {

@@ -9,11 +9,11 @@ class Loaders {
   static customToast({required message}) {
     ScaffoldMessenger.of(Get.context!).showSnackBar(SnackBar(
       elevation: 0,
-      duration: Duration(seconds: 3),
+      duration: const Duration(seconds: 3),
       backgroundColor: Colors.transparent,
       content: Container(
-        padding: EdgeInsets.all(12),
-        margin: EdgeInsets.symmetric(horizontal: 30),
+        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.symmetric(horizontal: 30),
         decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(30),
             color: MyHelperFunctions.isDarkMode(Get.context!)

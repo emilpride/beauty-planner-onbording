@@ -56,7 +56,7 @@ class ThemeController extends GetxController {
       colorScheme: colorScheme,
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: originalStyle?.copyWith(
-          backgroundColor: MaterialStatePropertyAll<Color>(_accent.value),
+          backgroundColor: WidgetStatePropertyAll<Color>(_accent.value),
         ),
       ),
     );
@@ -77,7 +77,7 @@ class ThemeController extends GetxController {
       colorScheme: colorScheme,
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: originalStyle?.copyWith(
-          backgroundColor: MaterialStatePropertyAll<Color>(_accent.value),
+          backgroundColor: WidgetStatePropertyAll<Color>(_accent.value),
         ),
       ),
     );

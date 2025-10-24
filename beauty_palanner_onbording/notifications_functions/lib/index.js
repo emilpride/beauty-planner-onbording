@@ -36,9 +36,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendMobilePushReminders = exports.sendEmailReminders = void 0;
+exports.recomputeAchievements = exports.onUpdateWriteRecomputeAchievements = exports.sendMobilePushReminders = exports.sendEmailReminders = void 0;
 const admin = __importStar(require("firebase-admin"));
-const scheduler_1 = require("firebase-functions/lib/v2/providers/scheduler");
+const scheduler_1 = require("firebase-functions/v2/scheduler");
+const https_1 = require("firebase-functions/v2/https");
+const firestore_1 = require("firebase-functions/v2/firestore");
 const nodemailer_1 = __importDefault(require("nodemailer"));
 // Initialize Admin SDK once
 if (!admin.apps.length) {
@@ -333,5 +335,123 @@ exports.sendMobilePushReminders = (0, scheduler_1.onSchedule)({ schedule: 'every
         }
     }
     return null;
+});
+// Keep thresholds modest and monotonic
+const ACHIEVEMENT_LEVELS_SERVER = [
+    { level: 1, requiredActivities: 0 },
+    { level: 2, requiredActivities: 5 },
+    { level: 3, requiredActivities: 15 },
+    { level: 4, requiredActivities: 30 },
+    { level: 5, requiredActivities: 60 },
+    { level: 6, requiredActivities: 100 },
+    { level: 7, requiredActivities: 150 },
+    { level: 8, requiredActivities: 220 },
+    { level: 9, requiredActivities: 300 },
+];
+function calcLevelServer(completed) {
+    let lvl = 1;
+    for (let i = ACHIEVEMENT_LEVELS_SERVER.length - 1; i >= 0; i--) {
+        const step = ACHIEVEMENT_LEVELS_SERVER[i];
+        if (completed >= step.requiredActivities) {
+            lvl = step.level;
+            break;
+        }
+    }
+    return lvl;
+}
+async function recomputeAchievementsForUser(userId) {
+    const col = db.collection('Users').doc(userId).collection('Updates');
+    const snap = await col.where('status', '==', 'completed').get();
+    const completed = snap.size;
+    const level = calcLevelServer(completed);
+    const ref = db.collection('Users').doc(userId).collection('Achievements').doc('Progress');
+    const before = await ref.get();
+    const prev = before.exists ? (before.data() || {}) : {};
+    const levelUnlockDates = (prev['LevelUnlockDates'] || prev['levelUnlockDates'] || {});
+    if (!levelUnlockDates[level])
+        levelUnlockDates[String(level)] = admin.firestore.FieldValue.serverTimestamp();
+    const payload = {
+        totalCompletedActivities: completed,
+        currentLevel: level,
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        levelUnlockDates,
+    };
+    await ref.set({
+        TotalCompletedActivities: payload.totalCompletedActivities,
+        CurrentLevel: payload.currentLevel,
+        LastUpdated: payload.lastUpdated,
+        LevelUnlockDates: payload.levelUnlockDates,
+    }, { merge: true });
+    return payload;
+}
+// Firestore trigger: recompute on any update write
+exports.onUpdateWriteRecomputeAchievements = (0, firestore_1.onDocumentWritten)('Users/{userId}/Updates/{updateId}', async (event) => {
+    try {
+        const userId = event.params.userId;
+        if (!userId)
+            return;
+        await recomputeAchievementsForUser(userId);
+    }
+    catch (e) {
+        console.error('Recompute achievements trigger failed:', e?.message || e);
+    }
+});
+// Simple auth helper: verify Firebase ID token from Authorization header or body.idToken
+async function verifyIdTokenFromRequest(req) {
+    try {
+        const bodyToken = typeof req?.body?.idToken === 'string' ? req.body.idToken : '';
+        let token = bodyToken;
+        if (!token) {
+            const rawHeader = String((req?.headers?.['authorization'] || req?.headers?.['Authorization'] || ''));
+            if (rawHeader) {
+                const parts = rawHeader.split(' ');
+                const bearerVal = parts.length >= 2 ? (parts[1] || '') : '';
+                const scheme = parts.length >= 1 ? (parts[0] || '') : '';
+                token = /^Bearer$/i.test(scheme) ? bearerVal : rawHeader;
+            }
+        }
+        if (!token)
+            return null;
+        const decoded = await admin.auth().verifyIdToken(token);
+        return decoded?.uid || null;
+    }
+    catch {
+        return null;
+    }
+}
+// CORS/security headers
+function addSecurityHeaders(res) {
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('X-Frame-Options', 'SAMEORIGIN');
+    res.set('X-XSS-Protection', '1; mode=block');
+    res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+}
+// HTTPS endpoint to recompute on demand (for the signed-in user)
+exports.recomputeAchievements = (0, https_1.onRequest)(async (req, res) => {
+    addSecurityHeaders(res);
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
+    }
+    try {
+        const uid = await verifyIdTokenFromRequest(req);
+        if (!uid) {
+            res.status(401).json({ error: 'Unauthorized' });
+            return;
+        }
+        const result = await recomputeAchievementsForUser(uid);
+        res.status(200).json({ ok: true, progress: result });
+    }
+    catch (e) {
+        console.error('recomputeAchievements error', e);
+        res.status(500).json({ error: 'internal' });
+    }
 });
 //# sourceMappingURL=index.js.map

@@ -9,6 +9,7 @@ import { PageContainer } from '@/components/common/PageContainer'
 import { useAuth } from '@/hooks/useAuth'
 import { useActivities, useDeleteActivity } from '@/hooks/useActivities'
 import { getActivityMeta } from '@/data/activityMeta'
+import { getIconById } from '@/data/iconCatalog'
 
 const CATEGORIES = [
   { id: 'all', name: 'All', color: '#A385E9' },
@@ -83,8 +84,23 @@ export default function ProceduresPage() {
   }, [filteredActivities])
 
   const ActivityCard = ({ activity }: { activity: typeof activities[0] }) => {
-    const meta = getActivityMeta(activity.id, activity.name)
-    const backgroundColor = meta.surface
+    const meta = getActivityMeta(activity.categoryId || activity.id, activity.name)
+    const primary = activity.color || meta.primary
+    const backgroundColor = activity.color
+      ? `rgba(${parseInt((activity.color||'#A385E9').slice(1,3),16)},${parseInt((activity.color||'#A385E9').slice(3,5),16)},${parseInt((activity.color||'#A385E9').slice(5,7),16)},0.15)`
+      : meta.surface
+
+    // Resolve icon source: prefer explicit illustration; else curated icon
+    function resolveIcon(): string | null {
+      const ill = activity.illustration?.trim()
+      if (ill) {
+        if (ill.startsWith('http') || ill.startsWith('/')) return ill
+        const icon = getIconById(ill)
+        if (icon?.path) return icon.path
+      }
+      return meta.iconPath || null
+    }
+    const iconSrc = resolveIcon()
 
     return (
       <div 
@@ -94,11 +110,11 @@ export default function ProceduresPage() {
         {/* Icon */}
         <div 
           className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
-          style={{ backgroundColor: meta.primary }}
+          style={{ backgroundColor: primary }}
         >
-          {meta.iconPath ? (
+          {iconSrc ? (
             <Image 
-              src={meta.iconPath} 
+              src={iconSrc} 
               alt={activity.name} 
               width={28} 
               height={28}

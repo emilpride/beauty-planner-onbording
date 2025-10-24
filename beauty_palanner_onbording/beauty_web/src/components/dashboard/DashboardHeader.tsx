@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Route } from 'next'
+import { useAuth } from '@/hooks/useAuth'
+import { useUserProfile } from '@/hooks/useUserProfile'
 
 const languages = [
   { code: 'en', label: 'EN', flag: '🇬🇧', name: 'English' },
@@ -12,10 +14,14 @@ const languages = [
   { code: 'es', label: 'ES', flag: '🇪🇸', name: 'Español' },
 ]
 
-export function DashboardHeader() {
+type HeaderProps = { onBurger?: () => void }
+
+export function DashboardHeader({ onBurger }: HeaderProps) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [language, setLanguage] = useState('en')
   const [isLanguageOpen, setIsLanguageOpen] = useState(false)
+  const { user } = useAuth()
+  const { data: profile } = useUserProfile(user?.uid)
 
   // Initialize theme from localStorage or system preference
   useEffect(() => {
@@ -49,13 +55,26 @@ export function DashboardHeader() {
       <div className="flex items-center justify-between h-full px-6">
         {/* Page Title / Breadcrumb placeholder */}
         <div className="flex items-center gap-3">
+          {/* Mobile burger menu button */}
+          <button
+            type="button"
+            onClick={() => onBurger?.()}
+            className="sm:hidden inline-flex items-center justify-center h-10 w-10 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover transition"
+            aria-label="Open menu"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-text-primary">
+              <path d="M4 6H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M4 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M4 18H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
           <h1 className="text-xl font-bold text-text-primary">Dashboard</h1>
         </div>
 
         {/* Right side: Profile + Language + Theme */}
         <div className="flex items-center gap-4">
-          {/* Language Selector - Dropdown (codes only) */}
-          <div className="relative">
+          {/* Language Selector - Dropdown (desktop only) */}
+          <div className="relative hidden sm:inline-block">
             <button
               onClick={() => setIsLanguageOpen(!isLanguageOpen)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover transition-colors"
@@ -99,7 +118,7 @@ export function DashboardHeader() {
           {/* Theme Toggle - Single animated icon */}
           <button
             onClick={toggleTheme}
-            className="h-10 w-10 grid place-items-center rounded-full border border-border-subtle bg-[#E9E9F5] dark:bg-[#2A2A3E] hover:shadow-md transition"
+            className="hidden sm:grid h-10 w-10 place-items-center rounded-full border border-border-subtle bg-[#E9E9F5] dark:bg-[#2A2A3E] hover:shadow-md transition"
             aria-label="Toggle theme"
             title={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
           >
@@ -137,12 +156,12 @@ export function DashboardHeader() {
           {/* Profile */}
           <Link href={'/account' as Route} className="flex items-center gap-3 hover:opacity-80 transition">
             <div className="text-right hidden sm:block">
-              <div className="text-sm font-semibold text-text-primary">Andrew Ainsley</div>
-              <div className="text-xs text-text-secondary">Level 9</div>
+              <div className="text-sm font-semibold text-text-primary">{profile?.name || user?.displayName || '—'}</div>
+              <div className="text-xs text-text-secondary">{`Level ${profile?.level ?? 1}`}</div>
             </div>
             <div className="relative">
               <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#A385E9] to-[#E8B1EB] grid place-items-center text-white text-sm font-bold ring-2 ring-white dark:ring-gray-800 shadow-md">
-                A
+                {(profile?.name || user?.displayName || 'U').charAt(0).toUpperCase()}
               </div>
               <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-green-500 ring-2 ring-white dark:ring-gray-800" />
             </div>

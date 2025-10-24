@@ -69,8 +69,8 @@ class MultiRingProgressChart extends StatefulWidget {
 class _MultiRingProgressChartState extends State<MultiRingProgressChart>
     with TickerProviderStateMixin {
   List<ProgressCategory> _processedCategories = [];
-  List<AnimationController> _animationControllers = [];
-  List<Animation<double>> _animations = [];
+  final List<AnimationController> _animationControllers = [];
+  final List<Animation<double>> _animations = [];
   List<double> _previousValues = [];
   double _currentSize = 60;
 

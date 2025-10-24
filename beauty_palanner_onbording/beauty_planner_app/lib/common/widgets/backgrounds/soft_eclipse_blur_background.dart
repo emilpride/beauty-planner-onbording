@@ -26,7 +26,7 @@ class SoftEllipsePainter extends CustomPainter {
             [color1Start, color1End], // Colors for the gradient
             [0.0, 1.0], // Stops for the gradient colors
           )
-          ..maskFilter = MaskFilter.blur(
+          ..maskFilter = const MaskFilter.blur(
             BlurStyle.normal,
             blurRadius,
           ); // Apply blur
@@ -43,7 +43,7 @@ class SoftEllipsePainter extends CustomPainter {
             [color2Start, color2End], // Colors for the gradient
             [0.0, 1.0], // Stops for the gradient colors
           )
-          ..maskFilter = MaskFilter.blur(
+          ..maskFilter = const MaskFilter.blur(
             BlurStyle.normal,
             blurRadius,
           ); // Apply blur

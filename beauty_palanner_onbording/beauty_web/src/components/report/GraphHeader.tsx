@@ -20,7 +20,7 @@ export function GraphHeader({
 }: {
   title: string
   selected: string
-  onChange: (PeriodOption | string) => void
+  onChange: (value: PeriodOption | string) => void
   items?: string[] // for calendar months
 }) {
   const options = items ?? DEFAULT_PERIODS

@@ -12,7 +12,7 @@ import '../schedule_screen/create_schedule_screen.dart';
 class OtpScreen extends GetView<OtpController> {
   // The email should be passed from the previous screen, e.g., using Get.toNamed
 
-  OtpScreen({super.key});
+  const OtpScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

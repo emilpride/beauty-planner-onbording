@@ -153,7 +153,7 @@ class MoodController extends GetxController {
     _scheduleBackgroundSync();
 
     _logger.i(
-      'Added mood entry for ${dateKey}: mood=$moodValue, feeling=$feeling',
+      'Added mood entry for $dateKey: mood=$moodValue, feeling=$feeling',
     );
   }
 
@@ -749,7 +749,7 @@ class MoodController extends GetxController {
       );
     } catch (e, s) {
       _logger.e("Error syncing mood data with remote", error: e, stackTrace: s);
-      throw e;
+      rethrow;
     }
   }
 

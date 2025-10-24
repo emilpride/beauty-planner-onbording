@@ -1,4 +1,4 @@
-import { getIconById } from './iconCatalog'
+import { getIconById, ICON_CATALOG, type IconCatalogEntry } from './iconCatalog'
 
 export interface ActivityMeta {
   name: string
@@ -64,7 +64,73 @@ export const ACTIVITY_META: Record<string, ActivityMeta> = {
 
 export const getActivityMeta = (activityId: string, fallbackName?: string): ResolvedActivityMeta => {
   const isCustom = activityId.startsWith('custom-')
-  const curated = ACTIVITY_META[activityId]
+
+  // Slugify helper to resolve curated icons by readable names like "Cleanse & Hydrate" -> "cleanse-hydrate"
+  const slugify = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // remove diacritics
+      .replace(/&/g, ' and ')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+
+  // Lightweight Levenshtein distance for fuzzy matching
+  const levenshtein = (a: string, b: string) => {
+    const m = a.length, n = b.length
+    if (m === 0) return n
+    if (n === 0) return m
+    const dp = new Array(n + 1)
+    for (let j = 0; j <= n; j++) dp[j] = j
+    for (let i = 1; i <= m; i++) {
+      let prev = i - 1
+      dp[0] = i
+      for (let j = 1; j <= n; j++) {
+        const tmp = dp[j]
+        dp[j] = Math.min(
+          dp[j] + 1,
+          dp[j - 1] + 1,
+          prev + (a[i - 1] === b[j - 1] ? 0 : 1)
+        )
+        prev = tmp
+      }
+    }
+    return dp[n]
+  }
+
+  // Try to find an icon by fuzzy name match across id/label/search
+  const findIconByFuzzyName = (name: string | undefined): IconCatalogEntry | undefined => {
+    if (!name) return undefined
+    const slug = slugify(name)
+    if (!slug) return undefined
+
+    // 1) exact id match
+    const exact = ICON_CATALOG.find((e) => slug === slugify(e.id))
+    if (exact) return exact
+
+    // 2) exact label/search match
+    const exactLabel = ICON_CATALOG.find((e) => slug === slugify(e.label) || e.search?.some((s) => slug === slugify(s)))
+    if (exactLabel) return exactLabel
+
+    // 3) includes
+    const incl = ICON_CATALOG.find((e) => slugify(e.id).includes(slug) || slug.includes(slugify(e.id)) || slugify(e.label).includes(slug))
+    if (incl) return incl
+
+    // 4) fuzzy distance threshold
+    let best: { e: IconCatalogEntry; d: number } | undefined
+    for (const e of ICON_CATALOG) {
+      const candidates = [e.id, e.label, ...(e.search || [])]
+      for (const c of candidates) {
+        const d = levenshtein(slug, slugify(c))
+        if (!best || d < best.d) best = { e, d }
+      }
+    }
+    const maxD = Math.max(2, Math.floor(slug.length * 0.25))
+    return best && best.d <= maxD ? best.e : undefined
+  }
+
+  const nameSlug = fallbackName ? slugify(fallbackName) : undefined
+  const curated = ACTIVITY_META[activityId] || (nameSlug ? ACTIVITY_META[nameSlug] : undefined)
 
   // Choose base meta:
   // - custom: default meta with fallback name if provided
@@ -76,7 +142,13 @@ export const getActivityMeta = (activityId: string, fallbackName?: string): Reso
       ? curated
       : { ...DEFAULT_META, name: fallbackName || `Activity ${activityId}` }
 
-  const iconEntry = getIconById(base.iconId) || getIconById(DEFAULT_ICON_ID)
+  let iconEntry = getIconById(base.iconId)
+  if (!iconEntry) {
+    // try fuzzy by provided fallback name
+    const fuzzy = findIconByFuzzyName(fallbackName)
+    if (fuzzy) iconEntry = fuzzy
+  }
+  if (!iconEntry) iconEntry = getIconById(DEFAULT_ICON_ID)
   const iconPath = iconEntry?.path ?? DEFAULT_ICON_PATH
 
   // Only use fallbackName to override when there is no curated entry (custom/unknown).

@@ -13,7 +13,7 @@ class BrandsShimmer extends StatelessWidget {
     return GridLayout(
       mainAxisExtent: 80,
       itemCount: itemCount,
-      itemBuilder: (p0, p1) => ShimmerEffect(height: 300, width: 80),
+      itemBuilder: (p0, p1) => const ShimmerEffect(height: 300, width: 80),
     );
   }
 }

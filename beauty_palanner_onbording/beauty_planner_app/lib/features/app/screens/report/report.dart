@@ -132,7 +132,7 @@ class _ActivitiesCompletedChart extends StatelessWidget {
               // Make the chart horizontally scrollable to accommodate wider bars
               // Compute a width based on number of groups to keep spacing consistent
               final groups = controller.activitiesChartData;
-              final groupCount = groups.length == 0 ? 1 : groups.length;
+              final groupCount = groups.isEmpty ? 1 : groups.length;
               // Each group will get 48px for bar width + spacing; clamp min width to screen
               final estimatedWidth = max(
                 MediaQuery.of(context).size.width,

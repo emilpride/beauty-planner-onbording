@@ -91,7 +91,7 @@ class HomeScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onBackground,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -106,7 +106,7 @@ class HomeScreen extends StatelessWidget {
                           child: SvgPicture.asset(
                             AppImages.calendarIcon,
                             width: 20,
-                            color: Theme.of(context).colorScheme.onBackground,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -115,13 +115,13 @@ class HomeScreen extends StatelessWidget {
                 )
               else
                 Padding(
-                  padding: EdgeInsets.fromLTRB(20, 56, 20, 8),
+                  padding: const EdgeInsets.fromLTRB(20, 56, 20, 8),
                   child: Text(
                     'Home',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onBackground,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),

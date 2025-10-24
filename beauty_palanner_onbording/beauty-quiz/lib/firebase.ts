@@ -166,7 +166,7 @@ export default {
 }
 
 // Finalize onboarding on the server and upsert the Flutter-compatible Users/{uid} doc
-export async function finalizeOnboarding(sessionId: string, overrides?: Record<string, any>) {
+export async function finalizeOnboarding(sessionId: string, overrides?: Record<string, any>): Promise<{ ok: boolean; token?: string }>{
   if (typeof sessionId !== 'string' || sessionId.trim().length === 0) {
     throw new Error('finalizeOnboarding: sessionId is required')
   }
@@ -201,5 +201,7 @@ export async function finalizeOnboarding(sessionId: string, overrides?: Record<s
     throw new Error(`Finalize failed: HTTP ${res.status} ${res.statusText} ${text}`)
   }
 
-  return res.json()
+  const json = await res.json().catch(() => null)
+  if (!json || typeof json !== 'object') return { ok: true }
+  return { ok: Boolean((json as any).ok), token: (json as any).token }
 }

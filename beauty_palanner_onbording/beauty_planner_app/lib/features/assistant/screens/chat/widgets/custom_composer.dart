@@ -202,8 +202,9 @@ class _CustomComposerState extends State<CustomComposer>
   void _handleSubmitted(String text) {
     if (widget.allowEmptyMessage == false &&
         text.trim().isEmpty &&
-        _selectedImages.isEmpty)
+        _selectedImages.isEmpty) {
       return;
+    }
 
     // Create a callback that passes both text and images
     if (_selectedImages.isNotEmpty) {

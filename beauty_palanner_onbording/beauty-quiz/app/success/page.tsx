@@ -136,8 +136,15 @@ function SuccessCard() {
       setIsFinalizing(true)
       const sid = (answers.sessionId || '').trim()
       if (!sid) throw new Error('Missing session id')
-      await finalizeOnboarding(sid)
-      window.location.assign('https://web.beautymirror.app/')
+  const result = await finalizeOnboarding(sid)
+  const base = 'https://beauty-planner-26cc0.web.app'
+      if (result?.token) {
+        const url = `${base}/auth/consume?token=${encodeURIComponent(result.token)}`
+        window.location.assign(url)
+      } else {
+        // Fallback: continue to app root; user may need to sign in again if cross-domain
+        window.location.assign(`${base}/`)
+      }
     } catch (e: any) {
       console.error('Finalize error:', e?.message || e)
       alert('We could not complete setup automatically. Please try again in a moment.')

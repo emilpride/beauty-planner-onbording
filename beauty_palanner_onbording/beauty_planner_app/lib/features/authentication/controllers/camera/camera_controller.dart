@@ -165,9 +165,7 @@ class MyCameraController extends GetxController {
         return;
       }
 
-      if (cameras == null) {
-        cameras = await availableCameras();
-      }
+      cameras ??= await availableCameras();
 
       if (cameras!.isEmpty) {
         Get.snackbar("Error", "No cameras found on this device.");

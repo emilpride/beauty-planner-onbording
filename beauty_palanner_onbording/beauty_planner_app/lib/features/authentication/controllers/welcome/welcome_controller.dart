@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../utils/constants/image_strings.dart';
-import '../../screens/onboarding/onboarding.dart';
 
 class WelcomeController extends GetxController {
   final PageController pageController = PageController();

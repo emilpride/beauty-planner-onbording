@@ -5,15 +5,15 @@ import 'package:flutter/services.dart';
 class CloudHelperFunctions {
   static Widget? checkSingleRecordState<T>(AsyncSnapshot<T> snapshot) {
     if (snapshot.connectionState == ConnectionState.waiting) {
-      return Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (!snapshot.hasData || snapshot.data == null) {
-      return Center(child: Text('No data Found!'));
+      return const Center(child: Text('No data Found!'));
     }
 
     if (snapshot.hasError) {
-      return Center(
+      return const Center(
         child: Text('Something went wrong'),
       );
     }
@@ -28,17 +28,17 @@ class CloudHelperFunctions {
       Widget? nothingFound}) {
     if (snapshot.connectionState == ConnectionState.waiting) {
       if (loader != null) return loader;
-      return Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (!snapshot.hasData || snapshot.data == null || snapshot.data!.isEmpty) {
       if (nothingFound != null) return nothingFound;
-      return Center(child: Text('No data Found!'));
+      return const Center(child: Text('No data Found!'));
     }
 
     if (snapshot.hasError) {
       if (error != null) return error;
-      return Center(
+      return const Center(
         child: Text('Something went wrong'),
       );
     }
