@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import type { Activity } from '@/types/activity'
-import type { TaskInstance } from '@/types/task'
 import { generateTasksForDate } from '@/lib/clientTaskGenerator'
 
 /**

@@ -130,7 +130,11 @@ export const getActivityMeta = (activityId: string, fallbackName?: string): Reso
   }
 
   const nameSlug = fallbackName ? slugify(fallbackName) : undefined
-  const curated = ACTIVITY_META[activityId] || (nameSlug ? ACTIVITY_META[nameSlug] : undefined)
+  const nameSlugAlt = nameSlug ? nameSlug.replace(/-and-/g, '-') : undefined
+  const curated =
+    ACTIVITY_META[activityId]
+    || (nameSlug ? ACTIVITY_META[nameSlug] : undefined)
+    || (nameSlugAlt ? ACTIVITY_META[nameSlugAlt] : undefined)
 
   // Choose base meta:
   // - custom: default meta with fallback name if provided
@@ -143,8 +147,8 @@ export const getActivityMeta = (activityId: string, fallbackName?: string): Reso
       : { ...DEFAULT_META, name: fallbackName || `Activity ${activityId}` }
 
   let iconEntry = getIconById(base.iconId)
-  if (!iconEntry) {
-    // try fuzzy by provided fallback name
+  // If we didn't find a curated meta (using default icon), try fuzzy name resolution
+  if (!curated) {
     const fuzzy = findIconByFuzzyName(fallbackName)
     if (fuzzy) iconEntry = fuzzy
   }

@@ -163,9 +163,8 @@ export function activitiesCompletedData(instances: TaskInstance[], period: Perio
   }
 
   if (period.includes('Week')) {
-    const start = getStartDate(period as PeriodOption, now)
-    const end = period === 'This Week' ? startOfDay(now) : new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6)
-    const days = endDiffDays(start, end) + 1
+  const start = getStartDate(period as PeriodOption, now)
+  const end = period === 'This Week' ? startOfDay(now) : new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6)
     const values = Array.from({ length: 7 }, () => 0)
     for (const i of filtered) {
       const d = parseInstanceDay(i)
@@ -178,9 +177,9 @@ export function activitiesCompletedData(instances: TaskInstance[], period: Perio
   }
 
   if (period === 'This Month' || period === 'Last Month') {
-    const start = getStartDate(period, now)
-    const monthStart = new Date(start.getFullYear(), start.getMonth(), 1)
-    const monthEnd = period === 'This Month' ? now : new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0)
+  const start = getStartDate(period, now)
+  const monthStart = new Date(start.getFullYear(), start.getMonth(), 1)
+  const monthEnd = period === 'This Month' ? now : new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0)
     const days = endDiffDays(monthStart, monthEnd) + 1
     const values = Array.from({ length: days }, () => 0)
     for (const i of filtered) {

@@ -16,8 +16,8 @@ export default function ConsumeTokenPage() {
     if (!token) {
       setError('Missing token')
       // Go to home after a short delay
-      const t = setTimeout(() => router.replace('/'), 1200)
-      return () => clearTimeout(t)
+      setTimeout(() => router.replace('/'), 1200)
+      return
     }
     let cancelled = false
     ;(async () => {
@@ -29,7 +29,7 @@ export default function ConsumeTokenPage() {
         const msg = e instanceof Error ? e.message : String(e)
         console.error('Token consume failed:', msg)
         setError('Authentication failed, please sign in again')
-        const t = setTimeout(() => router.replace('/'), 1500)
+        setTimeout(() => router.replace('/'), 1500)
         // cleanup handled by outer effect return; just schedule redirect here
       }
     })()

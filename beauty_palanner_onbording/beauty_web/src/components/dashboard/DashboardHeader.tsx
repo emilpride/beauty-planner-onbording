@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import Image from 'next/image'
 import Link from 'next/link'
 import type { Route } from 'next'
 import { useAuth } from '@/hooks/useAuth'

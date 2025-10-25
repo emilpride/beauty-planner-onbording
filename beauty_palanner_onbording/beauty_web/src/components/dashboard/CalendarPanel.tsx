@@ -131,7 +131,7 @@ export function CalendarPanel({
           buttonClassName="py-1 text-xs"
         />
         <Select
-          options={months.map((m, i) => `${m}`)}
+          options={months.map((m) => `${m}`)}
           value={months[ym.m]}
           onChange={(v) => setYm((s) => ({ ...s, m: months.indexOf(String(v)) }))}
           buttonClassName="py-1 text-xs"
@@ -163,13 +163,8 @@ export function CalendarPanel({
                 <div className={`relative flex items-center justify-center w-full h-full rounded-[13px] ${isSelected ? 'bg-[#A385E9] text-white font-semibold' : isToday ? 'border border-[#A385E9]' : ''}`}>
                   <span>{d}</span>
                   {info?.has && (
-                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-4 w-4 rounded-full bg-surface flex items-center justify-center overflow-hidden">
-                      {info.icon ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={info.icon} alt="" className="h-3 w-3 object-contain" />
-                      ) : (
-                        <span className="block h-1.5 w-1.5 rounded-full bg-[#A385E9]" />
-                      )}
+                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2">
+                      <span className={`block h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-[rgb(var(--accent))]'}`} />
                     </span>
                   )}
                 </div>

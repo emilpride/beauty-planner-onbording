@@ -23,19 +23,13 @@ export function SidebarNav({ mobileOpen, setMobileOpen }: Props) {
   const pathname = usePathname()
   const { logout } = useAuth()
   const [expanded, setExpanded] = useState(false)
-  const [activeIndex, setActiveIndex] = useState(0)
   const navRef = useRef<HTMLDivElement>(null)
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([])
   // Mobile-only controls
   const [theme, setTheme] = useState<'light' | 'dark'>(() => (typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light'))
   const [language, setLanguage] = useState<string>(() => (typeof window !== 'undefined' ? (localStorage.getItem('language') || 'en') : 'en'))
 
-  useEffect(() => {
-    const idx = items.findIndex((it) => pathname?.startsWith(it.href))
-    if (idx !== -1) {
-      setActiveIndex(idx)
-    }
-  }, [pathname])
+  // Active item handled by matching pathname directly
   
   // Persist language for parity with header mock
   useEffect(() => {
@@ -101,7 +95,7 @@ export function SidebarNav({ mobileOpen, setMobileOpen }: Props) {
                   alt={it.label}
                   width={24}
                   height={24}
-                  className={`${expanded ? 'w-5 h-5' : 'w-6 h-6'} object-contain shrink-0`}
+                  className={`${expanded ? 'w-5 h-5' : 'w-6 h-6'} object-contain shrink-0 transition-transform duration-200 group-hover:scale-105`}
                   style={{ filter: active ? 'brightness(0) invert(1)' : 'grayscale(1) brightness(0.9)' }}
                 />
               ) : (
@@ -110,7 +104,7 @@ export function SidebarNav({ mobileOpen, setMobileOpen }: Props) {
                 </span>
               )}
               {expanded && (
-                <span className="font-medium text-sm whitespace-nowrap">{it.label}</span>
+                <span className="font-medium text-sm whitespace-nowrap transition-opacity duration-200 opacity-90">{it.label}</span>
               )}
             </Link>
           )
@@ -180,7 +174,7 @@ export function SidebarNav({ mobileOpen, setMobileOpen }: Props) {
               </div>
 
               <nav ref={navRef} className="flex-1 flex flex-col gap-2 overflow-y-auto w-full relative">
-                {items.map((it, idx) => {
+                {items.map((it, _idx) => {
                   const active = pathname?.startsWith(it.href)
                   const isImage = it.icon.endsWith('.svg') || it.icon.endsWith('.png')
                   return (

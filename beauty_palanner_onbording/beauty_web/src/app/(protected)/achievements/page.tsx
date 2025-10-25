@@ -4,11 +4,11 @@ import { Protected } from '@/components/auth/Protected'
 import { PageContainer } from '@/components/common/PageContainer'
 import { useAuth } from '@/hooks/useAuth'
 import { useAchievements } from '@/hooks/useAchievements'
-import { ACHIEVEMENT_LEVELS, levelThreshold, progressToNextLevel } from '@/types/achievements'
+import { progressToNextLevel } from '@/types/achievements'
 
 export default function AchievementsPage() {
   const { user } = useAuth()
-  const { progress, levels, markLevelSeen, isLoading } = useAchievements(user?.uid)
+  const { progress, levels, markLevelSeen } = useAchievements(user?.uid)
 
   const pct = progress ? Math.round(progressToNextLevel(progress.totalCompletedActivities, progress.currentLevel) * 100) : 0
 

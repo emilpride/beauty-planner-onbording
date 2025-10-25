@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getFirestore, updateDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, updateDoc } from 'firebase/firestore'
 import { getFirestoreDb } from '@/lib/firebase'
 import type { AchievementProgress } from '@/types/achievements'
 

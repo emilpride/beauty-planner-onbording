@@ -22,8 +22,7 @@ import { ActivitiesCompletedChart } from '@/components/report/charts/ActivitiesC
 import { CompletionRateChart } from '@/components/report/charts/CompletionRateChart'
 import { CalendarStatsCard } from '@/components/report/CalendarStats'
 import { MoodChart } from '@/components/report/charts/MoodChart'
-import { uploadReportPhoto } from '@/lib/storage'
-import { recordPhotoUpload } from '@/lib/aiAnalysis'
+// removed unused imports
 import { useAnalysisUploads } from '@/hooks/useAnalysisUploads'
 
 export default function ReportPage() {
@@ -153,6 +152,4 @@ function getStatusFromScore(score: number): string {
   return 'Needs Attention'
 }
 
-function round(n: number, d = 2) {
-  return Number(n.toFixed(d))
-}
+// remove unused helper

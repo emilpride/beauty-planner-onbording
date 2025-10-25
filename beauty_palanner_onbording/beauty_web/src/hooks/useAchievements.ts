@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchAchievementProgress, markAchievementLevelSeen } from '@/lib/achievements'
-import { ACHIEVEMENT_LEVELS, calculateLevel, progressToNextLevel, type AchievementProgress } from '@/types/achievements'
+import { ACHIEVEMENT_LEVELS, calculateLevel, type AchievementProgress } from '@/types/achievements'
 import { useUpdatesSince } from '@/hooks/useUpdates'
 
 /**

@@ -5,6 +5,7 @@ import { PageContainer } from '@/components/common/PageContainer'
 import { ProgressRings } from '@/components/dashboard/ProgressRings'
 import { ProceduresList } from '@/components/dashboard/ProceduresList'
 import { CalendarPanel } from '@/components/dashboard/CalendarPanel'
+import { CalendarStrip } from '@/components/dashboard/CalendarStrip'
 import { useActivities } from '@/hooks/useActivities'
 import { useAuth } from '@/hooks/useAuth'
 import { useUpdatesForDate, useUpdatesInDateRange } from '@/hooks/useUpdates'
@@ -44,6 +45,9 @@ export default function DashboardPage() {
   const [period, setPeriod] = useState<'Daily' | 'Weekly' | 'Overall'>('Daily')
   const [calendarCategoryFilter, setCalendarCategoryFilter] = useState<'all' | 'skin' | 'hair' | 'physical' | 'mental'>('all')
   const [overrides, setOverrides] = useState<Map<string, TaskStatus>>(new Map())
+  // Toast/Undo for actions
+  const [toast, setToast] = useState<{ message: string; actionLabel: string; onAction: () => void; visible: boolean }>({ message: '', actionLabel: 'Undo', onAction: () => {}, visible: false })
+  const [toastTimer, setToastTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
 
   // Fetch activities and generate scheduled tasks for selected date (like Flutter's loadTasksForToday)
   const { data: activities } = useActivities(user?.uid)
@@ -62,22 +66,24 @@ export default function DashboardPage() {
     }
     const updates = dateData?.items ?? []
     for (const u of updates) {
-      // If ids align, overwrite; otherwise, try to merge by composite key activityId+date+time
       const hasById = map.has(u.id)
       if (hasById) {
         map.set(u.id, u)
       } else {
-        const key = `${u.activityId}-${u.date}-${u.time?.hour ?? 'xx'}${u.time?.minute ?? 'xx'}`
         const found = Array.from(map.values()).find(
           (x) => x.activityId === u.activityId && x.date === u.date && ((x.time?.hour ?? -1) === (u.time?.hour ?? -2)) && ((x.time?.minute ?? -1) === (u.time?.minute ?? -2))
         )
         if (found) {
           map.set(found.id, u)
         } else {
-          // One-time or edited task – include from Updates
           map.set(u.id, u)
         }
       }
+    }
+    // Apply local overrides (optimistic UI)
+    for (const [id, st] of overrides.entries()) {
+      const item = map.get(id)
+      if (item) map.set(id, { ...item, status: st } as TaskInstance)
     }
     // Sort by time for display
     return Array.from(map.values()).sort((a, b) => {
@@ -87,18 +93,16 @@ export default function DashboardPage() {
       const bM = b.time?.minute ?? 0
       return aH - bH || aM - bM
     })
-    // Apply local overrides (optimistic UI)
-    for (const [id, st] of overrides.entries()) {
-      const item = map.get(id)
-  if (item) map.set(id, { ...item, status: st } as TaskInstance)
-    }
-    return Array.from(map.values())
   }, [scheduledTasks, dateData?.items, overrides])
 
   // Filter procedures by time for LEFT panel
   const plannedItems = filterByTime(allTodayTasks.filter((t) => t.status === 'pending'), timeFilter)
   const completedItems = filterByTime(allTodayTasks.filter((t) => t.status === 'completed'), timeFilter)
   const skippedItems = filterByTime(allTodayTasks.filter((t) => t.status === 'missed' || t.status === 'skipped'), timeFilter)
+  const totalToday = allTodayTasks.length
+  const totalPending = allTodayTasks.filter((t) => t.status === 'pending').length
+  const totalCompleted = allTodayTasks.filter((t) => t.status === 'completed').length
+  const totalSkipped = allTodayTasks.filter((t) => t.status === 'missed' || t.status === 'skipped').length
 
   // Get window items based on selected period for rings calculation
   function getPeriodWindow() {
@@ -112,10 +116,7 @@ export default function DashboardPage() {
   }
   const windowItems = getPeriodWindow()
 
-  // Calculate totals for status-based legend (displayed with period selector) - used in legend below
-  const totalCompleted = windowItems.filter((i: TaskInstance) => i.status === 'completed').length
-  const totalSkippedMissed = windowItems.filter((i: TaskInstance) => i.status === 'missed' || i.status === 'skipped').length
-  const totalPending = windowItems.filter((i: TaskInstance) => i.status === 'pending').length
+  // Totals not used in UI; removed to satisfy lint
 
   // Category-based progress rings (Skin, Mental, Hair)
   const activityById = useMemo(() => new Map((activities ?? []).map(a => [a.id, a as Activity])), [activities])
@@ -134,6 +135,24 @@ export default function DashboardPage() {
         return next
       })
       console.error('Failed to set status', e)
+      return
+    }
+
+    // Show Undo toast for convenience
+    if (status === 'completed' || status === 'skipped') {
+      const prevStatus: TaskStatus = task.status
+      if (toastTimer) clearTimeout(toastTimer)
+      setToast({
+        message: status === 'completed' ? 'Marked as done' : 'Marked as skipped',
+        actionLabel: 'Undo',
+        onAction: () => {
+          if (!user?.uid) return
+          void handleStatusChange({ ...task, status }, prevStatus)
+        },
+        visible: true,
+      })
+      const t = setTimeout(() => setToast((s) => ({ ...s, visible: false })), 5000)
+      setToastTimer(t)
     }
   }
   
@@ -177,9 +196,10 @@ export default function DashboardPage() {
   return (
     <Protected>
       <PageContainer>
+        {/* Mobile order: Calendar -> Rings -> Procedures; Desktop: Procedures | Rings | Calendar */}
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(320px,420px),1fr,minmax(320px,400px)] items-start">
           {/* Left: Procedures (Activities) with time filters */}
-          <div className="space-y-4">
+          <div className="space-y-4 order-3 xl:order-1">
             {/* Time of day filters */}
             <div className="flex flex-wrap gap-2">
               {(['all', 'morning', 'afternoon', 'evening'] as const).map((k) => (
@@ -195,6 +215,14 @@ export default function DashboardPage() {
               ))}
             </div>
 
+            {/* Today counters (helps reconcile with Flutter totals) */}
+            <div className="flex items-center gap-2 text-[11px] text-text-secondary mt-2">
+              <span className="px-2 py-0.5 rounded-full bg-surface border border-border-subtle">Total: <b className="text-text-primary">{totalToday}</b></span>
+              <span className="px-2 py-0.5 rounded-full bg-surface border border-border-subtle">Planned: <b className="text-text-primary">{totalPending}</b></span>
+              <span className="px-2 py-0.5 rounded-full bg-surface border border-border-subtle">Done: <b className="text-text-primary">{totalCompleted}</b></span>
+              <span className="px-2 py-0.5 rounded-full bg-surface border border-border-subtle">Skipped: <b className="text-text-primary">{totalSkipped}</b></span>
+            </div>
+
             <ProceduresList 
               planned={plannedItems} 
               completed={completedItems} 
@@ -207,7 +235,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Center: Category-based Progress Rings with legend and period selector */}
-          <div className="flex flex-col items-center justify-start pt-2">
+          <div className="flex flex-col items-center justify-start pt-2 order-2">
             <div className="space-y-6 w-full max-w-[500px]">
               {/* Period selector */}
               <div className="flex gap-2 justify-center">
@@ -258,14 +286,45 @@ export default function DashboardPage() {
           </div>
 
           {/* Right: Calendar with category filter and date selection */}
-          <div className="space-y-4 xl:sticky xl:top-4">
-            <CalendarPanel 
+          <div className="space-y-4 xl:sticky xl:top-4 order-1 xl:order-3">
+            {/* Mobile compact strip */}
+            <div className="xl:hidden">
+              <CalendarStrip
+                selectedDate={selectedDate}
+                onSelectDate={setSelectedDate}
+                activities={activities ?? []}
+              />
+            </div>
+            {/* Desktop full calendar */}
+            <div className="hidden xl:block">
+              <CalendarPanel 
               selectedDate={selectedDate}
               onSelectDate={setSelectedDate}
               category={calendarCategoryFilter}
               onCategoryChange={setCalendarCategoryFilter}
               activities={activities ?? []}
-            />
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Undo Toast */}
+        <div
+          aria-live="polite"
+          className={`fixed z-50 ${typeof window !== 'undefined' && window.innerWidth < 640 ? 'left-4 right-4 bottom-4' : 'right-6 bottom-6'} transition-transform duration-200`}
+          style={{ transform: toast.visible ? 'translateY(0)' : 'translateY(120%)' }}
+        >
+          <div className="flex items-center gap-3 rounded-xl border border-border-subtle bg-surface shadow-lg px-4 py-3">
+            <span className="text-sm text-text-primary">{toast.message}</span>
+            <button
+              className="ml-auto text-sm font-semibold text-[#A385E9] hover:underline"
+              onClick={() => {
+                toast.onAction()
+                setToast((s) => ({ ...s, visible: false }))
+              }}
+            >
+              {toast.actionLabel}
+            </button>
           </div>
         </div>
       </PageContainer>

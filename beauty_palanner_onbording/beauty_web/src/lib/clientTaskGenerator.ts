@@ -12,11 +12,7 @@ function pad2(n: number) {
   return String(n).padStart(2, '0')
 }
 
-function addDays(d: Date, days: number) {
-  const x = new Date(d)
-  x.setDate(x.getDate() + days)
-  return x
-}
+// removed unused addDays helper
 
 function startOfWeek(d: Date) {
   const js = d.getDay() // 0..6
@@ -38,7 +34,8 @@ function matchesSchedule(activity: Activity, date: Date): boolean {
     if (date > activity.selectedEndBeforeDate) return false
   }
 
-  const freq = (activity.frequency ?? '').toLowerCase()
+  const raw = (activity.frequency ?? '')
+  const freq = raw.toLowerCase().replace(/\s+/g, '')
 
   // Monthly selected days support
   if ((activity.selectedMonthDays?.length ?? 0) > 0) {
@@ -51,8 +48,23 @@ function matchesSchedule(activity: Activity, date: Date): boolean {
     if (delta % (activity.weeksInterval ?? 1) !== 0) return false
   }
 
-  // Daily vs weekly selection
-  if (freq.includes('daily')) return true
+  // Daily vs weekly selection (support common synonyms/localizations)
+  if (
+    freq.includes('daily') ||
+    freq.includes('everyday') ||
+    freq === 'ежедневно' ||
+    freq === 'каждыйдень'
+  ) return true
+
+  // Weekdays / Weekends helpers
+  if (freq.includes('weekday')) {
+    const js = date.getDay()
+    return js >= 1 && js <= 5
+  }
+  if (freq.includes('weekend')) {
+    const js = date.getDay()
+    return js === 0 || js === 6
+  }
 
   const selected = activity.selectedDays ?? []
   if (selected.length) {
@@ -64,8 +76,13 @@ function matchesSchedule(activity: Activity, date: Date): boolean {
   }
 
   // Fallback: if frequency hints weekly and no specific days, match same weekday as enabledAt
-  if (freq.includes('week') && activity.enabledAt) {
+  if ((freq.includes('week') || freq.includes('weekly')) && activity.enabledAt) {
     return date.getDay() === activity.enabledAt.getDay()
+  }
+
+  // Fallback: if no recognizable frequency but activity is active and has no explicit day constraints, assume daily (Flutter often defaults to daily)
+  if (!freq && (activity.selectedDays?.length ?? 0) === 0 && (activity.selectedMonthDays?.length ?? 0) === 0) {
+    return true
   }
 
   return false

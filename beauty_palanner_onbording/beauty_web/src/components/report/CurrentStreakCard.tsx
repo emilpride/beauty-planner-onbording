@@ -1,7 +1,5 @@
 "use client"
 
-import Image from 'next/image'
-
 export function CurrentStreakCard({
   currentStreak = 182,
   completionRate = 89,

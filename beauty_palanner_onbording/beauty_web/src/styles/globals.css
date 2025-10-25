@@ -63,3 +63,12 @@ body {
   color: rgb(var(--text-secondary));
   @apply text-sm font-semibold;
 }
+
+/* Utility: hide scrollbars where applied */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;    /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;            /* Chrome, Safari */
+}

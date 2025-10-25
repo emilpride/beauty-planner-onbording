@@ -3,11 +3,9 @@
 import { Protected } from '@/components/auth/Protected'
 import { PageContainer } from '@/components/common/PageContainer'
 import Image from 'next/image'
-import { useState } from 'react'
 import Link from 'next/link'
 
 export default function AchievementsPage() {
-  const [showAllAchievements, setShowAllAchievements] = useState(true)
   const unlockedLevels = [1, 2, 3, 4, 5, 6, 7, 8, 9]
   const totalLevels = 15
 

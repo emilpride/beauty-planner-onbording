@@ -74,15 +74,7 @@ const categorize = (id: string) => {
   return 'mental' as const
 }
 
-const formatTimeLabel = (time: string) => {
-  if (!time) return '--:--'
-  const [hoursStr, minutesStr] = time.split(':')
-  const hours = Number(hoursStr)
-  if (Number.isNaN(hours)) return '--:--'
-  const suffix = hours >= 12 ? 'PM' : 'AM'
-  const normalized = hours % 12 === 0 ? 12 : hours % 12
-  return `${normalized}:${minutesStr} ${suffix}`
-}
+// removed unused formatTimeLabel helper
 
 const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: (value: boolean) => void }) => {
   return (

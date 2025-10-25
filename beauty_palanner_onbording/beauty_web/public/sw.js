@@ -1,15 +1,28 @@
-const CACHE_NAME = 'bm-cache-v1';
+const CACHE_NAME = 'bm-cache-v2';
+// Only include assets that are guaranteed to exist in /public
 const ASSETS = [
   '/',
   '/manifest.json',
   '/favicon.ico',
-  '/icons/icon.svg',
-  '/icons/icon-maskable.svg'
+  '/logo.png'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      // Add each asset individually and ignore failures to avoid aborting install
+      await Promise.all(
+        ASSETS.map(async (url) => {
+          try {
+            await cache.add(url);
+          } catch (_) {
+            // ignore missing or failed requests during install
+          }
+        })
+      );
+      await self.skipWaiting();
+    })()
   );
 });
 
@@ -22,11 +35,24 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+  // Only handle same-origin requests; let cross-origin (e.g., Firestore, Firebase Auth) pass through
+  if (url.origin !== self.location.origin) return;
+
   event.respondWith(
-    caches.match(request).then((cached) => cached || fetch(request).then((resp) => {
-      const respClone = resp.clone();
-      caches.open(CACHE_NAME).then((cache) => cache.put(request, respClone));
-      return resp;
-    }).catch(() => caches.match('/')))
+    caches.match(request).then((cached) =>
+      cached ||
+      fetch(request)
+        .then((resp) => {
+          // Cache successful responses only
+          if (resp && resp.status === 200 && resp.type === 'basic') {
+            const respClone = resp.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, respClone));
+          }
+          return resp;
+        })
+        .catch(() => caches.match('/'))
+    )
   );
 });

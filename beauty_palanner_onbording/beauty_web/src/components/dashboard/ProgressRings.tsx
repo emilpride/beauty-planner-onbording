@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion'
+
 type Ring = { pct: number; color: string; width?: number }
 
 export function ProgressRings({ size = 270, rings }: { size?: number; rings: Ring[] }) {
@@ -8,12 +10,15 @@ export function ProgressRings({ size = 270, rings }: { size?: number; rings: Rin
   const baseRadius = (size - rings.length * (maxStroke + gap) - 40) / 2
 
   return (
-    <svg 
+    <motion.svg 
       width={size} 
       height={size} 
       viewBox={`0 0 ${size} ${size}`} 
       className="overflow-visible"
       style={{ filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.08))' }}
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 20 }}
     >
       <defs>
         {/* Radial gradient for inner glow */}
@@ -66,6 +71,6 @@ export function ProgressRings({ size = 270, rings }: { size?: number; rings: Rin
           </g>
         )
       })}
-    </svg>
+    </motion.svg>
   )
 }
