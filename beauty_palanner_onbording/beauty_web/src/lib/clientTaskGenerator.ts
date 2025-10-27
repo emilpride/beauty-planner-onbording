@@ -1,6 +1,27 @@
 import type { Activity } from '@/types/activity'
 import type { TaskInstance } from '@/types/task'
 
+const MAX_DAYS_DEFAULT = 730
+const MAX_RESULTS_DEFAULT = 1000
+
+function dateOnly(source: Date): Date {
+  return new Date(source.getFullYear(), source.getMonth(), source.getDate())
+}
+
+function addDays(base: Date, days: number): Date {
+  const copy = new Date(base)
+  copy.setDate(copy.getDate() + days)
+  return copy
+}
+
+function addWeeks(base: Date, weeks: number): Date {
+  return addDays(base, weeks * 7)
+}
+
+function addMonths(base: Date, months: number): Date {
+  return new Date(base.getFullYear(), base.getMonth() + months, base.getDate())
+}
+
 function toYMD(d: Date) {
   const y = d.getFullYear()
   const m = `${d.getMonth() + 1}`.padStart(2, '0')
@@ -12,104 +33,159 @@ function pad2(n: number) {
   return String(n).padStart(2, '0')
 }
 
-// removed unused addDays helper
+function calculateEndDate(activity: Activity, startDate: Date): Date | null {
+  const endType = (activity.endBeforeType ?? '').toLowerCase()
+  if (!endType) return null
 
-function startOfWeek(d: Date) {
-  const js = d.getDay() // 0..6
-  const monIndex = js === 0 ? 6 : js - 1
-  const x = new Date(d)
-  x.setDate(d.getDate() - monIndex)
-  x.setHours(0,0,0,0)
-  return x
+  if (endType === 'date' && activity.selectedEndBeforeDate) {
+    return dateOnly(activity.selectedEndBeforeDate)
+  }
+
+  if (endType === 'days' && activity.endBeforeUnit) {
+    const days = Number.parseInt(activity.endBeforeUnit, 10)
+    if (!Number.isNaN(days)) {
+      return addDays(startDate, days)
+    }
+  }
+
+  return null
 }
 
-function weeksBetween(a: Date, b: Date) {
-  const ms = startOfWeek(b).getTime() - startOfWeek(a).getTime()
-  return Math.floor(ms / (7 * 24 * 60 * 60 * 1000))
+function generateDailyDates(startDate: Date, endDate: Date, maxResults: number): Date[] {
+  const dates: Date[] = []
+  let current = dateOnly(startDate)
+
+  while (current <= endDate && dates.length < maxResults) {
+    dates.push(current)
+    current = addDays(current, 1)
+  }
+
+  return dates
 }
 
-function matchesSchedule(activity: Activity, date: Date): boolean {
-  // End before date constraint
-  if (activity.endBeforeType === 'date' && activity.selectedEndBeforeDate) {
-    if (date > activity.selectedEndBeforeDate) return false
+function generateWeeklyDates(
+  activity: Activity,
+  startDate: Date,
+  endDate: Date,
+  maxResults: number,
+): Date[] {
+  const dates: Date[] = []
+  const interval = Math.max(activity.weeksInterval ?? 1, 1)
+  const selectedWeekdays = new Set((activity.selectedDays ?? []).map((value) => Number(value)).filter((value) => !Number.isNaN(value)))
+  // If nothing selected, mirror Flutter behaviour by defaulting to the start date's weekday
+  if (!selectedWeekdays.size) {
+    const flutterWeekday = ((startDate.getDay() % 7) + 1)
+    selectedWeekdays.add(flutterWeekday)
   }
 
-  const raw = (activity.frequency ?? '')
-  const freq = raw.toLowerCase().replace(/\s+/g, '')
+  let currentWeekStart = dateOnly(startDate)
 
-  // Monthly selected days support
-  if ((activity.selectedMonthDays?.length ?? 0) > 0) {
-    if (!activity.selectedMonthDays!.includes(date.getDate())) return false
+  while (currentWeekStart <= endDate && dates.length < maxResults) {
+    for (let offset = 0; offset < 7; offset++) {
+      const candidate = addDays(currentWeekStart, offset)
+      if (candidate > endDate) break
+      const flutterWeekday = ((candidate.getDay() % 7) + 1)
+      if (selectedWeekdays.has(flutterWeekday)) {
+        dates.push(candidate)
+      }
+    }
+    currentWeekStart = addWeeks(currentWeekStart, interval)
   }
 
-  // Weeks interval (weekly cadence every N weeks)
-  if ((activity.weeksInterval ?? 1) > 1 && activity.enabledAt) {
-    const delta = weeksBetween(activity.enabledAt, date)
-    if (delta % (activity.weeksInterval ?? 1) !== 0) return false
-  }
-
-  // Daily vs weekly selection (support common synonyms/localizations)
-  if (
-    freq.includes('daily') ||
-    freq.includes('everyday') ||
-    freq === 'ежедневно' ||
-    freq === 'каждыйдень'
-  ) return true
-
-  // Weekdays / Weekends helpers
-  if (freq.includes('weekday')) {
-    const js = date.getDay()
-    return js >= 1 && js <= 5
-  }
-  if (freq.includes('weekend')) {
-    const js = date.getDay()
-    return js === 0 || js === 6
-  }
-
-  const selected = activity.selectedDays ?? []
-  if (selected.length) {
-    // Flutter likely uses 1..7 (Mon..Sun). JS getDay() is 0..6 (Sun..Sat)
-    const js = date.getDay() // 0..6
-    const monBased = js === 0 ? 7 : js // 1..7 with Mon=1..Sun=7
-    if (selected.includes(monBased) || selected.includes(js)) return true
-    return false
-  }
-
-  // Fallback: if frequency hints weekly and no specific days, match same weekday as enabledAt
-  if ((freq.includes('week') || freq.includes('weekly')) && activity.enabledAt) {
-    return date.getDay() === activity.enabledAt.getDay()
-  }
-
-  // Fallback: if no recognizable frequency but activity is active and has no explicit day constraints, assume daily (Flutter often defaults to daily)
-  if (!freq && (activity.selectedDays?.length ?? 0) === 0 && (activity.selectedMonthDays?.length ?? 0) === 0) {
-    return true
-  }
-
-  return false
+  return dates
 }
 
-function buildTaskId(activityId: string, date: Date, hour?: number, minute?: number) {
+function generateMonthlyDates(
+  activity: Activity,
+  startDate: Date,
+  endDate: Date,
+  maxResults: number,
+): Date[] {
+  const dates: Date[] = []
+  const selectedDays = new Set((activity.selectedMonthDays ?? []).map((value) => Number(value)).filter((value) => !Number.isNaN(value)))
+  if (!selectedDays.size) return dates
+
+  let cursor = new Date(startDate.getFullYear(), startDate.getMonth(), 1)
+
+  while (cursor <= endDate && dates.length < maxResults) {
+    for (const day of selectedDays) {
+      const candidate = new Date(cursor.getFullYear(), cursor.getMonth(), day)
+      if (candidate.getMonth() !== cursor.getMonth()) continue
+      if (candidate < startDate || candidate > endDate) continue
+      dates.push(candidate)
+    }
+    cursor = addMonths(cursor, 1)
+  }
+
+  return dates
+}
+
+function generateScheduledDatesForActivity(
+  activity: Activity,
+  { maxDays = MAX_DAYS_DEFAULT, maxResults = MAX_RESULTS_DEFAULT }: { maxDays?: number; maxResults?: number } = {},
+): Date[] {
+  if (!activity.activeStatus || !activity.enabledAt) return []
+
+  const startDate = dateOnly(activity.enabledAt)
+  const now = new Date()
+
+  const rawType = (activity.type ?? '').toLowerCase()
+  const rawFrequency = (activity.frequency ?? '').toLowerCase()
+
+  if (rawType === 'one_time' || rawFrequency === 'one_time') {
+    const oneTimeDate = activity.selectedEndBeforeDate ?? activity.enabledAt
+    return oneTimeDate ? [dateOnly(oneTimeDate)] : []
+  }
+
+  const maxFutureDate = addDays(now, maxDays)
+  const endCandidate = calculateEndDate(activity, startDate)
+  const effectiveEnd = endCandidate && endCandidate < maxFutureDate ? endCandidate : maxFutureDate
+
+  if (effectiveEnd < startDate) {
+    return []
+  }
+
+  if (rawFrequency === 'daily') {
+    return generateDailyDates(startDate, effectiveEnd, maxResults)
+  }
+
+  if (rawFrequency === 'weekly') {
+    return generateWeeklyDates(activity, startDate, effectiveEnd, maxResults)
+  }
+
+  if (rawFrequency === 'monthly') {
+    return generateMonthlyDates(activity, startDate, effectiveEnd, maxResults)
+  }
+
+  // Fallback: treat unknown frequencies as daily cadence
+  return generateDailyDates(startDate, effectiveEnd, maxResults)
+}
+
+function buildTaskId(activity: Activity, date: Date) {
   const ymd = toYMD(date)
-  if (typeof hour === 'number' && typeof minute === 'number') {
-    return `${activityId}-${ymd}-${pad2(hour)}${pad2(minute)}`
+  if ((activity.type ?? '').toLowerCase() === 'one_time' && activity.time) {
+    return `${activity.id}-${ymd}-${pad2(activity.time.hour)}${pad2(activity.time.minute)}`
   }
-  return `${activityId}-${ymd}`
+  return `${activity.id}-${ymd}`
 }
 
 /**
  * Generate planned TaskInstances for a specific date from active Activities.
- * This is client-side generation for display, not creating Firestore docs.
+ * This mirrors the Flutter ActivityController scheduling logic.
  */
-export function generateTasksForDate(activities: Activity[], date: Date): TaskInstance[] {
-  const items: TaskInstance[] = []
-  const ymd = toYMD(date)
-  
+export function generateTasksForDate(activities: Activity[], target: Date): TaskInstance[] {
+  const targetDate = dateOnly(target)
+  const ymd = toYMD(targetDate)
+  const tasks: TaskInstance[] = []
+
   for (const activity of activities) {
-    if (!activity.activeStatus) continue
-    if (!matchesSchedule(activity, date)) continue
-    
-    const id = buildTaskId(activity.id, date, activity.time?.hour, activity.time?.minute)
-    items.push({
+    const scheduledDates = generateScheduledDatesForActivity(activity)
+    if (!scheduledDates.some((scheduled) => scheduled.getTime() === targetDate.getTime())) {
+      continue
+    }
+
+    const id = buildTaskId(activity, targetDate)
+    tasks.push({
       id,
       activityId: activity.id,
       date: ymd,
@@ -118,15 +194,14 @@ export function generateTasksForDate(activities: Activity[], date: Date): TaskIn
       time: activity.time ? { hour: activity.time.hour, minute: activity.time.minute } : undefined,
     })
   }
-  
-  // Sort by time if available
-  items.sort((a, b) => {
+
+  tasks.sort((a, b) => {
     const aH = a.time?.hour ?? 24
     const aM = a.time?.minute ?? 0
     const bH = b.time?.hour ?? 24
     const bM = b.time?.minute ?? 0
     return aH - bH || aM - bM
   })
-  
-  return items
+
+  return tasks
 }

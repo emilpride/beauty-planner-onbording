@@ -1,4 +1,4 @@
-import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { collection, doc, setDoc, Timestamp } from 'firebase/firestore'
 import { getFirestoreDb } from '@/lib/firebase'
 import type { TaskInstance, TaskStatus } from '@/types/task'
 
@@ -22,6 +22,6 @@ export async function setTaskStatus(userId: string, task: TaskInstance, status: 
     date: task.date,
     status,
     time: task.time ? { hour: task.time.hour, minute: task.time.minute } : undefined,
-    updatedAt: serverTimestamp(),
+    updatedAt: Timestamp.fromDate(new Date()),
   }, { merge: true })
 }

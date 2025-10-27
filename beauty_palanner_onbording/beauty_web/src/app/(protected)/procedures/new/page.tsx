@@ -33,7 +33,7 @@ export default function NewActivityPage() {
           <div className="mb-6">
             <Link 
               href="/procedures"
-              className="inline-flex items-center gap-2 text-[#A385E9] hover:text-[#8B6BC9] font-medium mb-4 transition"
+              className="inline-flex items-center gap-2 text-accent hover:brightness-95 font-medium mb-4 transition"
             >
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path 
@@ -46,14 +46,14 @@ export default function NewActivityPage() {
               </svg>
               Back to Procedures
             </Link>
-            <h1 className="text-3xl font-bold text-[#5C4688]">Add New Procedure</h1>
-            <p className="text-gray-500 mt-2">
+            <h1 className="text-3xl font-bold text-text-primary">Add New Procedure</h1>
+            <p className="text-text-secondary mt-2">
               Choose from our preset procedures or create your own custom routine
             </p>
           </div>
 
           {/* Inline Picker Card */}
-          <div className="bg-white rounded-2xl shadow-lg p-8">
+          <div className="bg-surface border border-border-subtle rounded-2xl shadow-lg p-8">
             <InlineProcedurePicker onSubmit={onSubmitMany} />
           </div>
         </div>

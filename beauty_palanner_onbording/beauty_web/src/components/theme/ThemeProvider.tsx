@@ -45,7 +45,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const applyTheme = useCallback((m: ThemeMode) => {
     const effective = m === 'system' ? (getSystemPrefersDark() ? 'dark' : 'light') : m
     const root = document.documentElement
+    // Set attribute (if needed by future CSS)
     root.setAttribute('data-theme', effective)
+    // Also toggle .dark class for existing styles
+    root.classList.toggle('dark', effective === 'dark')
   }, [])
 
   const applyAccent = useCallback((hex: string) => {

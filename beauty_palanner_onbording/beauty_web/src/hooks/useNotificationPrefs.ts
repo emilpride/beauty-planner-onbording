@@ -7,7 +7,7 @@ export function useNotificationPrefs(userId?: string | null) {
   return useQuery<NotificationPrefs>({
     queryKey: ['notificationPrefs', userId ?? 'anon'],
     queryFn: async () => {
-      if (!userId) return { emailReminders: false, weeklyEmail: false, mobilePush: false }
+      if (!userId) return { procedures: { push: false, email: false }, mood: { push: false, email: false }, weeklyEmail: false }
       return fetchNotificationPrefs(userId)
     },
     enabled: !!userId,

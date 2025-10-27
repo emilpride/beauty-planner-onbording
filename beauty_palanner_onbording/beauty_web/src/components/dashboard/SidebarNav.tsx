@@ -5,7 +5,8 @@ import type { Route } from 'next'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useTheme } from '@/hooks/useTheme'
 import { AnimatePresence, motion } from 'framer-motion'
 
 const items = [
@@ -26,7 +27,9 @@ export function SidebarNav({ mobileOpen, setMobileOpen }: Props) {
   const navRef = useRef<HTMLDivElement>(null)
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([])
   // Mobile-only controls
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => (typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light'))
+  const { mode, setMode } = useTheme()
+  const [systemDark, setSystemDark] = useState<boolean>(() => (typeof window !== 'undefined' ? window.matchMedia?.('(prefers-color-scheme: dark)').matches : false))
+  const isDark = useMemo(() => mode === 'dark' || (mode === 'system' && systemDark), [mode, systemDark])
   const [language, setLanguage] = useState<string>(() => (typeof window !== 'undefined' ? (localStorage.getItem('language') || 'en') : 'en'))
 
   // Active item handled by matching pathname directly
@@ -37,13 +40,19 @@ export function SidebarNav({ mobileOpen, setMobileOpen }: Props) {
     localStorage.setItem('language', language)
   }, [language])
   
+  // Track system color scheme to derive effective theme when mode === 'system'
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = (e: MediaQueryListEvent) => setSystemDark(e.matches)
+    setSystemDark(mq.matches)
+    mq.addEventListener?.('change', onChange)
+    return () => mq.removeEventListener?.('change', onChange)
+  }, [])
+
   const toggleTheme = () => {
-    const next = theme === 'light' ? 'dark' : 'light'
-    setTheme(next)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('theme', next)
-      document.documentElement.classList.toggle('dark', next === 'dark')
-    }
+    // Force switch between light and dark; overrides system mode if set
+    setMode(isDark ? 'light' : 'dark')
   }
   
   return (
@@ -111,8 +120,20 @@ export function SidebarNav({ mobileOpen, setMobileOpen }: Props) {
         })}
       </nav>
       
+      {/* Footer links (hidden when collapsed; appear after hover-expand) */}
+      {expanded && (
+        <div className="w-full px-3 mt-2 mb-2" aria-label="Legal and info links">
+          <div className="px-1 flex flex-col gap-1 text-xs text-text-secondary/80">
+            <a href="https://beautymirror.app/terms" target="_blank" rel="noopener noreferrer" className="px-2 py-1 rounded-md hover:bg-surface-hover">Terms of Service</a>
+            <a href="https://beautymirror.app/privacy" target="_blank" rel="noopener noreferrer" className="px-2 py-1 rounded-md hover:bg-surface-hover">Privacy Policy</a>
+            <a href="https://beautymirror.app/contact" target="_blank" rel="noopener noreferrer" className="px-2 py-1 rounded-md hover:bg-surface-hover">Contact</a>
+            <a href="https://beautymirror.app/about" target="_blank" rel="noopener noreferrer" className="px-2 py-1 rounded-md hover:bg-surface-hover">About</a>
+          </div>
+        </div>
+      )}
+
       {/* Logout Button */}
-      <div className="w-full px-3 mt-4">
+      <div className="w-full px-3 mt-2">
         <button 
           onClick={() => logout()}
           className={`flex items-center gap-3 rounded-lg text-red-500 border border-border-subtle hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 transition ${
@@ -207,6 +228,12 @@ export function SidebarNav({ mobileOpen, setMobileOpen }: Props) {
               </nav>
 
               <div className="w-full mt-4">
+                <div className="mb-3 text-xs text-text-secondary/80">
+                  <a href="https://beautymirror.app/terms" target="_blank" rel="noopener noreferrer" className="block px-2 py-1 rounded-md hover:bg-surface-hover">Terms</a>
+                  <a href="https://beautymirror.app/privacy" target="_blank" rel="noopener noreferrer" className="block px-2 py-1 rounded-md hover:bg-surface-hover">Privacy</a>
+                  <a href="https://beautymirror.app/contact" target="_blank" rel="noopener noreferrer" className="block px-2 py-1 rounded-md hover:bg-surface-hover">Contact</a>
+                  <a href="https://beautymirror.app/about" target="_blank" rel="noopener noreferrer" className="block px-2 py-1 rounded-md hover:bg-surface-hover">About</a>
+                </div>
                 {/* Mobile-only language and theme controls */}
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
@@ -217,7 +244,7 @@ export function SidebarNav({ mobileOpen, setMobileOpen }: Props) {
                     ))}
                   </div>
                   <button onClick={toggleTheme} className="h-9 w-9 grid place-items-center rounded-lg border border-border-subtle hover:bg-surface-hover" aria-label="Toggle theme">
-                    {theme === 'dark' ? (
+                    {isDark ? (
                       <svg className="w-5 h-5 text-[#A385E9]" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
                     ) : (
                       <svg className="w-5 h-5 text-[#FFB800]" viewBox="0 0 24 24" fill="none"><path d="M12 17.5C14.7614 17.5 17 15.2614 17 12.5C17 9.73858 14.7614 7.5 12 7.5C9.23858 7.5 7 9.73858 7 12.5C7 15.2614 9.23858 17.5 12 17.5ZM12 5.5V3M12 22V19.5M19.0708 6.42923L20.4851 5.01501M3.51489 20.9851L4.92911 19.5709M21 12.5H18.5M5.5 12.5H3M19.0708 18.5708L20.4851 19.985M3.51489 4.01501L4.92911 5.42923" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -228,7 +255,7 @@ export function SidebarNav({ mobileOpen, setMobileOpen }: Props) {
                   onClick={() => { setMobileOpen(false); logout() }}
                   className="w-full flex items-center gap-3 rounded-lg text-red-500 border border-border-subtle hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 transition px-3 py-2.5"
                 >
-                  <Image src="/icons/logout.svg" alt="Logout" width={20} height={20} className="w-5 h-5 object-contain shrink-0" />
+                  <Image src="/icons/logout.svg" alt="Logout" width={20} height={20} className="w-5 h-5 object-contain shrink-0 icon-auto" />
                   <span className="font-medium text-sm whitespace-nowrap">Logout</span>
                 </button>
               </div>

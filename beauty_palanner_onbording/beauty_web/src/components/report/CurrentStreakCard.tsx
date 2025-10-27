@@ -12,13 +12,13 @@ export function CurrentStreakCard({
   totalPerfectDays?: number
 }) {
   return (
-    <div className="flex flex-row items-start p-6 gap-4 bg-white dark:bg-surface rounded-lg shadow-md">
+    <div className="flex flex-row items-start gap-4 rounded-lg border border-border-subtle bg-surface p-6 shadow-md">
       {/* Left: Fire Icon & Streak */}
-      <div className="flex flex-col items-center gap-1 px-4 py-1 bg-[#F6F5FE] dark:bg-surface-hover rounded-lg flex-1">
-        <div className="text-sm font-semibold text-[#5C4688] dark:text-text-primary mb-1">
+      <div className="flex flex-1 flex-col items-center gap-1 rounded-lg bg-surface-hover px-4 py-1">
+        <div className="mb-1 text-sm font-semibold text-[rgb(var(--accent))]">
           Current Streak
         </div>
-        <div className="flex flex-col items-center py-2 px-12 bg-white dark:bg-surface rounded-md">
+        <div className="flex flex-col items-center rounded-md bg-surface px-12 py-2">
           {/* Fire Icon */}
           <div className="relative w-16 h-16 mb-2">
             <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -35,7 +35,7 @@ export function CurrentStreakCard({
               <ellipse cx="32" cy="34" rx="8" ry="10" fill="#FFED6F" opacity="0.8" />
             </svg>
           </div>
-          <div className="text-[40px] font-bold leading-[50px] text-[#5C4688] dark:text-text-primary">
+          <div className="text-[40px] font-bold leading-[50px] text-text-primary">
             {currentStreak}
           </div>
         </div>
@@ -54,10 +54,10 @@ export function CurrentStreakCard({
 function StatRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col items-start gap-0.5">
-      <div className="text-[13px] font-bold leading-tight text-[#969AB7] dark:text-text-secondary">
+  <div className="text-[13px] font-bold leading-tight text-text-secondary">
         {label}
       </div>
-      <div className="text-xl font-semibold text-center text-[#5C4688] dark:text-text-primary">
+  <div className="text-xl font-semibold text-center text-text-primary">
         {value}
       </div>
     </div>

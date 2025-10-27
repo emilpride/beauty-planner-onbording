@@ -1,5 +1,6 @@
 "use client"
 
+import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import Link from 'next/link'
@@ -21,6 +22,8 @@ export function DashboardHeader({ onBurger }: HeaderProps) {
   const [isLanguageOpen, setIsLanguageOpen] = useState(false)
   const { user } = useAuth()
   const { data: profile } = useUserProfile(user?.uid)
+  const avatarUrl = profile?.profilePicture || user?.photoURL || ''
+  const fallbackInitial = (profile?.name || user?.displayName || 'U').charAt(0).toUpperCase()
 
   // Initialize theme from localStorage or system preference
   useEffect(() => {
@@ -159,8 +162,21 @@ export function DashboardHeader({ onBurger }: HeaderProps) {
               <div className="text-xs text-text-secondary">{`Level ${profile?.level ?? 1}`}</div>
             </div>
             <div className="relative">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#A385E9] to-[#E8B1EB] grid place-items-center text-white text-sm font-bold ring-2 ring-white dark:ring-gray-800 shadow-md">
-                {(profile?.name || user?.displayName || 'U').charAt(0).toUpperCase()}
+              <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-full ring-2 ring-white shadow-md dark:ring-gray-800">
+                {avatarUrl ? (
+                  <Image
+                    src={avatarUrl}
+                    alt={profile?.name || user?.displayName || 'User avatar'}
+                    width={40}
+                    height={40}
+                    className="h-full w-full object-cover"
+                    priority
+                  />
+                ) : (
+                  <div className="h-full w-full bg-gradient-to-br from-[#A385E9] to-[#E8B1EB] text-sm font-bold text-white grid place-items-center">
+                    {fallbackInitial}
+                  </div>
+                )}
               </div>
               <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-green-500 ring-2 ring-white dark:ring-gray-800" />
             </div>

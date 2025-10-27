@@ -104,7 +104,7 @@ export default function ProceduresPage() {
 
     return (
       <div 
-        className="rounded-xl p-4 flex items-center gap-3 hover:shadow-md transition group"
+        className="rounded-xl border border-border-subtle bg-surface p-4 flex items-center gap-3 hover:shadow-md transition group"
         style={{ backgroundColor }}
       >
         {/* Icon */}
@@ -118,6 +118,7 @@ export default function ProceduresPage() {
               alt={activity.name} 
               width={28} 
               height={28}
+              className="icon-auto"
             />
           ) : (
             <span className="text-white text-lg font-bold">
@@ -128,10 +129,10 @@ export default function ProceduresPage() {
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-[#5C4688] truncate">
+          <h3 className="font-semibold text-text-primary truncate">
             {activity.name}
           </h3>
-          <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+          <div className="flex items-center gap-2 text-xs text-text-secondary mt-1">
             <span>{activity.category || 'Uncategorized'}</span>
             <span>•</span>
             <span>{activity.type}</span>
@@ -151,13 +152,13 @@ export default function ProceduresPage() {
         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
           <Link 
             href={`/procedures/${activity.id}` as Route}
-            className="px-3 py-1.5 text-sm font-medium text-[#A385E9] hover:bg-white rounded-lg transition"
+            className="px-3 py-1.5 text-sm font-medium text-accent hover:bg-surface-hover rounded-lg transition"
           >
             Edit
           </Link>
           <button
             onClick={() => user && del.mutate({ userId: user.uid, id: activity.id })}
-            className="px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-white rounded-lg transition"
+            className="px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-surface-hover rounded-lg transition"
           >
             Delete
           </button>
@@ -217,7 +218,7 @@ export default function ProceduresPage() {
                 placeholder="Search procedures..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A385E9] focus:border-transparent bg-surface text-text-primary placeholder:text-text-secondary"
+                className="w-full pl-10 pr-4 py-3 border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent bg-surface text-text-primary placeholder:text-text-secondary"
               />
             </div>
 
@@ -228,10 +229,10 @@ export default function ProceduresPage() {
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`
-                    px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition
+                    px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition border
                     ${selectedCategory === cat.id 
-                      ? 'bg-[#A385E9] text-white shadow-md' 
-                      : 'bg-surface-hover text-text-primary hover:bg-surface'
+                      ? 'bg-accent text-white shadow-md border-transparent' 
+                      : 'bg-surface text-text-primary border-border-subtle hover:bg-surface-hover'
                     }
                   `}
                 >
@@ -244,15 +245,15 @@ export default function ProceduresPage() {
           {/* Content */}
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#A385E9] border-t-transparent" />
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-accent border-t-transparent" />
             </div>
           ) : filteredActivities.length === 0 ? (
             <div className="bg-surface rounded-xl p-12 text-center shadow-sm border border-border-subtle">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-surface-hover flex items-center justify-center">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-surface-hover flex items-center justify-center text-accent">
                 <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
                   <path 
                     d="M20 8V32M8 20H32" 
-                    stroke="#A385E9" 
+                    stroke="currentColor" 
                     strokeWidth="3" 
                     strokeLinecap="round"
                   />
@@ -268,7 +269,7 @@ export default function ProceduresPage() {
               {!searchQuery && selectedCategory === 'all' && (
                 <Link 
                   href={"/procedures/new" as Route}
-                  className="inline-block px-6 py-3 bg-[#A385E9] text-white font-semibold rounded-xl hover:bg-[#8B6BC9] transition"
+                  className="inline-block px-6 py-3 bg-accent text-white font-semibold rounded-xl transition hover:brightness-95"
                 >
                   Add Your First Procedure
                 </Link>

@@ -26,11 +26,7 @@ export async function fetchUserUpdatesSince(userId: string, since: Date): Promis
   return items
 }
 
-export async function fetchUserUpdatesForToday(userId: string) {
-  return fetchUserUpdatesSince(userId, startOfDay(new Date()))
-}
-
-// New: Fetch updates by task date (YYYY-MM-DD string in documents)
+// Shared helper to normalize YYYY-MM-DD strings
 function toYMD(d: Date) {
   const y = d.getFullYear()
   const m = `${d.getMonth() + 1}`.padStart(2, '0')
@@ -38,22 +34,33 @@ function toYMD(d: Date) {
   return `${y}-${m}-${day}`
 }
 
+export async function fetchUserUpdatesForToday(userId: string) {
+  return fetchUserUpdatesForDate(userId, new Date())
+}
+
 export async function fetchUserUpdatesForDate(userId: string, date: Date): Promise<TaskInstance[]> {
   const db = getFirestoreDb()
   const col = collection(doc(collection(db, 'Users'), userId), 'Updates')
   const ymd = toYMD(date)
 
-  // Some datasets use lowercase 'date', others PascalCase 'Date'. Query both and merge.
-  const qLower = query(col, where('date', '==', ymd), orderBy('updatedAt', 'asc'))
-  const qUpper = query(col, where('Date', '==', ymd), orderBy('updatedAt', 'asc'))
-
-  const [snapLower, snapUpper] = await Promise.all([getDocs(qLower), getDocs(qUpper)])
-  const map = new Map<string, TaskInstance>()
-  for (const d of snapLower.docs) map.set(d.id, parseTaskInstance(d.id, d.data()))
-  for (const d of snapUpper.docs) map.set(d.id, parseTaskInstance(d.id, d.data()))
-  const items = Array.from(map.values())
-  items.sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime())
-  return items
+  const snap = await getDocs(col)
+  const items = snap.docs.map((d) => parseTaskInstance(d.id, d.data()))
+  const filtered = items.filter((item) => {
+    const normal = (item.date || '').trim()
+    if (!normal) return false
+    if (normal === ymd) return true
+    const parts = normal.split(/[^0-9]/).filter(Boolean)
+    if (parts.length === 3) {
+      const [year, month, day] = parts.map((part) => Number(part))
+      if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+        const rebuilt = toYMD(new Date(year, month - 1, day))
+        return rebuilt === ymd
+      }
+    }
+    return false
+  })
+  filtered.sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime())
+  return filtered
 }
 
 export async function fetchUserUpdatesInDateRange(
@@ -63,16 +70,23 @@ export async function fetchUserUpdatesInDateRange(
 ): Promise<TaskInstance[]> {
   const db = getFirestoreDb()
   const col = collection(doc(collection(db, 'Users'), userId), 'Updates')
-  const fromStr = toYMD(from)
-  const toStr = toYMD(to)
-  // Query lowercase and PascalCase variants, then merge
-  const qLower = query(col, where('date', '>=', fromStr), where('date', '<=', toStr), orderBy('date', 'asc'))
-  const qUpper = query(col, where('Date', '>=', fromStr), where('Date', '<=', toStr), orderBy('Date', 'asc'))
-  const [snapLower, snapUpper] = await Promise.all([getDocs(qLower), getDocs(qUpper)])
-  const map = new Map<string, TaskInstance>()
-  for (const d of snapLower.docs) map.set(d.id, parseTaskInstance(d.id, d.data()))
-  for (const d of snapUpper.docs) map.set(d.id, parseTaskInstance(d.id, d.data()))
-  const items = Array.from(map.values())
-  items.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
-  return items
+  const snap = await getDocs(col)
+  const start = startOfDay(from)
+  const end = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999)
+
+  const items = snap.docs.map((d) => parseTaskInstance(d.id, d.data()))
+  const filtered = items.filter((item) => {
+    if (!item.date) return false
+    const parts = item.date.split('-').map((part) => Number(part))
+    if (parts.length !== 3) return false
+    const [y, m, day] = parts
+    if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(day)) return false
+    const taskDate = new Date(y, m - 1, day)
+    return taskDate >= start && taskDate <= end
+  })
+  filtered.sort((a, b) => {
+    if (a.date === b.date) return a.updatedAt.getTime() - b.updatedAt.getTime()
+    return a.date < b.date ? -1 : 1
+  })
+  return filtered
 }

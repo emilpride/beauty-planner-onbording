@@ -8,7 +8,7 @@ export default function MoodsPage() {
   return (
     <Protected>
       <PageContainer>
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-6xl mx-auto w-full">
           <MoodStat />
         </div>
       </PageContainer>

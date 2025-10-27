@@ -17,11 +17,11 @@ export function ActivitiesCompletedChart({
   data: BarDatum[]
 }) {
   return (
-    <div className="flex flex-col items-center p-4 gap-4 bg-white dark:bg-surface rounded-lg shadow-md">
+    <div className="flex flex-col items-center gap-4 rounded-lg border border-border-subtle bg-surface p-4 shadow-md">
       <GraphHeader title={title} selected={period} onChange={onChange} />
       
       {/* Divider */}
-      <div className="w-full h-px bg-[#EEEEEE] dark:bg-border-subtle" />
+  <div className="h-px w-full bg-border-subtle" />
       
       <div className="w-full h-[260px]">
         {data.length === 0 ? (
@@ -33,30 +33,30 @@ export function ActivitiesCompletedChart({
                 dataKey="label" 
                 tickLine={false} 
                 axisLine={false}
-                tick={{ fill: '#5C4688', fontSize: 14, fontWeight: 500 }}
+                tick={{ fill: 'rgb(var(--text-primary))', fontSize: 14, fontWeight: 500 }}
               />
               <YAxis 
                 allowDecimals={false} 
                 width={28} 
                 tickLine={false} 
                 axisLine={false}
-                tick={{ fill: '#5C4688', fontSize: 14, fontWeight: 500 }}
+                tick={{ fill: 'rgb(var(--text-primary))', fontSize: 14, fontWeight: 500 }}
               />
               <Tooltip
                 formatter={(v: ValueType, _n: NameType) => [`${String(v)}`, 'Activities']}
                 labelFormatter={(l) => `Day ${String(l)}`}
                 contentStyle={{
-                  backgroundColor: '#1E1B39',
-                  border: 'none',
+                  backgroundColor: 'rgb(var(--surface))',
+                  border: `1px solid rgb(var(--border-subtle))`,
                   borderRadius: '9.68px',
                   padding: '8px 12px',
-                  color: '#FFFFFF',
+                  color: 'rgb(var(--text-primary))',
                 }}
               />
               <Bar 
                 dataKey="value" 
                 radius={[8, 8, 0, 0]} 
-                fill="#A385E9"
+                fill="rgb(var(--accent))"
                 opacity={0.48}
                 activeBar={{ opacity: 1 }}
               />

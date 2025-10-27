@@ -24,6 +24,7 @@ export interface Activity {
   lastModifiedAt?: Date | null
   endBeforeUnit?: string | null
   endBeforeType?: 'date' | 'days' | string
+  endBeforeActive?: boolean
   selectedEndBeforeDate?: Date | null
 }
 
@@ -31,8 +32,16 @@ export function parseActivity(data: Record<string, unknown>): Activity {
   const asString = (v: unknown) => (typeof v === 'string' ? v : '')
   const asBool = (v: unknown) => (typeof v === 'boolean' ? v : Boolean(v))
   const asNumber = (v: unknown) => (typeof v === 'number' ? v : Number(v ?? 0))
-  const asDate = (v: unknown): Date | null =>
-    typeof v === 'string' ? new Date(v) : null
+  const asDate = (v: unknown): Date | null => {
+    if (!v) return null
+    if (typeof v === 'string') return new Date(v)
+    if (typeof v === 'number') return new Date(v)
+    if (typeof v === 'object') {
+      const o = v as { toDate?: () => Date }
+      if (typeof o.toDate === 'function') return o.toDate()
+    }
+    return null
+  }
   const asNumArray = (v: unknown) => (Array.isArray(v) ? (v as unknown[]).map((x) => Number(x)) : [])
   const time = (v: unknown): ActivityTime | null => {
     if (!v || typeof v !== 'object') return null
@@ -63,6 +72,7 @@ export function parseActivity(data: Record<string, unknown>): Activity {
     lastModifiedAt: asDate(data['LastModifiedAt']),
     endBeforeUnit: asString(data['EndBeforeUnit']) || null,
     endBeforeType: asString(data['EndBeforeType']) || 'date',
+    endBeforeActive: asBool(data['EndBeforeActive']),
     selectedEndBeforeDate: asDate(data['SelectedEndBeforeDate']),
   }
 }
@@ -91,6 +101,7 @@ export function toFirebaseActivity(a: Activity): Record<string, unknown> {
     LastModifiedAt: a.lastModifiedAt ? a.lastModifiedAt.toISOString() : undefined,
     EndBeforeUnit: a.endBeforeUnit ?? '',
     EndBeforeType: a.endBeforeType ?? 'date',
+    EndBeforeActive: a.endBeforeActive ?? false,
     SelectedEndBeforeDate: a.selectedEndBeforeDate ? a.selectedEndBeforeDate.toISOString() : undefined,
   }
 }

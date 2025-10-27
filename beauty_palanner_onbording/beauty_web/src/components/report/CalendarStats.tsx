@@ -23,17 +23,17 @@ export function CalendarStatsCard({
   const days = getCalendarDays(monthDate)
 
   return (
-    <div className="flex flex-col items-center p-4 gap-4 bg-white dark:bg-surface rounded-lg shadow-md">
+    <div className="flex flex-col items-center gap-4 rounded-lg border border-border-subtle bg-surface p-4 shadow-md">
       <GraphHeader title="Calendar Stats" selected={monthLabel} onChange={onMonthChange} items={monthOptions} />
       
       {/* Divider */}
-      <div className="w-full h-px bg-[#EEEEEE] dark:bg-border-subtle" />
+  <div className="h-px w-full bg-border-subtle" />
       
       <div className="w-full">
         {/* Weekday headers */}
-        <div className="flex justify-center gap-[11px] mb-3">
+        <div className="mb-3 flex justify-center gap-[11px]">
           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
-            <div key={d} className="w-[42px] text-center text-sm font-medium text-[#969AB7] dark:text-text-secondary">
+            <div key={d} className="w-[42px] text-center text-sm font-medium text-text-secondary">
               {d}
             </div>
           ))}
@@ -63,17 +63,21 @@ function Ring({ rate, label, highlight, faded }: { rate: number | undefined; lab
   const pct = r < 0 ? 0 : r
   const circumference = 2 * Math.PI * 16
   const progress = circumference * pct
-  
+
+  const secondary = 'rgb(var(--text-secondary))'
+  const primary = 'rgb(var(--text-primary))'
+  const accent = 'rgb(var(--accent))'
+
   // Determine text color based on completion rate
-  let textColor = '#BDBDBD' // 0% - gray
-  if (r >= 0.7) textColor = '#424242' // 70%+ - dark gray
-  if (r >= 1) textColor = '#8985E9' // 100% - purple
-  if (highlight) textColor = '#5C4688' // today
-  
+  let textColor = secondary
+  if (r >= 0.7) textColor = primary
+  if (r >= 1) textColor = accent
+  if (highlight) textColor = accent
+
   return (
     <svg viewBox="0 0 42 42" width="42" height="42" className={faded ? 'opacity-40' : ''}>
       {/* Background ring */}
-      <circle cx="21" cy="21" r="16" stroke="#EBEDFC" strokeWidth="3" fill="none" />
+      <circle cx="21" cy="21" r="16" stroke="rgb(var(--border-subtle))" strokeWidth="3" fill="none" />
       
       {/* Progress ring */}
       {r >= 0 && (
@@ -81,7 +85,7 @@ function Ring({ rate, label, highlight, faded }: { rate: number | undefined; lab
           cx="21"
           cy="21"
           r="16"
-          stroke="#A385E9"
+          stroke={accent}
           strokeWidth="3"
           fill="none"
           strokeDasharray={`${progress} ${circumference - progress}`}

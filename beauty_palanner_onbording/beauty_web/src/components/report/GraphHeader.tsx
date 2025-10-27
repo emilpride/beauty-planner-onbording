@@ -25,15 +25,15 @@ export function GraphHeader({
 }) {
   const options = items ?? DEFAULT_PERIODS
   return (
-    <div className="flex items-center justify-between gap-2 w-full">
-      <h3 className="font-medium text-lg text-[#5C4688] dark:text-text-primary flex-1">
+    <div className="flex w-full items-center justify-between gap-2">
+      <h3 className="flex-1 text-lg font-medium text-text-primary">
         {title}
       </h3>
       <Select
         options={options}
         value={selected}
         onChange={(v) => onChange(String(v))}
-        buttonClassName="py-1.5 px-5 text-sm bg-[#F8F8F8] dark:bg-surface-hover rounded-lg"
+  buttonClassName="rounded-lg border border-border-subtle !bg-surface px-5 py-1.5 text-sm text-text-primary hover:bg-surface-hover"
       />
     </div>
   )

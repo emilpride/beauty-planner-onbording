@@ -10,7 +10,8 @@ import { useActivities } from '@/hooks/useActivities'
 import { useAuth } from '@/hooks/useAuth'
 import { useUpdatesForDate, useUpdatesInDateRange } from '@/hooks/useUpdates'
 import { useScheduledTasks } from '@/hooks/useScheduledTasks'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import type { Activity } from '@/types/activity'
 import type { TaskInstance } from '@/types/task'
 import type { TaskStatus } from '@/types/task'
@@ -39,6 +40,7 @@ function filterByTime<T extends TimeItem>(items: T[], tf: 'all' | 'morning' | 'a
 
 export default function DashboardPage() {
   const { user } = useAuth()
+  const qc = useQueryClient()
   const today = new Date()
   const [selectedDate, setSelectedDate] = useState<Date>(today)
   const [timeFilter, setTimeFilter] = useState<'all' | 'morning' | 'afternoon' | 'evening'>('all')
@@ -48,6 +50,13 @@ export default function DashboardPage() {
   // Toast/Undo for actions
   const [toast, setToast] = useState<{ message: string; actionLabel: string; onAction: () => void; visible: boolean }>({ message: '', actionLabel: 'Undo', onAction: () => {}, visible: false })
   const [toastTimer, setToastTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
+  const [debugTasks, setDebugTasks] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    setDebugTasks(params.has('debugTasks'))
+  }, [])
 
   // Fetch activities and generate scheduled tasks for selected date (like Flutter's loadTasksForToday)
   const { data: activities } = useActivities(user?.uid)
@@ -64,15 +73,26 @@ export default function DashboardPage() {
     for (const t of scheduledTasks) {
       map.set(t.id, t)
     }
-    const updates = dateData?.items ?? []
+  const updates = (dateData?.items ?? []).filter((item) => item.status !== 'deleted')
     for (const u of updates) {
       const hasById = map.has(u.id)
       if (hasById) {
         map.set(u.id, u)
       } else {
-        const found = Array.from(map.values()).find(
-          (x) => x.activityId === u.activityId && x.date === u.date && ((x.time?.hour ?? -1) === (u.time?.hour ?? -2)) && ((x.time?.minute ?? -1) === (u.time?.minute ?? -2))
-        )
+        // Merge by activityId+date. If update has time and scheduled has time, require equality; if update lacks time, ignore time when matching
+        const found = Array.from(map.values()).find((x) => {
+          if (x.activityId !== u.activityId) return false
+          if (x.date !== u.date) return false
+          const uHasTime = typeof u.time?.hour === 'number' && typeof u.time?.minute === 'number'
+          const xHasTime = typeof x.time?.hour === 'number' && typeof x.time?.minute === 'number'
+          if (uHasTime && xHasTime) {
+            return x.time!.hour === u.time!.hour && x.time!.minute === u.time!.minute
+          }
+          // If update has no time, match by activity+date only (legacy docs)
+          if (!uHasTime) return true
+          // If update has time but scheduled doesn't (unlikely), don't match
+          return false
+        })
         if (found) {
           map.set(found.id, u)
         } else {
@@ -86,21 +106,51 @@ export default function DashboardPage() {
       if (item) map.set(id, { ...item, status: st } as TaskInstance)
     }
     // Sort by time for display
-    return Array.from(map.values()).sort((a, b) => {
+    const merged = Array.from(map.values()).sort((a, b) => {
       const aH = a.time?.hour ?? 24
       const aM = a.time?.minute ?? 0
       const bH = b.time?.hour ?? 24
       const bM = b.time?.minute ?? 0
       return aH - bH || aM - bM
     })
-  }, [scheduledTasks, dateData?.items, overrides])
+    if (debugTasks && typeof window !== 'undefined') {
+      // eslint-disable-next-line no-console
+      console.debug('[Dashboard] scheduledTasks', scheduledTasks)
+      // eslint-disable-next-line no-console
+      console.debug('[Dashboard] updates', updates)
+      // eslint-disable-next-line no-console
+      console.debug('[Dashboard] overrides', Array.from(overrides.entries()))
+      // eslint-disable-next-line no-console
+      console.debug('[Dashboard] mergedTasks', merged)
+    }
+    return merged
+  }, [scheduledTasks, dateData?.items, overrides, debugTasks])
+
+  useEffect(() => {
+    const items = dateData?.items
+    if (!items) return
+    setOverrides((prev) => {
+      if (!prev.size) return prev
+      const next = new Map(prev)
+      let changed = false
+      for (const item of items) {
+        if (!next.has(item.id)) continue
+        if (next.get(item.id) === item.status) {
+          next.delete(item.id)
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [dateData?.items])
 
   // Filter procedures by time for LEFT panel
   const plannedItems = filterByTime(allTodayTasks.filter((t) => t.status === 'pending'), timeFilter)
   const completedItems = filterByTime(allTodayTasks.filter((t) => t.status === 'completed'), timeFilter)
   const skippedItems = filterByTime(allTodayTasks.filter((t) => t.status === 'missed' || t.status === 'skipped'), timeFilter)
   const totalToday = allTodayTasks.length
-  const totalPending = allTodayTasks.filter((t) => t.status === 'pending').length
+  // Planned should reflect "scheduled for today" regardless of current status, mirroring Flutter's planned count
+  const totalPlanned = scheduledTasks.length
   const totalCompleted = allTodayTasks.filter((t) => t.status === 'completed').length
   const totalSkipped = allTodayTasks.filter((t) => t.status === 'missed' || t.status === 'skipped').length
 
@@ -127,6 +177,7 @@ export default function DashboardPage() {
     setOverrides(prev => new Map(prev).set(task.id, status))
     try {
       await setTaskStatus(user.uid, task, status)
+      void qc.invalidateQueries({ queryKey: ['updates'] })
     } catch (e) {
       // rollback on error
       setOverrides(prev => {
@@ -197,7 +248,7 @@ export default function DashboardPage() {
     <Protected>
       <PageContainer>
         {/* Mobile order: Calendar -> Rings -> Procedures; Desktop: Procedures | Rings | Calendar */}
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(320px,420px),1fr,minmax(320px,400px)] items-start">
+  <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(480px,612px),1fr,minmax(300px,380px)] items-start">
           {/* Left: Procedures (Activities) with time filters */}
           <div className="space-y-4 order-3 xl:order-1">
             {/* Time of day filters */}
@@ -218,10 +269,24 @@ export default function DashboardPage() {
             {/* Today counters (helps reconcile with Flutter totals) */}
             <div className="flex items-center gap-2 text-[11px] text-text-secondary mt-2">
               <span className="px-2 py-0.5 rounded-full bg-surface border border-border-subtle">Total: <b className="text-text-primary">{totalToday}</b></span>
-              <span className="px-2 py-0.5 rounded-full bg-surface border border-border-subtle">Planned: <b className="text-text-primary">{totalPending}</b></span>
+              <span className="px-2 py-0.5 rounded-full bg-surface border border-border-subtle">Planned: <b className="text-text-primary">{totalPlanned}</b></span>
               <span className="px-2 py-0.5 rounded-full bg-surface border border-border-subtle">Done: <b className="text-text-primary">{totalCompleted}</b></span>
               <span className="px-2 py-0.5 rounded-full bg-surface border border-border-subtle">Skipped: <b className="text-text-primary">{totalSkipped}</b></span>
             </div>
+
+            {debugTasks ? (
+              <div className="rounded-lg border border-dashed border-border-subtle bg-surface p-3 text-xs text-left font-mono whitespace-pre-wrap break-words">
+                debugTasks mode
+                {`
+scheduled: ${scheduledTasks.length}
+updates: ${(dateData?.items ?? []).length}
+overrides: ${overrides.size}
+merged: ${allTodayTasks.length}
+pending: ${plannedItems.length}
+completed: ${completedItems.length}
+skipped: ${skippedItems.length}`}
+              </div>
+            ) : null}
 
             <ProceduresList 
               planned={plannedItems} 

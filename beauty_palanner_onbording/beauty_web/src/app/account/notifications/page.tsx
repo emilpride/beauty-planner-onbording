@@ -5,29 +5,95 @@ import { Protected } from '@/components/auth/Protected'
 import { useAuth } from '@/hooks/useAuth'
 import { usePushNotifications } from '@/hooks/useNotifications'
 import { useNotificationPrefs, useSaveNotificationPrefs } from '@/hooks/useNotificationPrefs'
+import Link from 'next/link'
+import { useEffect, useRef } from 'react'
+
+function ChannelChooser({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: { push: boolean; email: boolean }
+  onChange: (v: { push: boolean; email: boolean }) => void
+}) {
+  // Map to three-state segmented control: Off | Push | Email | Both
+  type Mode = 'off' | 'push' | 'email' | 'both'
+  const mode: Mode = value.push && value.email ? 'both' : value.push ? 'push' : value.email ? 'email' : 'off'
+  const setMode = (m: Mode) => {
+    if (m === 'off') onChange({ push: false, email: false })
+    else if (m === 'push') onChange({ push: true, email: false })
+    else if (m === 'email') onChange({ push: false, email: true })
+    else onChange({ push: true, email: true })
+  }
+  const idx = ['off','push','email','both'].indexOf(mode)
+  // precise pill alignment
+  const tabsRef = useRef<HTMLDivElement | null>(null)
+  const indicatorRef = useRef<HTMLSpanElement | null>(null)
+  const btnRefs = useRef<Array<HTMLButtonElement | null>>([])
+  useEffect(() => {
+    const update = () => {
+      const btn = btnRefs.current[idx]
+      const indicator = indicatorRef.current
+      if (!btn || !indicator) return
+      indicator.style.transform = `translateX(${btn.offsetLeft}px)`
+      indicator.style.width = `${btn.offsetWidth}px`
+    }
+    const raf = requestAnimationFrame(update)
+    const onResize = () => update()
+    window.addEventListener('resize', onResize)
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize) }
+  }, [idx])
+  return (
+    <div className="space-y-2">
+      <div className="text-sm text-text-secondary">{label}</div>
+      <div ref={tabsRef} className="relative inline-flex rounded-xl border border-border-subtle bg-surface p-1">
+        <span ref={indicatorRef} aria-hidden className="absolute top-1 bottom-1 left-1 rounded-lg bg-[rgb(var(--accent))] transition-[transform,width] duration-300" style={{ transform: 'translateX(0)', width: 0 }} />
+        {(['off','push','email','both'] as Mode[]).map((m, i) => (
+          <button ref={(el) => { btnRefs.current[i] = el }} key={m} role="tab" aria-selected={mode===m} onClick={() => setMode(m)} className={`relative z-10 px-3 py-1.5 text-sm font-medium rounded-lg ${mode===m? 'text-white':'text-text-primary'}`}>
+            {m === 'off' ? 'Off' : m === 'push' ? 'Push' : m === 'email' ? 'Email' : 'Both'}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function NotificationsSettingsPage() {
   const { user } = useAuth()
   const { supported, permission, token, busy, enable, disable } = usePushNotifications(user?.uid)
   const { data: prefs } = useNotificationPrefs(user?.uid)
   const savePrefs = useSaveNotificationPrefs()
-  const p = prefs ?? { emailReminders: false, weeklyEmail: false, mobilePush: false }
+  const p = prefs ?? { procedures: { push: false, email: false }, mood: { push: false, email: false }, weeklyEmail: false }
   return (
     <Protected>
       <PageContainer>
-        <h1 className="text-2xl font-bold">Notifications</h1>
-        <section className="card p-6 space-y-4 max-w-xl">
-          {/* Email + Mobile push prefs (source of truth for reminders) */}
-          <div className="space-y-3">
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                className="toggle"
-                checked={!!p.emailReminders}
-                onChange={(e) => user && savePrefs.mutate({ userId: user.uid, prefs: { ...p, emailReminders: e.target.checked } })}
-              />
-              <span>Email reminders</span>
-            </label>
+        <div className="max-w-[720px] mx-auto py-8">
+          <div className="mb-6 flex items-center gap-4">
+            <Link href="/preferences" className="text-text-secondary hover:text-text-primary">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+            <h1 className="text-2xl md:text-3xl font-bold text-text-primary">Notifications</h1>
+          </div>
+        
+        <section className="bg-surface border border-border-subtle rounded-xl p-4 md:p-6 shadow-sm space-y-6">
+          {/* Procedures reminders: choose push/email/both/off */}
+          <ChannelChooser
+            label="Reminders for procedures"
+            value={p.procedures}
+            onChange={(val) => user && savePrefs.mutate({ userId: user.uid, prefs: { ...p, procedures: val } })}
+          />
+
+          {/* Mood check-in: choose push/email/both/off */}
+          <ChannelChooser
+            label="Reminder to log mood"
+            value={p.mood}
+            onChange={(val) => user && savePrefs.mutate({ userId: user.uid, prefs: { ...p, mood: val } })}
+          />
+
+          <div className="pt-2">
             <label className="flex items-center gap-3">
               <input
                 type="checkbox"
@@ -36,15 +102,6 @@ export default function NotificationsSettingsPage() {
                 onChange={(e) => user && savePrefs.mutate({ userId: user.uid, prefs: { ...p, weeklyEmail: e.target.checked } })}
               />
               <span>Weekly progress email</span>
-            </label>
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                className="toggle"
-                checked={!!p.mobilePush}
-                onChange={(e) => user && savePrefs.mutate({ userId: user.uid, prefs: { ...p, mobilePush: e.target.checked } })}
-              />
-              <span>Mobile push (send to my phone)</span>
             </label>
           </div>
 
@@ -68,6 +125,7 @@ export default function NotificationsSettingsPage() {
             {token ? <div>FCM token: {token}</div> : null}
           </div>
         </section>
+        </div>
       </PageContainer>
     </Protected>
   )

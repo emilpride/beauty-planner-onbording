@@ -42,7 +42,7 @@ export function ActivityCards({ title, items }: { title: string; items: TaskInst
                     alt={t.activityId}
                     width={32}
                     height={32}
-                    className="w-8 h-8 object-contain brightness-0 invert"
+                    className="w-8 h-8 object-contain icon-auto"
                   />
                 </div>
                 <div className="flex-1 min-w-0">

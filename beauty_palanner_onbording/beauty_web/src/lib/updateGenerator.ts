@@ -20,37 +20,67 @@ function addDays(d: Date, days: number) {
   return x
 }
 
-function startOfWeek(d: Date) {
-  const js = d.getDay() // 0..6
-  const monIndex = js === 0 ? 6 : js - 1
-  const x = new Date(d)
-  x.setDate(d.getDate() - monIndex)
-  x.setHours(0,0,0,0)
-  return x
-}
+// Removed Monday-anchored helpers; we'll use simple week stepping from start date
 
-function weeksBetween(a: Date, b: Date) {
-  const ms = startOfWeek(b).getTime() - startOfWeek(a).getTime()
-  return Math.floor(ms / (7 * 24 * 60 * 60 * 1000))
+// Flutter-style simple week stepping from the activity start date (no Monday anchoring)
+function weeksBetweenSimple(a: Date, b: Date) {
+  const a0 = new Date(a.getFullYear(), a.getMonth(), a.getDate())
+  const b0 = new Date(b.getFullYear(), b.getMonth(), b.getDate())
+  const diffDays = Math.floor((b0.getTime() - a0.getTime()) / (24 * 60 * 60 * 1000))
+  return Math.floor(diffDays / 7)
 }
 
 function matchesSchedule(activity: Activity, date: Date): boolean {
-  // End before date constraint
-  if (activity.endBeforeType === 'date' && activity.selectedEndBeforeDate) {
-    if (date > activity.selectedEndBeforeDate) return false
+  // Normalize to date-only
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const enabledAt = activity.enabledAt
+    ? new Date(activity.enabledAt.getFullYear(), activity.enabledAt.getMonth(), activity.enabledAt.getDate())
+    : null
+
+  // Start boundary: must be on/after enabledAt when present
+  if (enabledAt && d < enabledAt) return false
+
+  // Handle one-time explicitly
+  const rawType = (activity.type || '').toLowerCase()
+  const rawFreq = (activity.frequency ?? '')
+  const freq = rawFreq.toLowerCase().replace(/\s+/g, '')
+  if (rawType === 'one_time' || freq === 'one_time') {
+    const oneTimeDate = activity.selectedEndBeforeDate || activity.enabledAt
+    if (!oneTimeDate) return false
+    const one = new Date(oneTimeDate.getFullYear(), oneTimeDate.getMonth(), oneTimeDate.getDate())
+    return d.getTime() === one.getTime()
   }
 
-  const raw = (activity.frequency ?? '')
-  const freq = raw.toLowerCase().replace(/\s+/g, '')
+  // End-before constraint applies only when flag is active
+  if (activity.endBeforeActive) {
+    if (activity.endBeforeType === 'date' && activity.selectedEndBeforeDate) {
+      const end = new Date(
+        activity.selectedEndBeforeDate.getFullYear(),
+        activity.selectedEndBeforeDate.getMonth(),
+        activity.selectedEndBeforeDate.getDate(),
+      )
+      if (d > end) return false
+    }
+    if (activity.endBeforeType === 'days' && activity.endBeforeUnit && enabledAt) {
+      const n = parseInt(activity.endBeforeUnit, 10)
+      if (!Number.isNaN(n)) {
+        const end = new Date(enabledAt)
+        end.setDate(end.getDate() + n)
+        if (d > end) return false
+      }
+    }
+  }
+
+  // Frequency normalization retained (after one-time handling above)
 
   // Monthly selected days support
   if ((activity.selectedMonthDays?.length ?? 0) > 0) {
-    if (!activity.selectedMonthDays!.includes(date.getDate())) return false
+    if (!activity.selectedMonthDays!.includes(d.getDate())) return false
   }
 
   // Weeks interval (weekly cadence every N weeks)
-  if ((activity.weeksInterval ?? 1) > 1 && activity.enabledAt) {
-    const delta = weeksBetween(activity.enabledAt, date)
+  if ((activity.weeksInterval ?? 1) > 1 && enabledAt) {
+    const delta = weeksBetweenSimple(enabledAt, d)
     if (delta % (activity.weeksInterval ?? 1) !== 0) return false
   }
 
@@ -74,16 +104,16 @@ function matchesSchedule(activity: Activity, date: Date): boolean {
 
   const selected = activity.selectedDays ?? []
   if (selected.length) {
-    // Flutter likely uses 1..7 (Mon..Sun). JS getDay() is 0..6 (Sun..Sat)
-    const js = date.getDay() // 0..6
-    const monBased = js === 0 ? 7 : js // 1..7 with Mon=1..Sun=7
-    if (selected.includes(monBased) || selected.includes(js)) return true
+    // Replicate Flutter mapping: Sunday=1..Saturday=7
+    const js = d.getDay() // 0..6 (Sun=0)
+    const flutterWeek = ((js % 7) + 1)
+    if (selected.includes(flutterWeek)) return true
     return false
   }
 
   // Fallback: if frequency hints weekly and no specific days, match same weekday as enabledAt
-  if ((freq.includes('week') || freq.includes('weekly')) && activity.enabledAt) {
-    return date.getDay() === activity.enabledAt.getDay()
+  if ((freq.includes('week') || freq.includes('weekly')) && enabledAt) {
+    return d.getDay() === enabledAt.getDay()
   }
 
   // Fallback: if no recognizable frequency but activity is active and has no explicit day constraints, assume daily
@@ -94,12 +124,13 @@ function matchesSchedule(activity: Activity, date: Date): boolean {
   return false
 }
 
-function buildUpdateId(activityId: string, date: Date, hour?: number, minute?: number) {
+function buildUpdateId(activity: Activity, date: Date) {
   const ymd = toYMD(date)
-  if (typeof hour === 'number' && typeof minute === 'number') {
-    return `${activityId}-${ymd}-${pad2(hour)}${pad2(minute)}`
+  // Align with Flutter: regular tasks use id without time; one-time tasks include time
+  if ((activity.type || '').toLowerCase() === 'one_time' && activity.time) {
+    return `${activity.id}-${ymd}-${pad2(activity.time.hour)}${pad2(activity.time.minute)}`
   }
-  return `${activityId}-${ymd}`
+  return `${activity.id}-${ymd}`
 }
 
 export async function ensureUpcomingUpdates(userId: string, activities: Activity[], daysForward = 14) {
@@ -110,7 +141,7 @@ export async function ensureUpcomingUpdates(userId: string, activities: Activity
     for (let i = 0; i <= daysForward; i++) {
       const date = addDays(today, i)
       if (!matchesSchedule(a, date)) continue
-      const id = buildUpdateId(a.id, date, a.time?.hour, a.time?.minute)
+      const id = buildUpdateId(a, date)
       const ref = doc(collection(doc(collection(db, 'Users'), userId), 'Updates'), id)
       await setDoc(ref, {
         id,

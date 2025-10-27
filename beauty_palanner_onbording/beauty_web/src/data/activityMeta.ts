@@ -56,7 +56,7 @@ export const ACTIVITY_META: Record<string, ActivityMeta> = {
   'wash-care': { name: 'Wash & Care', iconId: 'washCare', primary: '#00FFFF', surface: 'rgba(0,255,255,0.2)' },
   'yoga-flexibility': { name: 'Yoga & Flexibility', iconId: 'yogaFlexibility', primary: '#FF00E6', surface: 'rgba(255,0,230,0.2)' },
   // Gender-specific additions
-  'beard-shave-care': { name: 'Beard & Shave Care', iconId: 'hair', primary: '#8F74E5', surface: 'rgba(143,116,229,0.2)' },
+  'beard-shave-care': { name: 'Beard & Shave Care', iconId: 'washCare', primary: '#8F74E5', surface: 'rgba(143,116,229,0.2)' },
   'hair-loss-support': { name: 'Hair Loss Support', iconId: 'scalpMassage', primary: '#5C4688', surface: 'rgba(92,70,136,0.2)' },
   'leave-in-care': { name: 'Leave‑in Care', iconId: 'deepNourishment', primary: '#4D00FF', surface: 'rgba(76,0,255,0.2)' },
   'night-care-routine': { name: 'Night Care Routine', iconId: 'bedtime', primary: '#A385E9', surface: 'rgba(163,133,233,0.2)' },

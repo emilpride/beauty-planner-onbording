@@ -44,3 +44,26 @@ export async function deleteActivity(userId: string, activityId: string): Promis
   const deletedOut = [...deletedList, ...parsed.filter((a) => a.id === activityId).map(toFirebaseActivity)]
   await setDoc(ref, { Activities: remaining.map(toFirebaseActivity), DeletedActivities: deletedOut }, { merge: true })
 }
+
+/**
+ * Restart all activities for the user by setting them to active and clearing any end-before constraints.
+ * This mirrors the Flutter app's "Restart All Activities" behavior.
+ */
+export async function restartAllActivities(userId: string): Promise<void> {
+  const ref = userDocRef(userId)
+  const snap = await getDoc(ref)
+  const data = (snap.exists() ? (snap.data() as Record<string, unknown>) : {})
+  const raw = data['Activities'] as unknown
+  const list = Array.isArray(raw) ? (raw as unknown[]) : []
+  const parsed = list.map((x) => parseActivity((x ?? {}) as Record<string, unknown>))
+  const now = new Date()
+  const restarted = parsed.map((a) => ({
+    ...a,
+    activeStatus: true,
+    endBeforeActive: false,
+    selectedEndBeforeDate: null,
+    enabledAt: now,
+    lastModifiedAt: now,
+  }))
+  await setDoc(ref, { Activities: restarted.map(toFirebaseActivity) }, { merge: true })
+}

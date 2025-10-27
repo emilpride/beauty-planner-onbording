@@ -15,7 +15,7 @@ export default function AchievementsPage() {
         <div className="max-w-[800px] mx-auto py-8">
           {/* Header */}
           <div className="mb-6 flex items-center gap-4">
-            <Link href="/account" className="text-[#907FB1] hover:text-[#5C4688]">
+            <Link href="/account" className="text-text-secondary hover:text-text-primary">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path
                   d="M15 18L9 12L15 6"
@@ -26,11 +26,11 @@ export default function AchievementsPage() {
                 />
               </svg>
             </Link>
-            <h1 className="text-4xl font-bold text-[#5C4688]">Achievements</h1>
+            <h1 className="text-4xl font-bold text-text-primary">Achievements</h1>
           </div>
 
           {/* Current Level Card */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div className="bg-surface border border-border-subtle rounded-xl shadow-sm p-6 mb-8">
             <div className="flex items-center gap-5 mb-4">
               <div className="relative w-[90px] h-[90px] shrink-0">
                 <Image
@@ -41,10 +41,10 @@ export default function AchievementsPage() {
                 />
               </div>
               <div className="flex-1">
-                <h2 className="text-[40px] font-bold leading-tight text-[#5C4688]">
+                <h2 className="text-[40px] font-bold leading-tight text-text-primary">
                   Level 9
                 </h2>
-                <p className="text-lg font-semibold text-[#969AB7]">
+                <p className="text-lg font-semibold text-text-secondary">
                   You are a rising star! Keep going!
                 </p>
               </div>
@@ -53,14 +53,14 @@ export default function AchievementsPage() {
             {/* Progress */}
             <div className="mt-4">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-semibold text-[#5C4688]">
+                <span className="text-sm font-semibold text-text-primary">
                   Level Progress
                 </span>
-                <span className="text-sm font-semibold text-[#969AB7]">
+                <span className="text-sm font-semibold text-text-secondary">
                   {unlockedLevels.length}/{totalLevels}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-surface-hover rounded-full h-2">
                 <div
                   className="bg-gradient-to-r from-[#A385E9] to-[#8965D6] h-2 rounded-full transition-all duration-300"
                   style={{ width: `${(unlockedLevels.length / totalLevels) * 100}%` }}
@@ -70,9 +70,9 @@ export default function AchievementsPage() {
           </div>
 
           {/* All Achievements Grid */}
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-surface border border-border-subtle rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-[#5C4688]">
+              <h3 className="text-2xl font-bold text-text-primary">
                 All Levels ({unlockedLevels.length}/{totalLevels})
               </h3>
             </div>
@@ -91,10 +91,10 @@ export default function AchievementsPage() {
                   >
                     <div
                       className={`
-                        relative aspect-square rounded-lg overflow-hidden
+                        relative aspect-square rounded-lg overflow-hidden bg-surface border border-border-subtle shadow-sm
                         ${isUnlocked 
-                          ? 'ring-2 ring-[#A385E9] ring-opacity-50' 
-                          : 'opacity-40 grayscale'
+                          ? 'ring-2 ring-[rgb(var(--accent))] ring-opacity-40' 
+                          : 'opacity-60 grayscale'
                         }
                         transition-all duration-200 hover:scale-105
                       `}
@@ -114,7 +114,7 @@ export default function AchievementsPage() {
 
                     {/* Level Number */}
                     <div className="text-center mt-2">
-                      <span className={`text-sm font-semibold ${isUnlocked ? 'text-[#5C4688]' : 'text-gray-400'}`}>
+                      <span className={`text-sm font-semibold ${isUnlocked ? 'text-text-primary' : 'text-text-secondary'}`}>
                         Level {level}
                       </span>
                     </div>
@@ -125,39 +125,39 @@ export default function AchievementsPage() {
 
             {/* Achievement Stats */}
             <div className="mt-8 grid grid-cols-3 gap-4">
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 text-center">
-                <div className="text-3xl font-bold text-[#5C4688]">{unlockedLevels.length}</div>
-                <div className="text-sm font-semibold text-[#969AB7] mt-1">Unlocked</div>
+              <div className="bg-surface border border-border-subtle rounded-xl p-4 text-center">
+                <div className="text-3xl font-bold text-text-primary">{unlockedLevels.length}</div>
+                <div className="text-sm font-semibold text-text-secondary mt-1">Unlocked</div>
               </div>
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 text-center">
-                <div className="text-3xl font-bold text-[#5C4688]">{totalLevels - unlockedLevels.length}</div>
-                <div className="text-sm font-semibold text-[#969AB7] mt-1">Remaining</div>
+              <div className="bg-surface border border-border-subtle rounded-xl p-4 text-center">
+                <div className="text-3xl font-bold text-text-primary">{totalLevels - unlockedLevels.length}</div>
+                <div className="text-sm font-semibold text-text-secondary mt-1">Remaining</div>
               </div>
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 text-center">
-                <div className="text-3xl font-bold text-[#5C4688]">
+              <div className="bg-surface border border-border-subtle rounded-xl p-4 text-center">
+                <div className="text-3xl font-bold text-text-primary">
                   {Math.round((unlockedLevels.length / totalLevels) * 100)}%
                 </div>
-                <div className="text-sm font-semibold text-[#969AB7] mt-1">Complete</div>
+                <div className="text-sm font-semibold text-text-secondary mt-1">Complete</div>
               </div>
             </div>
 
             {/* Next Achievement */}
             {unlockedLevels.length < totalLevels && (
-              <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-2 border-[#A385E9] border-opacity-30">
+              <div className="mt-6 p-4 bg-surface rounded-xl border border-border-subtle">
                 <div className="flex items-center gap-4">
                   <div className="relative w-16 h-16 shrink-0">
                     <Image
                       src="/icons/achievements/level_locked.png"
                       alt="Next Level"
                       fill
-                      className="object-contain opacity-60"
+                      className="object-contain opacity-80"
                     />
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-lg font-bold text-[#5C4688]">
+                    <h4 className="text-lg font-bold text-text-primary">
                       Next: Level {unlockedLevels.length + 1}
                     </h4>
-                    <p className="text-sm text-[#969AB7]">
+                    <p className="text-sm text-text-secondary">
                       Complete more activities to unlock the next level!
                     </p>
                   </div>

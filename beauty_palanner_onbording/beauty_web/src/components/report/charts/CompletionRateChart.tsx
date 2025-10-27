@@ -19,11 +19,11 @@ export function CompletionRateChart({
   const display = data.map((d) => ({ label: String(d.x), value: Number(d.y.toFixed(1)) }))
   
   return (
-    <div className="flex flex-col items-center p-4 gap-4 bg-white dark:bg-surface rounded-lg shadow-md">
+    <div className="flex flex-col items-center gap-4 rounded-lg border border-border-subtle bg-surface p-4 shadow-md">
       <GraphHeader title={title} selected={period} onChange={onChange} />
       
       {/* Divider */}
-      <div className="w-full h-px bg-[#EEEEEE] dark:bg-border-subtle" />
+  <div className="h-px w-full bg-border-subtle" />
       
       <div className="w-full h-[300px]">
         {data.length === 0 ? (
@@ -36,8 +36,8 @@ export function CompletionRateChart({
               {/* Grid lines */}
               <defs>
                 <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="6.46%" stopColor="rgba(137, 133, 233, 0.24)" />
-                  <stop offset="100%" stopColor="rgba(137, 133, 233, 0)" />
+                  <stop offset="6.46%" stopColor="rgb(var(--accent))" stopOpacity={0.24} />
+                  <stop offset="100%" stopColor="rgb(var(--accent))" stopOpacity={0} />
                 </linearGradient>
               </defs>
               
@@ -45,7 +45,7 @@ export function CompletionRateChart({
                 dataKey="label" 
                 tickLine={false} 
                 axisLine={false}
-                tick={{ fill: '#5C4688', fontSize: 14, fontWeight: 500 }}
+                tick={{ fill: 'rgb(var(--text-primary))', fontSize: 14, fontWeight: 500 }}
               />
               <YAxis 
                 domain={[0, 100]} 
@@ -54,28 +54,28 @@ export function CompletionRateChart({
                 width={45} 
                 tickLine={false} 
                 axisLine={false}
-                tick={{ fill: '#5C4688', fontSize: 14, fontWeight: 500 }}
+                tick={{ fill: 'rgb(var(--text-primary))', fontSize: 14, fontWeight: 500 }}
               />
               <Tooltip
                 formatter={(v: ValueType, _n: NameType) => [`${String(v)}%`, 'Completion']}
                 labelFormatter={(l) => String(l)}
                 contentStyle={{
-                  backgroundColor: '#1E1B39',
-                  border: 'none',
+                  backgroundColor: 'rgb(var(--surface))',
+                  border: `1px solid rgb(var(--border-subtle))`,
                   borderRadius: '9.68px',
                   padding: '8px 12px',
-                  color: '#FFFFFF',
+                  color: 'rgb(var(--text-primary))',
                 }}
               />
               <Area 
                 type="monotone" 
                 dataKey="value" 
-                stroke="#A385E9" 
+                stroke="rgb(var(--accent))" 
                 strokeWidth={2}
                 fill="url(#colorGradient)"
                 dot={{ 
-                  fill: '#FFFFFF', 
-                  stroke: '#A385E9', 
+                  fill: 'rgb(var(--surface))', 
+                  stroke: 'rgb(var(--accent))', 
                   strokeWidth: 2, 
                   r: 6 
                 }}

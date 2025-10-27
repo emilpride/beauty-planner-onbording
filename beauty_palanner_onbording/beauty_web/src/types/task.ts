@@ -26,6 +26,42 @@ export function parseTaskInstance(id: string, data: Record<string, unknown>): Ta
     return undefined
   }
 
+  function formatYMD(date: Date): string {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+
+  function normalizeDateValue(): string {
+    const raw = getField<unknown>('date', 'Date')
+    if (typeof raw === 'string') {
+      const trimmed = raw.trim()
+      const match = trimmed.match(/^(\d{4})\D?(\d{1,2})\D?(\d{1,2})/)
+      if (match) {
+        const [, y, m, d] = match
+        const year = Number(y)
+        const month = Number(m)
+        const day = Number(d)
+        if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+          return formatYMD(new Date(year, month - 1, day))
+        }
+      }
+    }
+    if (typeof raw === 'number') {
+      return formatYMD(new Date(raw))
+    }
+    if (
+      typeof raw === 'object' &&
+      raw !== null &&
+      'toDate' in (raw as { toDate?: unknown }) &&
+      typeof (raw as { toDate?: unknown }).toDate === 'function'
+    ) {
+      return formatYMD((raw as { toDate: () => Date }).toDate())
+    }
+    return ''
+  }
+
   // Firestore Timestamp or value to Date
   let updatedAt: Date
   const u = getField<unknown>('updatedAt', 'UpdatedAt')
@@ -39,7 +75,8 @@ export function parseTaskInstance(id: string, data: Record<string, unknown>): Ta
   }
   else if (typeof u === 'string') updatedAt = new Date(u)
   else if (typeof u === 'number') updatedAt = new Date(u)
-  else updatedAt = new Date()
+  // Legacy documents may lack updatedAt; set a very old date so they don't override newer states on merge
+  else updatedAt = new Date(0)
 
   // Time can arrive as {hour,minute} or PascalCase {Hour,Minute} under 'time' or 'Time'
   function parseTime(): { hour: number; minute: number } | undefined {
@@ -68,7 +105,7 @@ export function parseTaskInstance(id: string, data: Record<string, unknown>): Ta
   return {
     id,
     activityId: getField<string>('activityId', 'ActivityId') || '',
-    date: getField<string>('date', 'Date') || '',
+    date: normalizeDateValue(),
     status: parseStatus(),
     updatedAt,
     time: parseTime(),

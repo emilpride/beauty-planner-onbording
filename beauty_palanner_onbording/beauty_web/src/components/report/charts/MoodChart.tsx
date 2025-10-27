@@ -38,11 +38,11 @@ export function MoodChart({
   const display = data.map((d) => ({ label: String(d.x), value: Number(d.y.toFixed(0)) }))
   
   return (
-    <div className="flex flex-col items-center p-4 gap-4 bg-white dark:bg-surface rounded-lg shadow-md">
+    <div className="flex flex-col items-center gap-4 rounded-lg border border-border-subtle bg-surface p-4 shadow-md">
       <GraphHeader title={title} selected={period} onChange={onChange} />
       
       {/* Divider */}
-      <div className="w-full h-px bg-[#EEEEEE] dark:bg-border-subtle" />
+  <div className="h-px w-full bg-border-subtle" />
       
       <div className="w-full h-[234px]">
         {data.length === 0 ? (
@@ -71,8 +71,8 @@ export function MoodChart({
                 <AreaChart data={display} margin={{ left: 8, right: 12, top: 8, bottom: 4 }}>
                   <defs>
                     <linearGradient id="moodGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="3.67%" stopColor="rgba(137, 133, 233, 0.24)" />
-                      <stop offset="100%" stopColor="rgba(137, 133, 233, 0)" />
+                      <stop offset="3.67%" stopColor="rgb(var(--accent))" stopOpacity={0.24} />
+                      <stop offset="100%" stopColor="rgb(var(--accent))" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   
@@ -80,7 +80,7 @@ export function MoodChart({
                     dataKey="label" 
                     tickLine={false} 
                     axisLine={false}
-                    tick={{ fill: '#5C4688', fontSize: 14, fontWeight: 500 }}
+                    tick={{ fill: 'rgb(var(--text-primary))', fontSize: 14, fontWeight: 500 }}
                   />
                   <YAxis 
                     domain={[1, 5]} 
@@ -90,22 +90,22 @@ export function MoodChart({
                     formatter={(v: ValueType, _n: NameType) => [`Mood Level ${String(v)}`, '']}
                     labelFormatter={(l) => `Day ${String(l)}`}
                     contentStyle={{
-                      backgroundColor: '#1E1B39',
-                      border: 'none',
+                      backgroundColor: 'rgb(var(--surface))',
+                      border: `1px solid rgb(var(--border-subtle))`,
                       borderRadius: '9.68px',
                       padding: '8px 12px',
-                      color: '#FFFFFF',
+                      color: 'rgb(var(--text-primary))',
                     }}
                   />
                   <Area 
                     type="monotone" 
                     dataKey="value" 
-                    stroke="#A385E9" 
+                    stroke="rgb(var(--accent))" 
                     strokeWidth={2}
                     fill="url(#moodGradient)"
                     dot={{ 
-                      fill: '#FFFFFF', 
-                      stroke: '#A385E9', 
+                      fill: 'rgb(var(--surface))', 
+                      stroke: 'rgb(var(--accent))', 
                       strokeWidth: 2, 
                       r: 6 
                     }}

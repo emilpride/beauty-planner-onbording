@@ -13,16 +13,16 @@ export function BMSCard({
   const position = ((score / 10) * 100).toFixed(0)
   
   return (
-    <div className="flex flex-col items-center p-6 gap-6 bg-white dark:bg-surface rounded-lg shadow-md">
+    <div className="flex flex-col items-center gap-6 rounded-lg border border-border-subtle bg-surface p-6 shadow-md">
       {/* Header */}
       <div className="flex flex-col items-start gap-2 w-full">
-        <div className="flex flex-row justify-between items-center w-full">
-          <h3 className="text-xl font-bold text-[#5C4688] dark:text-text-primary">
-            Your BMS<sup className="text-sm">®</sup> is:
+        <div className="flex w-full flex-row items-center justify-between">
+          <h3 className="text-xl font-bold text-text-primary">
+            Your BMS<sup className="text-sm text-[rgb(var(--accent))]">®</sup> is:
           </h3>
-          <span className="text-lg font-bold text-[#A385E9]">{status}</span>
+          <span className="text-lg font-bold text-[rgb(var(--accent))]">{status}</span>
         </div>
-        <p className="text-base font-semibold text-[#333333] dark:text-text-secondary leading-relaxed">
+        <p className="leading-relaxed text-base font-semibold text-text-primary">
           {description}
         </p>
       </div>
@@ -35,7 +35,7 @@ export function BMSCard({
       {/* Gradient Slider */}
       <div className="relative w-full h-9">
         {/* Background track */}
-        <div className="absolute w-full h-2.5 top-[13px] bg-[#EBEDFC] dark:bg-surface-hover rounded-full" />
+  <div className="absolute top-[13px] h-2.5 w-full rounded-full bg-border-subtle" />
         
         {/* Gradient bar */}
         <div 
@@ -47,13 +47,13 @@ export function BMSCard({
         
         {/* Slider handle */}
         <div 
-          className="absolute w-8 h-8 top-[2px] rounded-full bg-gradient-to-b from-[#F2F2F2] to-[#E8E8E8] border-2 border-white shadow-md transition-all"
+          className="absolute top-[2px] h-8 w-8 rounded-full border-2 border-border-subtle bg-gradient-to-b from-[#F2F2F2] to-[#E8E8E8] shadow-md transition-all"
           style={{ left: `calc(${position}% - 16px)` }}
         />
       </div>
 
       {/* Update Button */}
-      <button className="flex flex-row justify-center items-center py-3.5 w-full bg-[#A385E9] hover:bg-[#8D6FD1] rounded-[11px] text-white font-semibold text-sm transition-colors">
+  <button className="flex w-full flex-row items-center justify-center rounded-[11px] bg-[rgb(var(--accent))] py-3.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
         Update
       </button>
     </div>

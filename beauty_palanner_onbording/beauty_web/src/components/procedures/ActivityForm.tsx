@@ -124,7 +124,7 @@ export function ActivityForm({ initial, onSubmit, submitLabel = 'Save' }: {
                 style={{ backgroundColor: selectedMeta.primary }}
               >
                 {selectedMeta.iconPath && (
-                  <Image src={selectedMeta.iconPath} alt="" width={28} height={28} />
+                  <Image src={selectedMeta.iconPath} alt="" width={28} height={28} className="icon-auto" />
                 )}
               </div>
               <div className="flex-1">
