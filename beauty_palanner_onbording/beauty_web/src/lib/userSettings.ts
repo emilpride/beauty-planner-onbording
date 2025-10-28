@@ -1,4 +1,5 @@
 import { doc, getDoc, serverTimestamp, setDoc, type Timestamp } from 'firebase/firestore'
+import { calculateLevel } from '@/types/achievements'
 import { getFirestoreDb } from '@/lib/firebase'
 
 // V2 notification preferences: per-category delivery channels (procedures, mood)
@@ -189,6 +190,7 @@ export interface UserProfile {
   gender: Gender
   birthDate: string | null // ISO yyyy-mm-dd
   ageNumber?: number | null
+  photoUrl?: string | null
 }
 
 export interface UserStats {
@@ -206,10 +208,17 @@ export async function fetchUserProfile(userId: string): Promise<UserProfile> {
   const snap = await getDoc(ref)
   const data = (snap.data() as Record<string, unknown>) || {}
   const asString = (v: unknown) => (typeof v === 'string' ? v : '')
-  const fullName = asString(data['FullName']) || asString(data['Name'])
-  const email = asString(data['Email'])
+  const fullName = asString(data['FullName']) || asString(data['Name']) || asString(data['DisplayName'])
+  const email = asString(data['Email']) || asString(data['email'])
   const genderRaw = asString(data['Gender'] || (data['Sex'] as string)).toLowerCase()
-  const gender: Gender = genderRaw === 'male' || genderRaw === 'female' || genderRaw === 'other' ? (genderRaw as Gender) : ''
+  const toGender = (g: string): Gender => {
+    const norm = g.toLowerCase()
+    if (['male','man','men','m','муж','мужской'].includes(norm)) return 'male'
+    if (['female','woman','women','f','жен','женский'].includes(norm)) return 'female'
+    if (['other','unknown','другое','иной'].includes(norm)) return 'other'
+    return ''
+  }
+  const gender: Gender = toGender(genderRaw)
   const bd = data['BirthDate'] || data['Birthday'] || data['DateOfBirth'] || data['DOB']
   let birthDate: string | null = null
   if (typeof bd === 'string' && /\d{4}-\d{2}-\d{2}/.test(bd)) birthDate = bd
@@ -221,7 +230,12 @@ export async function fetchUserProfile(userId: string): Promise<UserProfile> {
   }
   const ageVal = data['Age']
   const ageNumber = typeof ageVal === 'number' ? ageVal : Number(ageVal as unknown) || null
-  return { fullName, email, gender, birthDate, ageNumber }
+  const photoUrl = asString(
+    (data['ProfilePicture'] as string) || (data['ProfileImage'] as string) || (data['ProfilePhoto'] as string) ||
+    (data['Avatar'] as string) || (data['AvatarUrl'] as string) || (data['AvatarURL'] as string) ||
+    (data['PhotoURL'] as string) || (data['PhotoUrl'] as string) || (data['photoURL'] as string)
+  ) || null
+  return { fullName, email, gender, birthDate, ageNumber, photoUrl }
 }
 
 export async function saveUserProfile(userId: string, profile: UserProfile): Promise<void> {
@@ -250,12 +264,18 @@ export async function fetchUserStats(userId: string): Promise<UserStats> {
     const n = asNum(v, 0)
     return n > 1 ? Math.min(1, n / 100) : Math.max(0, n)
   }
+  const totalCompleted = asNum(
+    (data['ActivitiesCompleted'] as number) ?? (data['TotalCompletedActivities'] as number) ?? (data['CompletedActivities'] as number) ?? (data['CompletedTotal'] as number),
+    0,
+  )
+  const lvlRaw = asNum(data['Level'], 0)
+  const level = lvlRaw > 0 ? lvlRaw : calculateLevel(totalCompleted)
   return {
-    level: asNum(data['Level'], 1),
+    level,
     currentStreak: asNum(data['CurrentStreak'], 0),
     completionRate: asPct(data['CompletionRate']),
-    activitiesCompleted: asNum(data['ActivitiesCompleted'], 0),
-    perfectDays: asNum(data['PerfectDays'], 0),
-    totalActivities: asNum(data['TotalActivities'], 0),
+    activitiesCompleted: totalCompleted,
+    perfectDays: asNum(data['PerfectDays'] ?? data['TotalPerfectDays'], 0),
+    totalActivities: asNum(data['TotalActivities'], totalCompleted),
   }
 }

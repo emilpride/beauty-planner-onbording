@@ -6,6 +6,9 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
 import { useMemo, useState } from 'react'
+import { useUpdatesInDateRange } from '@/hooks/useUpdates'
+import { computeGeneralStats } from '@/lib/report'
+import { calculateLevel } from '@/types/achievements'
 import { useUserProfile } from '@/hooks/useUserProfile'
 import { useUserDetails, useSaveUserDetails, useUserStats, type DetailsProfile } from '@/hooks/useUserDetails'
 
@@ -85,6 +88,12 @@ export default function PersonalInfoPage() {
   const { data: profileSummary } = useUserProfile(user?.uid)
   const { data: details } = useUserDetails(user?.uid)
   const stats = useUserStats(user?.uid)
+  // Fallback to derive stats from updates if missing in Users doc
+  const twoYearsAgo = useMemo(() => {
+    const d = new Date(); d.setFullYear(d.getFullYear() - 2); return d
+  }, [])
+  const updatesRange = useUpdatesInDateRange(user?.uid, twoYearsAgo, new Date())
+  const derived = useMemo(() => computeGeneralStats(updatesRange.data?.items ?? []), [updatesRange.data?.items])
   const save = useSaveUserDetails()
 
   const [editing, setEditing] = useState(false)
@@ -103,9 +112,14 @@ export default function PersonalInfoPage() {
 
   const activitiesPill = useMemo(() => {
     const completed = stats.data?.activitiesCompleted
-    if (typeof completed === 'number') return completed
+    if (typeof completed === 'number' && completed > 0) return completed
+    if (derived.totalActivitiesCompleted > 0) return derived.totalActivitiesCompleted
     return profileSummary?.activitiesCount || 0
-  }, [stats.data?.activitiesCompleted, profileSummary?.activitiesCount])
+  }, [stats.data?.activitiesCompleted, derived.totalActivitiesCompleted, profileSummary?.activitiesCount])
+
+  const currentStreak = stats.data?.currentStreak && stats.data.currentStreak > 0 ? stats.data.currentStreak : derived.currentStreak
+  const completionPct = Math.round((stats.data?.completionRate ?? (derived.overallCompletionRate || 0)) * 100)
+  const derivedLevel = useMemo(() => (derived.totalActivitiesCompleted ? calculateLevel(derived.totalActivitiesCompleted) : undefined), [derived.totalActivitiesCompleted])
 
   return (
     <Protected>
@@ -126,13 +140,13 @@ export default function PersonalInfoPage() {
               <section className="bg-surface border border-border-subtle rounded-xl p-4 md:p-5 shadow-sm">
                 <div className="flex items-center gap-4">
                   <div className="relative h-14 w-14 rounded-full overflow-hidden border border-border-subtle">
-                    <Image src={profileSummary?.profilePicture || '/icons/misc/avatar_placeholder.png'} alt="Avatar" fill className="object-cover" />
+                    <Image src={details?.photoUrl || profileSummary?.profilePicture || (user?.photoURL ?? '/icons/misc/avatar_placeholder.png')} alt="Avatar" fill className="object-cover" />
                   </div>
                   <div className="flex-1">
-                    <div className="text-base font-bold text-text-primary">{profileSummary?.name || details?.fullName || '—'}</div>
+                    <div className="text-base font-bold text-text-primary">{details?.fullName || profileSummary?.name || user?.displayName || '—'}</div>
                     <div className="flex items-center gap-2 text-xs mt-1">
                       <span className="inline-flex items-center gap-1 px-2 h-6 rounded-full bg-surface-hover border border-border-subtle text-text-secondary">
-                        lvl {stats.data?.level ?? profileSummary?.level ?? 1}
+                        lvl {stats.data?.level ?? derivedLevel ?? profileSummary?.level ?? 1}
                       </span>
                       <span className="inline-flex items-center gap-1 px-2 h-6 rounded-full bg-green-500/10 border border-green-500/30 text-green-600">
                         {activitiesPill} Activities
@@ -181,20 +195,20 @@ export default function PersonalInfoPage() {
                   </div>
                   <div>
                     <div className="text-xs text-text-secondary font-semibold">Current Streak</div>
-                    <div className="text-4xl font-bold text-text-primary leading-tight">{stats.data?.currentStreak ?? 0}</div>
+                    <div className="text-4xl font-bold text-text-primary leading-tight">{currentStreak ?? 0}</div>
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-3">
                   <div className="rounded-lg border border-border-subtle bg-surface-hover p-3 text-center">
-                    <div className="text-lg font-bold text-text-primary">{Math.round((stats.data?.completionRate ?? 0) * 100)}%</div>
+                    <div className="text-lg font-bold text-text-primary">{completionPct}%</div>
                     <div className="text-xs text-text-secondary">Completion rate</div>
                   </div>
                   <div className="rounded-lg border border-border-subtle bg-surface-hover p-3 text-center">
-                    <div className="text-lg font-bold text-text-primary">{stats.data?.activitiesCompleted ?? 0}</div>
+                    <div className="text-lg font-bold text-text-primary">{activitiesPill}</div>
                     <div className="text-xs text-text-secondary">Activities completed</div>
                   </div>
                   <div className="rounded-lg border border-border-subtle bg-surface-hover p-3 text-center">
-                    <div className="text-lg font-bold text-text-primary">{stats.data?.perfectDays ?? 0}</div>
+                    <div className="text-lg font-bold text-text-primary">{stats.data?.perfectDays ?? derived.totalPerfectDays ?? 0}</div>
                     <div className="text-xs text-text-secondary">Total perfect days</div>
                   </div>
                 </div>

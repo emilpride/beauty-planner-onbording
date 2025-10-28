@@ -36,12 +36,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.recomputeAchievements = exports.onUpdateWriteRecomputeAchievements = exports.sendMobilePushReminders = exports.sendEmailReminders = void 0;
+exports.recomputeAchievements = exports.onUpdateWriteRecomputeAchievements = exports.sendMobilePushReminders = exports.sendEmailReminders = exports.deleteAccount = exports.reactivateAccount = exports.deactivateAccount = exports.revokeOtherSessions = exports.getUserSubscription = void 0;
 const admin = __importStar(require("firebase-admin"));
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const https_1 = require("firebase-functions/v2/https");
 const firestore_1 = require("firebase-functions/v2/firestore");
 const nodemailer_1 = __importDefault(require("nodemailer"));
+const node_fetch_1 = __importDefault(require("node-fetch"));
+const params_1 = require("firebase-functions/params");
 // Initialize Admin SDK once
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -58,6 +60,263 @@ const transporter = nodemailer_1.default.createTransport({
     port: SMTP_PORT,
     secure: SMTP_PORT === 465,
     auth: SMTP_USER && SMTP_PASS ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
+});
+// RevenueCat secret API key (secure Secret Manager)
+const REVENUECAT_SECRET = (0, params_1.defineSecret)('REVENUECAT_API_KEY');
+const REVENUECAT_BASE = 'https://api.revenuecat.com/v1';
+function guessPeriodFromProductId(productId) {
+    if (!productId)
+        return 'unknown';
+    const id = productId.toLowerCase();
+    if (id.includes('year') || id.includes('annual') || id.endsWith('.y') || id.includes('yr'))
+        return 'annual';
+    if (id.includes('month') || id.includes('monthly') || id.endsWith('.m') || id.includes('mo'))
+        return 'monthly';
+    if (id.includes('week') || id.includes('weekly') || id.endsWith('.w'))
+        return 'weekly';
+    if (id.includes('lifetime'))
+        return 'lifetime';
+    return 'unknown';
+}
+// CORS helper
+function cors(res) {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET,OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+}
+// GET /getUserSubscription
+// Auth: Authorization: Bearer <Firebase ID token>
+exports.getUserSubscription = (0, https_1.onRequest)({ cors: true, secrets: [REVENUECAT_SECRET] }, async (req, res) => {
+    cors(res);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    try {
+        const auth = req.headers.authorization || '';
+        const m = auth.match(/^Bearer\s+(.+)$/i);
+        if (!m) {
+            res.status(401).json({ error: 'missing_bearer' });
+            return;
+        }
+        const idToken = m[1];
+        const decoded = await admin.auth().verifyIdToken(idToken);
+        const uid = decoded.uid;
+        const apiKey = REVENUECAT_SECRET.value();
+        if (!apiKey) {
+            res.status(500).json({ error: 'revenuecat_key_missing' });
+            return;
+        }
+        // Query RevenueCat subscriber
+        const resp = await (0, node_fetch_1.default)(`${REVENUECAT_BASE}/subscribers/${encodeURIComponent(uid)}`, {
+            headers: {
+                Authorization: `Bearer ${apiKey}`,
+                'Accept': 'application/json',
+            },
+        });
+        if (!resp.ok) {
+            const txt = await resp.text();
+            res.status(resp.status).json({ error: 'revenuecat_error', details: txt });
+            return;
+        }
+        const json = await resp.json();
+        const sub = json?.subscriber;
+        let status = 'inactive';
+        let planId = null;
+        let entitlement = null;
+        let expiresAt = null;
+        let store = 'unknown';
+        let willRenew = false;
+        // Prefer entitlements for active status
+        const ents = sub?.entitlements || {};
+        for (const [key, ent] of Object.entries(ents)) {
+            if (ent?.active) {
+                status = 'active';
+                entitlement = key;
+                planId = ent?.product_identifier || ent?.productIdentifier || null;
+                const exp = ent?.expires_date || ent?.expiresDate || ent?.expiration_date || null;
+                expiresAt = exp ? new Date(exp).toISOString() : null;
+                willRenew = !!ent?.will_renew || !!ent?.willRenew;
+                break;
+            }
+        }
+        // If not found via entitlements, check subscriptions
+        if (status === 'inactive') {
+            const subs = sub?.subscriptions || {};
+            for (const [pid, s] of Object.entries(subs)) {
+                const isActive = !s?.expires_date || new Date(s.expires_date).getTime() > Date.now();
+                if (isActive) {
+                    status = 'active';
+                    planId = pid;
+                    const exp = s?.expires_date || null;
+                    expiresAt = exp ? new Date(exp).toISOString() : null;
+                    willRenew = !!s?.auto_resume || !!s?.will_renew || !!s?.renewal_status;
+                    store = (s?.store || 'unknown').toLowerCase();
+                    break;
+                }
+            }
+        }
+        const period = guessPeriodFromProductId(planId);
+        const normalized = { status, planId, entitlement, store, expiresAt, willRenew, period };
+        res.status(200).json(normalized);
+    }
+    catch (e) {
+        console.error('getUserSubscription failed', e?.message || e);
+        res.status(500).json({ error: 'internal', message: e?.message || String(e) });
+    }
+});
+// Helpers for auth + CORS for POST endpoints
+function allowCorsPost(res) {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST,OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+}
+async function verifyBearerToUid(req) {
+    const auth = req.headers.authorization || '';
+    const m = auth.match(/^Bearer\s+(.+)$/i);
+    if (!m)
+        throw Object.assign(new Error('missing_bearer'), { code: 401 });
+    const idToken = m[1];
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    return decoded.uid;
+}
+// POST /revokeOtherSessions
+exports.revokeOtherSessions = (0, https_1.onRequest)({ cors: true }, async (req, res) => {
+    allowCorsPost(res);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'method_not_allowed' });
+        return;
+    }
+    try {
+        const uid = await verifyBearerToUid(req);
+        await admin.auth().revokeRefreshTokens(uid);
+        res.status(200).json({ ok: true, revokedAt: new Date().toISOString() });
+    }
+    catch (e) {
+        const code = e?.code === 401 ? 401 : 500;
+        res.status(code).json({ error: e?.message || 'internal' });
+    }
+});
+// POST /deactivateAccount
+exports.deactivateAccount = (0, https_1.onRequest)({ cors: true }, async (req, res) => {
+    allowCorsPost(res);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'method_not_allowed' });
+        return;
+    }
+    try {
+        const uid = await verifyBearerToUid(req);
+        const reason = (req.body?.reason || '').toString().slice(0, 500) || null;
+        await admin.auth().updateUser(uid, { disabled: true });
+        const now = new Date().toISOString();
+        await db.collection('Users').doc(uid).set({
+            status: 'deactivated',
+            deactivated: true,
+            deactivatedAt: now,
+            deactivatedReason: reason,
+        }, { merge: true });
+        res.status(200).json({ ok: true, deactivatedAt: now });
+    }
+    catch (e) {
+        const code = e?.code === 401 ? 401 : 500;
+        res.status(code).json({ error: e?.message || 'internal' });
+    }
+});
+// POST /reactivateAccount
+exports.reactivateAccount = (0, https_1.onRequest)({ cors: true }, async (req, res) => {
+    allowCorsPost(res);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'method_not_allowed' });
+        return;
+    }
+    try {
+        const uid = await verifyBearerToUid(req);
+        await admin.auth().updateUser(uid, { disabled: false });
+        const now = new Date().toISOString();
+        await db.collection('Users').doc(uid).set({
+            status: 'active',
+            deactivated: false,
+            reactivatedAt: now,
+        }, { merge: true });
+        res.status(200).json({ ok: true, reactivatedAt: now });
+    }
+    catch (e) {
+        const code = e?.code === 401 ? 401 : 500;
+        res.status(code).json({ error: e?.message || 'internal' });
+    }
+});
+// Utilities to recursively delete user data
+async function deleteCollectionBatch(colRef, batchSize = 300) {
+    let lastDoc;
+    while (true) {
+        const query = lastDoc
+            ? colRef.orderBy('__name__').startAfter(lastDoc).limit(batchSize)
+            : colRef.orderBy('__name__').limit(batchSize);
+        const snap = await query.get();
+        if (snap.empty)
+            break;
+        const batch = db.batch();
+        for (const doc of snap.docs) {
+            batch.delete(doc.ref);
+        }
+        await batch.commit();
+        lastDoc = snap.docs[snap.docs.length - 1];
+        if (snap.size < batchSize)
+            break;
+    }
+}
+async function deleteDocRecursively(docRef, depth = 0) {
+    // Limit recursion depth to avoid runaway; typical depth 1-2 in this app
+    if (depth > 3)
+        return;
+    const subcols = await docRef.listCollections();
+    for (const col of subcols) {
+        // Delete nested docs first
+        const docs = await col.get();
+        for (const d of docs.docs) {
+            await deleteDocRecursively(d.ref, depth + 1);
+        }
+        // Then ensure collection is empty
+        await deleteCollectionBatch(col);
+    }
+    await docRef.delete().catch(() => { });
+}
+// POST /deleteAccount
+exports.deleteAccount = (0, https_1.onRequest)({ cors: true }, async (req, res) => {
+    allowCorsPost(res);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'method_not_allowed' });
+        return;
+    }
+    try {
+        const uid = await verifyBearerToUid(req);
+        // Best-effort: remove Firestore user document and subcollections
+        const userDoc = db.collection('Users').doc(uid);
+        await deleteDocRecursively(userDoc);
+        // Finally, delete the auth user
+        await admin.auth().deleteUser(uid);
+        res.status(200).json({ ok: true });
+    }
+    catch (e) {
+        const code = e?.code === 401 ? 401 : 500;
+        res.status(code).json({ error: e?.message || 'internal' });
+    }
 });
 function parseTzOffsetFromParts(tz, date) {
     try {
