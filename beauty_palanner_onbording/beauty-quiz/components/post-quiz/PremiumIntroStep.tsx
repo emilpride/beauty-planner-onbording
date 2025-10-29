@@ -39,7 +39,7 @@ export default function PremiumIntroStep() {
 
   <div className="relative z-10 w-full max-w-[360px] flex flex-col items-center overflow-visible">
         {/* Assistant image positioned behind the card */}
-  <div className="pointer-events-none absolute inset-x-0 -top-40 sm:-top-48 md:-top-56 lg:-top-64 xl:-top-72 flex justify-center z-0">
+  <div className="pointer-events-none absolute inset-x-0 -top-40 sm:-top-48 md:-top-32 lg:-top-32 xl:-top-36 flex justify-center z-0">
           <Image
             src={`/images/on_boarding_images/onboarding_img_4${assistant === 'max' ? '_max' : ''}.png`}
             alt="Assistant"
