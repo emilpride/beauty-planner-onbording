@@ -21,9 +21,16 @@ import {
 	saveCacheAnalysis,
 	incrementCacheHit
 } from './reliability'
-import { startHeartbeat, updateHeartbeat, stopHeartbeat } from './heartbeat'
+// import { startHeartbeat, updateHeartbeat, stopHeartbeat } from './heartbeat' // Disabled - causes response stream issues
 import { callClaudeAnalysis, isClaudeFallbackEnabled } from './claude'
 import { getAPIHealthMetrics, periodicHealthCheck } from './monitoring'
+
+// Stub heartbeat functions - disabled to avoid response stream conflicts
+// These are stubbed to prevent response stream conflicts with res.write() calls
+export function startHeartbeat(..._args: any[]) { /* disabled */ }
+export function updateHeartbeat(..._args: any[]) { /* disabled */ }
+export function stopHeartbeat(..._args: any[]) { /* disabled */ }
+
 // Use dynamic require for Secret Manager to avoid TypeScript proto typing issues in build
 
 // Initialize Admin SDK only once (avoid duplicate-app error if other modules initialized first)
@@ -914,25 +921,76 @@ function buildCompleteAnalysis(geminiResponse: any, answers: any): AIAnalysisMod
 	}
 }
 
+// Safe response sender - prevents double-send errors
+function sendResponse(res: any, statusCode: number, data: any, responseSent: { value: boolean }) {
+	if (responseSent.value) {
+		console.warn('[Response] Attempt to send response when already sent:', { statusCode, hasData: !!data })
+		return
+	}
+	responseSent.value = true
+	try {
+		// If heartbeat already started streaming, just write data
+		if (res.headersSent) {
+			console.log('[Response] Headers already sent (heartbeat), appending data')
+			res.write('\n' + JSON.stringify(data))
+			res.end()
+		} else {
+			// Normal response
+			res.setHeader('Content-Type', 'application/json')
+			res.writeHead(statusCode)
+			res.end(JSON.stringify(data))
+		}
+	} catch (err) {
+		console.warn('[Response] Error sending response:', err)
+	}
+}
+
+function sendErrorResponse(res: any, statusCode: number, message: string, responseSent: { value: boolean }) {
+	if (responseSent.value) {
+		console.warn('[Response] Attempt to send error when already sent:', { statusCode, message })
+		return
+	}
+	responseSent.value = true
+	try {
+		// If heartbeat already started streaming, just write error
+		const errorData = { error: message }
+		if (res.headersSent) {
+			console.log('[Response] Headers already sent (heartbeat), appending error')
+			res.write('\n' + JSON.stringify(errorData))
+			res.end()
+		} else {
+			// Normal response
+			res.setHeader('Content-Type', 'application/json')
+			res.writeHead(statusCode)
+			res.end(JSON.stringify(errorData))
+		}
+	} catch (err) {
+		console.warn('[Response] Error sending error response:', err)
+	}
+}
+
 // Forced deployment on Oct 10, 2025
 export const analyzeUserData = onRequest({
 	maxInstances: 10,
 	timeoutSeconds: 60, // Reduced from 120s to 60s - faster timeout detection with heartbeat updates
 	cors: true,
 }, async (req, res) => {
+	// Track if response has been sent to prevent double-send errors
+	const responseSent = { value: false }
+	
 	// Add security headers
 	addSecurityHeaders(res)
-	if (req.method !== 'POST') { res.status(405).send({ error: 'Method not allowed' }); return }
+	if (req.method !== 'POST') { sendErrorResponse(res, 405, 'Method not allowed', responseSent); return }
 	try {
 		// Start heartbeat logging for long-running operation
 		// Logs progress every 15s (client can parse logs if needed)
-		startHeartbeat(res, { intervalMs: 15000, maxDurationMs: 50000 })
+		// DISABLED: startHeartbeat writes to response stream which prevents proper JSON response
+		// startHeartbeat(res, { intervalMs: 15000, maxDurationMs: 50000 })
 
 		// Circuit breaker: check if API is experiencing too many failures
 		if (isCircuitBreakerOpen()) {
 			console.warn('[CircuitBreaker] Rejecting request - circuit breaker is open')
-			stopHeartbeat()
-			res.status(503).json({ error: 'The analysis service is temporarily unavailable. Please try again in a few moments.' })
+			sendErrorResponse(res, 503, 'The analysis service is temporarily unavailable. Please try again in a few moments.', responseSent)
 			return
 		}
 
@@ -943,7 +1001,7 @@ export const analyzeUserData = onRequest({
 		const isAllowed = await checkRateLimit(rateLimitKey, 10, 60000)
 		if (!isAllowed) {
 			stopHeartbeat()
-			res.status(429).json({ error: 'Too many requests. Please try again later.' })
+			sendErrorResponse(res, 429, 'Too many requests. Please try again later.', responseSent)
 			return
 		}
 		await incrementRateLimit(rateLimitKey, 60000)
@@ -952,7 +1010,8 @@ export const analyzeUserData = onRequest({
 		const { userId, sessionId, events, answers, photoUrls } = body || {}
 		if (!userId) { 
 			stopHeartbeat()
-			res.status(400).send({ error: 'userId required' }); return 
+			sendErrorResponse(res, 400, 'userId required', responseSent)
+			return 
 		}
 
 		// Validate and preprocess user answers
@@ -961,9 +1020,7 @@ export const analyzeUserData = onRequest({
 		if (!validationResult.isValid) {
 			console.error('[Validation] Input validation failed:', validationResult.errors)
 			stopHeartbeat()
-			res.status(400).json({ 
-				error: 'Invalid input data: ' + validationResult.errors.join(', ')
-			})
+			sendErrorResponse(res, 400, 'Invalid input data: ' + validationResult.errors.join(', '), responseSent)
 			return
 		}
 		if (validationResult.warnings.length > 0) {
@@ -980,7 +1037,7 @@ export const analyzeUserData = onRequest({
 				await incrementCacheHit(cacheKey)
 				recordRequest(true)
 				stopHeartbeat()
-				res.json({ analysis: cached, fromCache: true })
+				sendResponse(res, 200, { analysis: cached, fromCache: true }, responseSent)
 				return
 			}
 		}
@@ -1167,96 +1224,6 @@ User profile: ${JSON.stringify(optimizedAnswers)}`
 		async function callGemini(promptText: string, photoUrls?: any) {
 			const parts: any[] = [{ text: promptText }]
 			
-			// Helper: normalize any Firebase Storage URL to a valid gs://bucket/path form
-			function normalizeToGsUri(input: string): string {
-				try {
-					// Determine canonical default bucket
-					const firebaseConfig = process.env.FIREBASE_CONFIG ? JSON.parse(process.env.FIREBASE_CONFIG) : null
-					const projectId = (firebaseConfig && firebaseConfig.projectId) || process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'beauty-planner-26cc0'
-					let defaultBucket = (admin.app().options as any)?.storageBucket || admin.storage().bucket().name || `${projectId}.appspot.com`
-					// Canonicalize default bucket to appspot.com domain
-					defaultBucket = defaultBucket.replace(/\.firebasestorage\.app$/i, '.appspot.com')
-					let bucket = defaultBucket
-					let path = ''
-					let u = (input || '').trim()
-					if (!u) return ''
-					// Strip querystring early
-					if (u.includes('?')) u = u.split('?')[0] as string
-
-					if (u.startsWith('gs://')) {
-						const rest = u.slice(5)
-						const slash = rest.indexOf('/')
-						if (slash === -1) {
-							// Only bucket provided
-							bucket = rest
-							path = ''
-						} else {
-							const host = rest.slice(0, slash)
-							path = rest.slice(slash + 1)
-							// If host looks like a web domain (e.g., *.firebasestorage.app), discard and use default bucket
-							if (/\.firebasestorage\.(?:app|googleapis\.com)$/i.test(host) || /\.storage\.googleapis\.com$/i.test(host)) {
-								bucket = defaultBucket
-							} else {
-								bucket = host
-							}
-						}
-					} else if (u.startsWith('http://') || u.startsWith('https://')) {
-						// Handle common Firebase Storage URL formats
-						// 1) https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<encodedPath>
-						let m = u.match(/\/v0\/b\/([^/]+)\/o\/([^?]+)$/)
-						if (!m) {
-							// 2) https://storage.googleapis.com/download/storage/v1/b/<bucket>/o/<encodedPath>
-							m = u.match(/download\/storage\/v1\/b\/([^/]+)\/o\/([^?]+)$/)
-						}
-						if (m) {
-							bucket = m[1]
-							if (m[2]) {
-								path = decodeURIComponent(m[2] as string)
-							}
-						} else {
-							// 3) https://storage.googleapis.com/<bucket>/<path>
-							let m2 = u.match(/^https?:\/\/storage\.googleapis\.com\/([^/]+)\/(.+)$/)
-							if (m2) {
-								bucket = m2[1]
-								if (m2[2]) {
-									path = m2[2] as string
-								}
-							} else {
-								// 4) https://<bucket>.storage.googleapis.com/<path>
-								let m3 = u.match(/^https?:\/\/([^/]+)\.storage\.googleapis\.com\/(.+)$/)
-								if (m3) {
-									bucket = m3[1]
-									if (m3[2]) {
-										path = m3[2] as string
-									}
-								} else {
-									// 5) https://<project>.firebasestorage.app/<path> (not a gs-valid host) -> use default bucket
-									const uObj = new URL(u)
-									path = uObj.pathname.replace(/^\/+/, '')
-									bucket = defaultBucket
-								}
-							}
-						}
-					} else {
-						// Treat as storage path
-						bucket = defaultBucket
-						path = u.replace(/^\/+/, '')
-					}
-
-					// Canonicalize bucket to appspot.com
-					bucket = bucket.replace(/\.firebasestorage\.app$/i, '.appspot.com')
-					// Final tidy
-					path = path.replace(/^\/+/, '')
-					let gs = `gs://${bucket}/${path}`
-					// Safety net: if anything above missed a firebasestorage.app host, force-rewrite here
-					gs = gs.replace(/^gs:\/\/([^/]+)\.firebasestorage\.app\//i, 'gs://$1.appspot.com/')
-					return gs
-				} catch (err) {
-					// Fallback – return as-is
-					return input
-				}
-			}
-
 			// Helper: basic MIME type detection from URL/path (best-effort)
 			function guessMimeType(u: string): string {
 				try {
@@ -1269,20 +1236,18 @@ User profile: ${JSON.stringify(optimizedAnswers)}`
 				return 'image/jpeg'
 			}
 
-			// Helper: redact gs:// uri for logs to avoid leaking full paths
-			function redactGsForLog(gsUri: string): string {
+			// Helper: download image from Firebase Storage URL and return buffer
+			async function downloadImageBuffer(url: string): Promise<Buffer> {
 				try {
-					if (!gsUri.startsWith('gs://')) return '[redacted]'
-					const withoutScheme = gsUri.slice(5)
-					const firstSlash = withoutScheme.indexOf('/')
-					if (firstSlash === -1) return 'gs://[bucket]/[redacted]'
-					const bucket = withoutScheme.slice(0, firstSlash)
-					const path = withoutScheme.slice(firstSlash + 1)
-					const segments = path.split('/')
-					const last = segments.pop() || ''
-					return `gs://${bucket}/.../${last}`
-				} catch {
-					return 'gs://[bucket]/[redacted]'
+					// Try to parse as Firebase Storage URL
+					const response = await axios.get(url, {
+						responseType: 'arraybuffer',
+						timeout: 10000
+					})
+					return Buffer.from(response.data)
+				} catch (err) {
+					console.error('Failed to download image:', err)
+					throw new Error(`Failed to download image from ${url}`)
 				}
 			}
 
@@ -1293,15 +1258,20 @@ User profile: ${JSON.stringify(optimizedAnswers)}`
 				for (const [, url] of Object.entries(photoUrls)) {
 					if (typeof url === 'string' && url.trim()) {
 						try {
-							// Normalize various Firebase Storage URL formats to a correct gs:// URI
-							const gsUri = normalizeToGsUri(url)
-							const mime = guessMimeType(url)
-							console.log('Using cleaned image URI:', redactGsForLog(gsUri))
+							// Download image from storage and encode as base64
+							console.log('Downloading image for Gemini Vision API...')
 							
+							const buffer = await downloadImageBuffer(url)
+							const base64 = buffer.toString('base64')
+							const mime = guessMimeType(url)
+							
+							console.log(`Image downloaded: ${mime}, ${buffer.length} bytes`)
+							
+							// Use inline_data for base64-encoded images (Gemini Vision API supports this)
 							parts.push({
-								file_data: {
+								inline_data: {
 									mime_type: mime,
-									file_uri: gsUri
+									data: base64
 								}
 							})
 							imageCount++
@@ -1517,7 +1487,8 @@ Cleaned text:\n', cleaned)
 						
 						updateHeartbeat('finalizing', 95, 'Finalizing results...')
 						stopHeartbeat()
-						res.status(200).json({ analysis: completeAnalysis, usedFallback: true }); return
+						sendResponse(res, 200, { analysis: completeAnalysis, usedFallback: true }, responseSent)
+						return
 					}
 				} catch (claudeError) {
 					console.error('[Fallback] Claude API also failed:', claudeError)
@@ -1528,7 +1499,8 @@ Cleaned text:\n', cleaned)
 			if (!allowFallback) {
 				// Return an error to the client so the UI can surface it—no silent fallback.
 				stopHeartbeat()
-				res.status(502).json({ error: 'Our analysis service encountered a temporary issue. Please retry in a moment.' }); return
+				sendErrorResponse(res, 502, 'Our analysis service encountered a temporary issue. Please retry in a moment.', responseSent)
+				return
 			}
 			
 			// If explicitly enabled, create fallback Gemini response (ONLY for testing, not production)
@@ -1548,7 +1520,8 @@ Cleaned text:\n', cleaned)
 			
 			console.log('Fallback analysis created:', fallback)
 			stopHeartbeat()
-			res.status(200).json({ analysis: fallback }); return
+			sendResponse(res, 200, { analysis: fallback }, responseSent)
+			return
 		}
 
 		// Valid parsed response from Gemini — build complete analysis and persist
@@ -1623,11 +1596,13 @@ Cleaned text:\n', cleaned)
 
 		updateHeartbeat('finalizing', 95, 'Finalizing results...')
 		stopHeartbeat()
-		res.status(200).json({ analysis: completeAnalysis }); return
+		sendResponse(res, 200, { analysis: completeAnalysis }, responseSent)
+		return
 	} catch (e: any) {
 		console.error('analyzeUserData error', e)
 		stopHeartbeat()
-		res.status(500).json({ error: e?.message || 'internal' }); return
+		sendErrorResponse(res, 500, e?.message || 'internal', responseSent)
+		return
 	}
 })
 

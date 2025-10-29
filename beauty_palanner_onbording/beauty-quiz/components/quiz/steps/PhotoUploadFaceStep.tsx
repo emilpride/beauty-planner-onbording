@@ -10,8 +10,7 @@ import { uploadPhotoViaProxy } from '@/lib/uploadHelper'
 import dynamic from 'next/dynamic'
 import ConfirmSkipModal from '@/components/ConfirmSkipModal'
 import LoadingSpinner from '@/components/ui/LoadingSpinner' // Assuming this exists
-
-const CameraCapture = dynamic(() => import('@/components/CameraCapture'), { ssr: false })
+const PhotoCapture = dynamic(() => import('@/components/camera/PhotoCapture'), { ssr: false })
 
 export default function PhotoUploadFaceStep() {
   const { answers, setAnswer } = useQuizStore()
@@ -53,14 +52,14 @@ export default function PhotoUploadFaceStep() {
     setShowCamera(true)
   }
 
-  const handleCameraCapture = async (blobUrl: string, blob: Blob) => {
+  const handleCameraCapture = async (image: string | Blob) => {
     setUploading(true)
     setUploadError(null)
     try {
-      const fileLike = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' })
-  const compressed = await normalizeAndCompressImage(fileLike, { maxWidthOrHeight: 1280, quality: 0.85 })
+      const blob = image instanceof Blob ? image : await fetch(image).then(r => r.blob())
       const uid = auth.currentUser?.uid || answers?.Id || 'anonymous'
-      const url = await uploadPhotoViaProxy(compressed, uid, 'face')
+      // PhotoCapture already compresses to <=1200px @ 0.85 quality; upload directly
+      const url = await uploadPhotoViaProxy(blob, uid, 'face')
       
       setAnswer('FaceImageUrl', url)
       setAnswer('FaceImageSkipped', false)
@@ -97,7 +96,7 @@ export default function PhotoUploadFaceStep() {
   return (
     <>
       {showCamera && (
-        <CameraCapture mode="face" onCapture={handleCameraCapture} onCancel={handleCameraCancel} />
+        <PhotoCapture guideText="Center your face in the frame" guideShape="oval" onCapture={handleCameraCapture} onClose={handleCameraCancel} />
       )}
       <OnboardingStep title={title} subtitle={subtitle} condition={isComplete}>
         <div className="p-1 border-2 border-dotted border-blue-300 rounded-2xl">

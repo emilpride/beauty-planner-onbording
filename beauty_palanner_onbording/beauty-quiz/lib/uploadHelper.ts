@@ -52,11 +52,19 @@ export async function uploadPhotoViaProxy(
   }`
   const base64Data = await blobToBase64(file)
 
+  // Prefer absolute Cloud Function URL when provided to work on static hosts without API rewrites
+  const envUploadUrl =
+    (process.env['NEXT_PUBLIC_UPLOAD_PHOTO_URL'] as string | undefined) ||
+    (process.env['UPLOAD_PHOTO_URL'] as string | undefined) ||
+    ''
+
+  const endpoint = envUploadUrl || '/api/upload-photo'
+
   for (let i = 0; i < retries; i++) {
     try {
       console.log(`Upload attempt ${i + 1}/${retries} for ${photoType}...`)
       const res = await fetchWithTimeout(
-        '/api/upload-photo',
+        endpoint,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

@@ -10,8 +10,7 @@ import { normalizeAndCompressImage } from '@/lib/imageNormalize'
 import { auth } from '@/lib/firebase'
 import { uploadPhotoViaProxy } from '@/lib/uploadHelper'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
-
-const CameraCapture = dynamic(() => import('@/components/CameraCapture'), { ssr: false })
+const PhotoCapture = dynamic(() => import('@/components/camera/PhotoCapture'), { ssr: false })
 
 export default function PhotoUploadBodyStep() {
   const { answers, setAnswer } = useQuizStore()
@@ -51,14 +50,13 @@ export default function PhotoUploadBodyStep() {
     setShowCamera(true)
   }
 
-  const handleCameraCapture = async (blobUrl: string, blob: Blob) => {
+  const handleCameraCapture = async (image: string | Blob) => {
     setUploading(true)
     setUploadError(null)
     try {
-      const fileLike = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' })
-  const compressed = await normalizeAndCompressImage(fileLike, { maxWidthOrHeight: 1280, quality: 0.85 })
+      const blob = image instanceof Blob ? image : await fetch(image).then(r => r.blob())
       const uid = auth.currentUser?.uid || answers?.Id || 'anonymous'
-      const url = await uploadPhotoViaProxy(compressed, uid, 'body')
+      const url = await uploadPhotoViaProxy(blob, uid, 'body')
       
       setAnswer('BodyImageUrl', url)
       setAnswer('BodyImageSkipped', false)
@@ -97,7 +95,7 @@ export default function PhotoUploadBodyStep() {
   return (
     <>
       {showCamera && (
-        <CameraCapture mode="body" onCapture={handleCameraCapture} onCancel={handleCameraCancel} />
+        <PhotoCapture guideText="Upper body in frame" onCapture={handleCameraCapture} onClose={handleCameraCancel} />
       )}
       <OnboardingStep title={title} subtitle={subtitle} condition={isComplete}>
         <div className="p-1 border-2 border-dotted border-blue-300 rounded-2xl">

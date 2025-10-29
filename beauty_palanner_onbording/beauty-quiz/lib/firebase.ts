@@ -98,12 +98,13 @@ export async function saveOnboardingSession(sessionId: string, events: any[], us
     return null;
   }
   // Determine endpoint at call time to ensure browser uses the proxy API route
-  const endpoint =
-    typeof window !== 'undefined'
-      ? '/api/save-onboarding-session'
-      : process.env['SAVE_ONBOARDING_URL'] ||
-        process.env['NEXT_PUBLIC_SAVE_ONBOARDING_URL'] ||
-        'https://us-central1-beauty-planner-26cc0.cloudfunctions.net/saveOnboardingSession'
+  const envSaveUrl =
+    process.env['NEXT_PUBLIC_SAVE_ONBOARDING_URL'] ||
+    process.env['SAVE_ONBOARDING_URL'] ||
+    ''
+
+  // Prefer explicit env URL when provided (works on any host); otherwise fall back to relative API route
+  const endpoint = envSaveUrl || '/api/save-onboarding-session'
 
   const payload = {
     sessionId,
@@ -177,12 +178,12 @@ export async function finalizeOnboarding(sessionId: string, overrides?: Record<s
     throw new Error('finalizeOnboarding: missing auth token')
   }
 
-  const endpoint =
-    typeof window !== 'undefined'
-      ? '/api/finalize'
-      : process.env['FINALIZE_ONBOARDING_URL'] ||
-        process.env['NEXT_PUBLIC_FINALIZE_ONBOARDING_URL'] ||
-        'https://us-central1-beauty-planner-26cc0.cloudfunctions.net/finalizeOnboarding'
+  const envFinalizeUrl =
+    process.env['NEXT_PUBLIC_FINALIZE_ONBOARDING_URL'] ||
+    process.env['FINALIZE_ONBOARDING_URL'] ||
+    ''
+
+  const endpoint = envFinalizeUrl || '/api/finalize'
 
   const payload = { sessionId, overrides }
 

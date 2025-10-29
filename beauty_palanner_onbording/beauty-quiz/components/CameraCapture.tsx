@@ -330,15 +330,8 @@ export default function CameraCapture({ onCapture, onCancel, mode = 'face' }: Ca
       setError('Failed to capture image. Please try again.')
       return
     }
-    // If preview is mirrored, un-mirror on capture so the saved photo is correct
-    if (mirrorPreview) {
-      ctx.translate(width, 0)
-      ctx.scale(-1, 1)
-      ctx.drawImage(video, 0, 0, width, height)
-      ctx.setTransform(1, 0, 0, 1, 0, 0)
-    } else {
-      ctx.drawImage(video, 0, 0, width, height)
-    }
+    // Always save unmirrored
+    ctx.drawImage(video, 0, 0, width, height)
     canvas.toBlob((blob) => {
       if (blob) {
         const url = URL.createObjectURL(blob)

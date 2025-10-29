@@ -267,7 +267,7 @@ export default function WeightPicker({ valueKg = 80, onConfirm, onCancel }: Weig
         </svg>
 
         {/* Weight Display */}
-  <div className="absolute left-1/2 transform -translate-x-1/2 text-center" style={{ bottom: '2.5rem' }}>
+  <div className="absolute left-1/2 transform -translate-x-1/2 text-center" style={{ top: '2.5rem' }}>
     <div className="flex items-end justify-center gap-3">
       <span className="text-5xl font-extrabold text-text-primary tracking-tight" style={{ lineHeight: 1 }}>{pounds}</span>
       <span className="text-2xl text-text-secondary mb-1">lb</span>
