@@ -459,7 +459,7 @@ export default function AIResultsStep() {
   // count shown interludes when user responds
 
   return (
-    <div className="flex flex-col h-full w-full items-center justify-between p-4 pt-8 text-center">
+    <div className="flex flex-col h-full w-full items-center justify-between p-4 pt-4 text-center">
       <div className="w-full max-w-md mx-auto">
         <h1 className="text-2xl font-bold text-text-primary">
           {status === 'error' ? 'Something Went Wrong' : 'Analyzing Your Profile'}
