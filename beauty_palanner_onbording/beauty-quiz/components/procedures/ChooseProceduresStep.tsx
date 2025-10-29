@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useQuizStore } from '@/store/quizStore'
 import Image from 'next/image'
@@ -8,6 +9,7 @@ import { PROCEDURES_ICON_CATALOG, getProceduresIconById, getProceduresIconCatego
 import { getIconById } from './iconCatalog'
 import { getActivityMeta } from './activityMeta'
 import { getDefaultNote, type GenderKey } from './defaultActivityNotes'
+import { saveOnboardingSession } from '@/lib/firebase'
 
 const extractColorFromClass = (colorClass: string): string => {
   if (colorClass.startsWith('#')) {
@@ -181,6 +183,33 @@ export default function ChooseProceduresStep() {
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [iconSearchQuery, setIconSearchQuery] = useState('')
+  // Inline settings per selected activity (kept local to avoid altering overall design/state)
+  type RepeatType = 'Daily' | 'Weekly' | 'Monthly' | null
+  type TimePeriod = 'Morning' | 'Afternoon' | 'Evening' | null
+  type RemindUnit = 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | 'years'
+  interface InlineActivitySettings {
+    note: string
+    repeat: RepeatType
+    weeklyInterval: number
+    weekdays: number[]
+    monthlyDays: number[]
+    allDay: boolean
+    time: string
+    timePeriod: TimePeriod
+    endDate: boolean
+    endType: 'date' | 'days'
+    endDateValue: string
+    endDaysValue: number
+    remind: boolean
+    remindAmount: number
+    remindUnit: RemindUnit
+  }
+  const [inlineSettings, setInlineSettings] = useState<Record<string, InlineActivitySettings>>({})
+  // Validation state to highlight required fields on Next
+  const [showErrors, setShowErrors] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
+  // Refs to scroll to first invalid activity block
+  const activityRefs = useRef<Record<string, HTMLDivElement | null>>({})
   // Extract AI recommendations from analysis results
   const extractAIRecommendations = (analysis: any): Set<string> => {
     const recommendations = new Set<string>()
@@ -372,9 +401,42 @@ export default function ChooseProceduresStep() {
         ? prev.filter(id => id !== activityId)
         : [...prev, activityId]
     )
+
+    // Initialize inline defaults on first expand (do not change global answers here)
+    setInlineSettings(prev => {
+      if (prev[activityId]) return prev
+      const activityCard = (() => {
+        for (const list of Object.values(activities)) {
+          const found = (list || []).find((a) => a.id === activityId)
+          if (found) return found
+        }
+        return undefined
+      })()
+      const genderKey: GenderKey = answers.Gender === 1 ? 'male' : answers.Gender === 2 ? 'female' : 'unknown'
+      return {
+        ...prev,
+        [activityId]: {
+          note: activityCard?.note ?? getDefaultNote(activityId, genderKey),
+          repeat: null,
+          weeklyInterval: 1,
+          weekdays: [],
+          monthlyDays: [],
+          allDay: true,
+          time: '',
+          timePeriod: null,
+          endDate: false,
+          endType: 'date',
+          endDateValue: '',
+          endDaysValue: 30,
+          remind: false,
+          remindAmount: 15,
+          remindUnit: 'minutes',
+        },
+      }
+    })
   }
 
-  const handleNext = () => {
+  const handleCreateActivity = () => {
     // Pre-fill default notes for selected activities into overrides (non-destructive)
     const genderKey: GenderKey = answers.Gender === 1 ? 'male' : answers.Gender === 2 ? 'female' : 'unknown'
     const existingOverrides = answers.ActivityMetaOverrides || {}
@@ -440,86 +502,149 @@ export default function ChooseProceduresStep() {
   }
 
 
-  const handleCreateActivity = () => {
-
-    const errors = {
-      name: !newActivity.name ? 'Name is required' : '',
-      category: !newActivity.category ? 'Category is required' : '',
-      color: !newActivity.color ? 'Color is required' : '',
-      iconId: !newActivity.iconId ? 'Icon is required' : ''
+  // Inline settings validator
+  const getIssues = (s: InlineActivitySettings): string[] => {
+    const issues: string[] = []
+    if (!s.repeat) issues.push('missingRepeat')
+    if (s.repeat === 'Weekly' && (!s.weekdays || s.weekdays.length === 0)) issues.push('weeklyNoDays')
+    if (s.repeat === 'Monthly' && (!s.monthlyDays || s.monthlyDays.length === 0)) issues.push('monthlyNoDays')
+    if (!s.allDay && !s.time) issues.push('missingTime')
+    if (s.endDate) {
+      if (s.endType === 'date' && !s.endDateValue) issues.push('missingEndDate')
+      if (s.endType === 'days' && (!s.endDaysValue || s.endDaysValue < 1)) issues.push('invalidEndDays')
     }
-    
-    setActivityErrors(errors)
-    
-    if (!newActivity.name || !newActivity.category || !newActivity.color || !newActivity.iconId) {
-      console.log('Missing required fields:', newActivity)
+    return issues
+  }
+
+  // Next button: validate, persist inline config, emit activities payload to DB, then go to generating
+  const handleNext = () => {
+    setShowErrors(true)
+    const errs: Record<string, string[]> = {}
+    for (const id of selectedActivities) {
+      const s = inlineSettings[id] || {
+        note: getDefaultNote(id, answers.Gender === 1 ? 'male' : answers.Gender === 2 ? 'female' : 'unknown'),
+        repeat: null,
+        weeklyInterval: 1,
+        weekdays: [],
+        monthlyDays: [],
+        allDay: true,
+        time: '',
+        timePeriod: null,
+        endDate: false,
+        endType: 'date',
+        endDateValue: '',
+        endDaysValue: 30,
+        remind: false,
+        remindAmount: 15,
+        remindUnit: 'minutes',
+      }
+      const issues = getIssues(s)
+      if (issues.length) errs[id] = issues
+    }
+    setValidationErrors(errs)
+    if (Object.keys(errs).length > 0) {
+      // Stop and highlight invalid fields
+      const firstInvalidId = selectedActivities.find((id) => (errs[id] || []).length > 0)
+      if (firstInvalidId) {
+        const el = activityRefs.current[firstInvalidId]
+        if (el && typeof el.scrollIntoView === 'function') {
+          // Slight defer to ensure error styles are rendered
+          requestAnimationFrame(() => {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' })
+          })
+        }
+      }
       return
     }
 
+    // Persist notes and preConfig overrides
+    const nextNotes: Record<string, string> = { ...(answers.ActivityNotes || {}) }
+    const nextOverrides = { ...(answers.ActivityMetaOverrides || {}) } as Record<string, any>
 
-    const newActivityData = {
-      id: `custom-${Date.now()}`,
-      name: newActivity.name,
-      iconId: newActivity.iconId,
-      color: newActivity.color,
-      bgColor: `rgba(${hexToRgb(newActivity.color).join(',')},0.2)`,
-      aiRecommended: false,
-      note: newActivity.note
+    // Build a quick lookup for default notes
+    const allActivityMap = new Map<string, ActivityCard>()
+    for (const list of Object.values(activities)) {
+      for (const a of (list || [])) allActivityMap.set(a.id, a)
     }
-    
-    console.log('Creating activity with color:', newActivity.color, 'bgColor:', newActivityData.bgColor)
 
+    for (const id of selectedActivities) {
+      const meta = getActivityMeta(id)
+      const s = inlineSettings[id]
+      const gender: GenderKey = answers.Gender === 1 ? 'male' : answers.Gender === 2 ? 'female' : 'unknown'
+      const fallbackNote = allActivityMap.get(id)?.note ?? getDefaultNote(id, gender)
+      nextNotes[id] = s?.note ?? fallbackNote
 
-    const categoryMapping: { [key: string]: string } = {
-      'Skin': 'skin',
-      'Hair': 'hair', 
-      'Physical health': 'physical',
-      'Mental Wellness': 'mental'
-    }
-    
-
-    const categoryKey = categoryMapping[newActivity.category] || 
-      newActivity.category.toLowerCase().replace(/\s+/g, '')
-    
-    console.log('Creating activity:', newActivityData, 'in category:', categoryKey)
-    
-    setActivities(prev => {
-      const newState = {
-        ...prev,
-        [categoryKey]: [...((prev as any)[categoryKey] || []), newActivityData]
+      if (!nextOverrides[id]) {
+        nextOverrides[id] = {
+          name: meta.name,
+          iconId: meta.iconId,
+          primary: meta.primary,
+          surface: meta.surface,
+        }
       }
-      console.log('New activities state:', newState)
-      return newState
-    })
+      nextOverrides[id].preConfig = {
+        note: s?.note,
+        repeat: s?.repeat,
+        weeklyInterval: s?.weeklyInterval,
+        weekdays: s?.weekdays,
+        monthlyDays: s?.monthlyDays,
+        allDay: s?.allDay,
+        time: s?.time,
+        timePeriod: s?.timePeriod,
+        endDate: s?.endDate,
+        endType: s?.endType,
+        endDateValue: s?.endDateValue,
+        endDaysValue: s?.endDaysValue,
+        remind: s?.remind,
+        remindAmount: s?.remindAmount,
+        remindUnit: s?.remindUnit,
+      }
+    }
 
-    setAnswer('ActivityMetaOverrides', {
-      ...(answers.ActivityMetaOverrides || {}),
-      [newActivityData.id]: {
-        name: newActivityData.name,
-        iconId: newActivityData.iconId,
-        primary: newActivityData.color,
-        surface: newActivityData.bgColor,
-      },
-    })
+    setAnswer('ActivityNotes', nextNotes)
+    setAnswer('ActivityMetaOverrides', nextOverrides)
+    setAnswer('SelectedActivities', selectedActivities)
 
+    // Build compact activities payload for server finalize to consume
+    try {
+      const activitiesPayload = selectedActivities.map((id) => {
+        const meta = getActivityMeta(id)
+        const s = inlineSettings[id]
+        const note = nextNotes[id] || ''
+        const freq = (s?.repeat || 'Daily').toLowerCase()
+        return {
+          Id: id,
+          Name: meta.name,
+          Illustration: meta.iconId,
+          Category: '',
+          CategoryId: '',
+          Note: note,
+          IsRecommended: false,
+          Type: 'regular',
+          ActiveStatus: true,
+          Time: s?.allDay ? null : (s?.time || ''),
+          Frequency: freq, // 'daily' | 'weekly' | 'monthly'
+          SelectedDays: freq === 'weekly' ? (s?.weekdays || []) : [],
+          WeeksInterval: s?.weeklyInterval ?? 1,
+          SelectedMonthDays: freq === 'monthly' ? (s?.monthlyDays || []) : [],
+          SelectedNotifyBeforeUnit: s?.remind ? (s?.remindUnit || 'minutes') : '',
+          SelectedNotifyBeforeFrequency: s?.remind ? (s?.remindAmount || 0) : '',
+          Color: meta.primary,
+        }
+      })
 
-    setNewActivity({
-      name: '',
-      note: '',
-      category: '',
-      color: '',
-      iconId: ''
-    })
-    
-    setActivityErrors({
-      name: '',
-      category: '',
-      color: '',
-      iconId: ''
-    })
+      const evt = [{
+        eventName: 'activitiesConfigured',
+        timestamp: new Date().toISOString(),
+        details: { activities: activitiesPayload },
+      }]
+      // Fire-and-forget: persist activities snapshot for server finalize to read
+      Promise.resolve(
+        saveOnboardingSession((answers.sessionId || '').trim(), evt as any, answers.Id)
+      ).catch(() => {})
+    } catch {}
 
-
-    setIsCreateActivityModalOpen(false)
+    router.push('/procedures/1')
   }
 
 
@@ -753,37 +878,361 @@ export default function ChooseProceduresStep() {
                    <div key={categoryKey} className="mb-6">
                      <h3 className="text-sm text-text-secondary mb-3">{displayName}</h3>
                      <div className="space-y-3">
-                       {activitiesList.map((activity) => (
-                         <button
-                           key={activity.id}
-                           onClick={() => handleActivityToggle(activity.id)}
-                           className={`w-full flex items-center px-3 py-3 rounded-full transition-colors ${
-                             selectedActivities.includes(activity.id) 
-                               ? 'hover:opacity-80' 
-                               : 'hover:opacity-80 opacity-50'
-                           }`}
-                           style={{ 
-                             backgroundColor: extractRgbaFromClass(activity.bgColor)
-                           }}
-                         >
-                           <ActivityIcon activityId={activity.id} iconId={activity.iconId} color={activity.color} label={activity.name} />
-                           <div className="ml-3 flex-1 text-left">
-                             <div className="text-text-primary font-medium text-base">{activity.name}</div>
-                             {activity.aiRecommended && (
-                               <div className="text-xs font-medium bg-gradient-to-r from-purple-600 via-pink-500 to-purple-700 bg-clip-text text-transparent">
-                                 AI recommendation for you
+                       {activitiesList.map((activity) => {
+                         const selected = selectedActivities.includes(activity.id)
+                         const settings: InlineActivitySettings = inlineSettings[activity.id] || {
+                           note: activity.note ?? getDefaultNote(activity.id, genderKey),
+                           repeat: null,
+                           weeklyInterval: 1,
+                           weekdays: [],
+                           monthlyDays: [],
+                           allDay: true,
+                           time: '',
+                           timePeriod: null,
+                           endDate: false,
+                           endType: 'date',
+                           endDateValue: '',
+                           endDaysValue: 30,
+                           remind: false,
+                           remindAmount: 15,
+                           remindUnit: 'minutes',
+                         }
+                         return (
+                           <div
+                             key={activity.id}
+                             className=""
+                             ref={(el) => {
+                               activityRefs.current[activity.id] = el
+                             }}
+                           >
+                             <button
+                               onClick={() => handleActivityToggle(activity.id)}
+                               className={`w-full flex items-center px-3 py-3 rounded-full transition-colors ${
+                                 selected ? 'hover:opacity-80' : 'hover:opacity-80 opacity-50'
+                               }`}
+                               style={{ backgroundColor: extractRgbaFromClass(activity.bgColor) }}
+                             >
+                               <ActivityIcon activityId={activity.id} iconId={activity.iconId} color={activity.color} label={activity.name} />
+                               <div className="ml-3 flex-1 text-left">
+                                 <div className="text-text-primary font-medium text-base">{activity.name}</div>
+                                 {activity.aiRecommended && (
+                                   <div className="text-xs font-medium bg-gradient-to-r from-purple-600 via-pink-500 to-purple-700 bg-clip-text text-transparent">
+                                     AI recommendation for you
+                                   </div>
+                                 )}
                                </div>
-                             )}
+                               {selected && (
+                                 <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                   </svg>
+                                 </div>
+                               )}
+                             </button>
+
+                             {/* Inline settings (collapsed when not selected) */}
+                             <AnimatePresence initial={false}>
+                               {selected && (
+                                 <motion.div
+                                   initial={{ height: 0, opacity: 0 }}
+                                   animate={{ height: 'auto', opacity: 1 }}
+                                   exit={{ height: 0, opacity: 0 }}
+                                   transition={{ duration: 0.25 }}
+                                   className="overflow-hidden"
+                                 >
+                                   <div className="px-3 pt-2 pb-3">
+                                     {/* Note */}
+                                     <div className="mt-2">
+                                       <div className="px-1 text-[14px] font-bold text-text-primary">Note</div>
+                                       <textarea
+                                         value={settings.note}
+                                         onChange={(e) => setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, note: e.target.value } }))}
+                                         placeholder="Type the note here.."
+                                         className="mt-2 w-full rounded-[8px] border border-border-subtle bg-surface px-3 py-2 text-[14px] text-text-primary resize-none"
+                                       />
+                                     </div>
+
+                                     {/* Repeat controls */}
+                                     <div className="mt-3">
+                                       <div className="px-1 text-[14px] font-bold text-text-primary">Repeat</div>
+                                       <div className="mt-2 flex gap-2">
+                                         {(['Daily','Weekly','Monthly'] as const).map((option) => (
+                                           <button
+                                             key={option}
+                                             type="button"
+                                             onClick={() => {
+                                               const next = { ...settings, repeat: option as RepeatType }
+                                               if (option === 'Daily') {
+                                                 next.weekdays = [0,1,2,3,4,5,6]
+                                               }
+                                               if (option === 'Weekly') {
+                                                 next.allDay = false
+                                                 if (!next.weeklyInterval) next.weeklyInterval = 1
+                                               }
+                                               if (option === 'Monthly') {
+                                                 next.allDay = false
+                                                 if (!Array.isArray(next.monthlyDays)) next.monthlyDays = []
+                                               }
+                                               setInlineSettings(prev => ({ ...prev, [activity.id]: next }))
+                                             }}
+                                             className={`flex-1 rounded-[9px] px-3 py-[6px] text-[14px] leading-[13px] transition-colors ${
+                                               settings.repeat === option
+                                                 ? 'bg-[#5C4688] text-white shadow'
+                                                 : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'
+                                             }`}
+                                           >
+                                             {option}
+                                           </button>
+                                         ))}
+                                       </div>
+                                         {showErrors && validationErrors[activity.id]?.includes('missingRepeat') && (
+                                           <div className="mt-2 px-1 text-[12px] font-semibold text-red-500">Choose Daily, Weekly or Monthly</div>
+                                         )}
+
+                                       {/* Weekly details */}
+                                       {settings.repeat === 'Weekly' && (
+                                         <div className="mt-3">
+                                           <div className="mb-2 flex items-center flex-wrap gap-2 px-1 text-[14px] font-bold text-text-primary">
+                                             <span>On these days</span>
+                                             <span className="text-text-secondary font-medium">every</span>
+                                              <div className={`relative ${showErrors && (validationErrors[activity.id]?.includes('weeklyNoDays') || validationErrors[activity.id]?.includes('missingRepeat')) ? 'ring-2 ring-red-400 rounded-[10px]' : ''}`}>
+                                               <select
+                                                 aria-label="Weekly interval"
+                                                 value={settings.weeklyInterval}
+                                                 onChange={(e) => setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, weeklyInterval: Math.min(7, Math.max(1, Number(e.target.value) || 1)) } }))}
+                                                  className="appearance-none rounded-[10px] border border-border-subtle bg-surface px-3 py-2 pr-9 text-[14px] font-semibold text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/70 hover:border-primary/60 shadow-sm"
+                                               >
+                                                 {[1,2,3,4,5,6,7].map((n) => (
+                                                   <option key={n} value={n}>{n}</option>
+                                                 ))}
+                                               </select>
+                                               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary">
+                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                   <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                 </svg>
+                                               </span>
+                                             </div>
+                                             <span className="text-text-secondary font-medium">week{settings.weeklyInterval > 1 ? 's' : ''}</span>
+                                           </div>
+                                           <div className="flex flex-wrap gap-2">
+                                             {['S','M','T','W','T','F','S'].map((label, dayIndex) => {
+                                               const isActive = settings.weekdays.includes(dayIndex)
+                                               return (
+                                                 <button
+                                                   type="button"
+                                                   key={`weekly-${activity.id}-${dayIndex}-${label}`}
+                                                   onClick={() => {
+                                                     const nextDays = isActive
+                                                       ? settings.weekdays.filter(d => d !== dayIndex)
+                                                       : [...settings.weekdays, dayIndex].sort((a,b)=>a-b)
+                                                     setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, weekdays: nextDays } }))
+                                                   }}
+                                                  className={`h-9 w-9 rounded-full text-sm font-medium transition ${
+                                                    isActive ? 'bg-[#5C4688] text-white shadow' : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'
+                                                  } ${showErrors && validationErrors[activity.id]?.includes('weeklyNoDays') ? 'ring-2 ring-red-400' : ''}`}
+                                                 >
+                                                   {label}
+                                                 </button>
+                                               )
+                                             })}
+                                           </div>
+                                          {showErrors && validationErrors[activity.id]?.includes('weeklyNoDays') && (
+                                            <div className="mt-2 px-1 text-[12px] font-semibold text-red-500">Pick at least one weekday</div>
+                                          )}
+                                         </div>
+                                       )}
+
+                                       {/* Monthly details */}
+                                       {settings.repeat === 'Monthly' && (
+                                         <div className="mt-3">
+                                           <div className="px-1 text-[12px] font-medium text-text-secondary mb-2">Select days of month</div>
+                                           <div className={`grid grid-cols-7 gap-2 ${showErrors && validationErrors[activity.id]?.includes('monthlyNoDays') ? 'ring-2 ring-red-400 rounded-[12px] p-1' : ''}`}>
+                                             {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                                               const active = settings.monthlyDays.includes(day)
+                                               return (
+                                                 <button
+                                                   key={`mday-${activity.id}-${day}`}
+                                                   type="button"
+                                                   onClick={() => {
+                                                     const next = active
+                                                       ? settings.monthlyDays.filter((d) => d !== day)
+                                                       : [...settings.monthlyDays, day].sort((a,b)=>a-b)
+                                                     setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, monthlyDays: next } }))
+                                                   }}
+                                                   className={`h-9 w-9 rounded-full text-sm font-semibold transition ${active ? 'bg-[#5C4688] text-white shadow' : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'}`}
+                                                 >
+                                                   {day}
+                                                 </button>
+                                               )
+                                             })}
+                                           </div>
+                                           {showErrors && validationErrors[activity.id]?.includes('monthlyNoDays') && (
+                                             <div className="mt-2 px-1 text-[12px] font-semibold text-red-500">Select at least one day of month</div>
+                                           )}
+                                         </div>
+                                       )}
+                                     </div>
+
+                                     {/* All day + Time */}
+                                     <div className="mt-3 flex items-center gap-2 px-1">
+                                       <input
+                                         type="checkbox"
+                                         checked={settings.allDay}
+                                         onChange={(e) => setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, allDay: e.target.checked } }))}
+                                         className="w-4 h-4"
+                                       />
+                                       <label className="text-sm text-text-primary">All day</label>
+                                     </div>
+                                     {!settings.allDay && (
+                                       <div className="mt-2">
+                                         <div className="px-1 text-[14px] font-bold text-text-primary">Time</div>
+                                         <div className="mt-2">
+                                           <input
+                                             type="time"
+                                             value={settings.time}
+                                             onChange={(e) => setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, time: e.target.value } }))}
+                                             className={`w-full rounded-[10px] border px-3 py-2 bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/70 hover:border-primary/60 shadow-sm ${showErrors && validationErrors[activity.id]?.includes('missingTime') ? 'border-red-500 ring-red-400 focus:ring-red-400' : 'border-border-subtle'}`}
+                                           />
+                                           {/* Quick presets */}
+                                           <div className="mt-2 flex gap-2">
+                                             {(['Morning','Afternoon','Evening'] as const).map(period => (
+                                               <button
+                                                 key={period}
+                                                 type="button"
+                                                 onClick={() => {
+                                                   const timeMap: Record<Exclude<TimePeriod, null>, string> = { Morning: '07:00', Afternoon: '13:00', Evening: '19:00' }
+                                                   setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, time: timeMap[period], timePeriod: period } }))
+                                                 }}
+                                                 className={`flex-1 rounded-[9px] px-3 py-[6px] text-[14px] leading-[13px] transition-colors ${
+                                                   settings.timePeriod === period
+                                                     ? 'bg-[#5C4688] text-white shadow'
+                                                     : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'
+                                                 }`}
+                                               >
+                                                 {period}
+                                               </button>
+                                             ))}
+                                           </div>
+                                            {showErrors && validationErrors[activity.id]?.includes('missingTime') && (
+                                              <div className="mt-2 px-1 text-[12px] font-semibold text-red-500">Pick a time or set All day</div>
+                                            )}
+                                         </div>
+                                       </div>
+                                     )}
+
+                                     {/* End Activity On */}
+                                     <div className="mt-4">
+                                       <div className="flex items-center justify-between px-1">
+                                         <div className="text-[14px] font-bold text-text-primary">End Activity On</div>
+                                         <input
+                                           type="checkbox"
+                                           checked={settings.endDate}
+                                           onChange={(e) => setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, endDate: e.target.checked } }))}
+                                           className="w-4 h-4"
+                                         />
+                                       </div>
+                                       {settings.endDate && (
+                                         <div className="mt-3">
+                                           <div className="flex gap-2">
+                                             {(['date','days'] as const).map((option) => (
+                                               <button
+                                                 key={option}
+                                                 type="button"
+                                                 onClick={() => setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, endType: option } }))}
+                                                 className={`flex-1 rounded-[9px] px-3 py-[6px] text-[14px] leading-[13px] transition-colors ${
+                                                   settings.endType === option
+                                                     ? 'bg-[#5C4688] text-white shadow'
+                                                     : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'
+                                                 }`}
+                                               >
+                                                 {option === 'date' ? 'Date' : 'Days'}
+                                               </button>
+                                             ))}
+                                           </div>
+                                           {settings.endType === 'date' ? (
+                                             <div className="mt-3">
+                                               <input
+                                                 type="date"
+                                                 value={settings.endDateValue}
+                                                 onChange={(e) => setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, endDateValue: e.target.value } }))}
+                                                 className="w-full rounded-[8px] border border-border-subtle bg-surface px-4 py-2 text-[15px] text-text-primary focus:outline-none"
+                                               />
+                                             </div>
+                                           ) : (
+                                             <div className="mt-3 flex items-center gap-2">
+                                               <span className="text-[14px] text-text-secondary">After</span>
+                                               <input
+                                                 type="number"
+                                                 min={1}
+                                                 value={settings.endDaysValue}
+                                                 onChange={(e) => setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, endDaysValue: Math.max(1, Number(e.target.value) || 1) } }))}
+                                                 className="w-24 rounded-[8px] border border-border-subtle bg-surface px-3 py-2 text-[15px] text-text-primary focus:outline-none"
+                                               />
+                                               <span className="text-[14px] text-text-secondary">days</span>
+                                             </div>
+                                           )}
+                                         </div>
+                                       )}
+                                     </div>
+
+                                     {/* Remind me */}
+                                     <div className="mt-4">
+                                       <div className="flex items-center justify-between px-1">
+                                         <div className="text-[14px] font-bold text-text-primary">Remind me</div>
+                                         <input
+                                           type="checkbox"
+                                           checked={settings.remind}
+                                           onChange={(e) => setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, remind: e.target.checked } }))}
+                                           className="w-4 h-4"
+                                         />
+                                       </div>
+                                       {settings.remind && (
+                                         <div className="mt-3">
+                                           <div className="px-1 text-[12px] font-medium text-text-secondary">Before activity</div>
+                                           <div className="mt-2 grid grid-cols-2 gap-3">
+                                             <div className="relative">
+                                               <select
+                                               value={settings.remindAmount}
+                                               onChange={(e) => setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, remindAmount: Math.max(1, Math.min(60, Number(e.target.value) || 1)) } }))}
+                                               className="w-full appearance-none rounded-[10px] border border-border-subtle bg-surface px-3 py-2 pr-9 text-[14px] text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/70 hover:border-primary/60 shadow-sm"
+                                             >
+                                               {Array.from({ length: 60 }, (_, i) => i + 1).map((n) => (
+                                                 <option key={n} value={n}>{n}</option>
+                                               ))}
+                                               </select>
+                                               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary">
+                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                   <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                 </svg>
+                                               </span>
+                                             </div>
+                                             <div className="relative">
+                                               <select
+                                               value={settings.remindUnit}
+                                               onChange={(e) => setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, remindUnit: (e.target.value as RemindUnit) } }))}
+                                               className="w-full appearance-none rounded-[10px] border border-border-subtle bg-surface px-3 py-2 pr-9 text-[14px] text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/70 hover:border-primary/60 shadow-sm"
+                                             >
+                                               {(['seconds','minutes','hours','days','weeks','months','years'] as const).map((u) => (
+                                                 <option key={u} value={u}>{u}</option>
+                                               ))}
+                                               </select>
+                                               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary">
+                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                   <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                 </svg>
+                                               </span>
+                                             </div>
+                                           </div>
+                                         </div>
+                                       )}
+                                     </div>
+                                   </div>
+                                 </motion.div>
+                               )}
+                             </AnimatePresence>
                            </div>
-                           {selectedActivities.includes(activity.id) && (
-                             <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                               </svg>
-                             </div>
-                           )}
-                         </button>
-                       ))}
+                         )
+                       })}
                      </div>
                    </div>
                  )

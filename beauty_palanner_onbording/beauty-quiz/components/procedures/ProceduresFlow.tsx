@@ -1,13 +1,10 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useSearchParams } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useQuizStore } from '@/store/quizStore'
 
 // Import all procedure steps
 import ChooseProceduresStep from './ChooseProceduresStep'
-import ProcedureSetupStep from './ProcedureSetupStep'
 import GeneratingScheduleStep from './GeneratingScheduleStep'
 import NotificationsConsentStep from './NotificationsConsentStep'
 import ContractAgreementStep from './ContractAgreementStep'
@@ -17,25 +14,17 @@ interface ProceduresFlowProps {
   step: number
 }
 
+// Updated flow: skip the dedicated setup step and go straight to generating
 const procedureSteps: { [key: number]: React.ComponentType } = {
   0: ChooseProceduresStep,
-  1: ProcedureSetupStep,
-  2: GeneratingScheduleStep,
-  3: NotificationsConsentStep,
-  4: ContractAgreementStep,
-  5: RegularCareResultsStep,         // Regular Care = Better Results!
+  1: GeneratingScheduleStep,
+  2: NotificationsConsentStep,
+  3: ContractAgreementStep,
+  4: RegularCareResultsStep,         // Regular Care = Better Results!
 }
 
 export default function ProceduresFlow({ step }: ProceduresFlowProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [isReady, setIsReady] = useState(false)
   const { saveUiSnapshot, getUiSnapshot } = useQuizStore()
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsReady(true), 100)
-    return () => clearTimeout(timer)
-  }, [step])
 
   // Restore scroll position for this step
   useEffect(() => {

@@ -363,6 +363,17 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
   }, [totalSeconds, onExpire])
 
   useEffect(() => {
+    // Debug override: allow forcing sticky mini-timer via URL params
+    // Usage: /payment?debugSticky=1 or /payment?timer=sticky
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const debugSticky = params.has('debugSticky') || params.get('timer') === 'sticky'
+      if (debugSticky) {
+        setCompact(true)
+        return
+      }
+    } catch {}
+
     const onScroll = () => setCompact(window.scrollY > 180)
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -754,9 +765,19 @@ function DynamicBillingNotice({ selectedPlanId }: { selectedPlanId: string }) {
   const { currentTotal } = computePrice(plan, false) // Always inform regular billing at full price
   return (
     <div className="mt-2 w-full max-w-3xl mx-auto text-center rounded-2xl border border-border-subtle bg-surface px-4 py-3 text-xs sm:text-[13px] text-text-secondary">
-      Without cancellation, before the selected plan ends, you accept that Beauty Mirror will automatically charge
-      <span className="mx-1 font-semibold text-text-primary">{`${CURRENCY}${currentTotal.toFixed(2)}`}</span>
-      every <span className="font-semibold text-text-primary">{everyLabel}</span> until I cancel. Cancel online via the account page on the website or app.
+      {plan.id === '1w' ? (
+        <>
+          Without cancellation, before the 7-day trial ends, I accept that Beauty Mirror will automatically charge
+          <span className="mx-1 font-semibold text-text-primary">{`${CURRENCY}${currentTotal.toFixed(2)}`}</span>
+          every <span className="font-semibold text-text-primary">1 week</span> until I cancel. Cancel online via the account page on the website or app.
+        </>
+      ) : (
+        <>
+          Without cancellation, before the selected plan ends, I accept that Beauty Mirror will automatically charge
+          <span className="mx-1 font-semibold text-text-primary">{`${CURRENCY}${currentTotal.toFixed(2)}`}</span>
+          every <span className="font-semibold text-text-primary">{everyLabel}</span> until I cancel. Cancel online via the account page on the website or app.
+        </>
+      )}
     </div>
   )
 }
@@ -783,6 +804,22 @@ function PaymentModal({ selectedPlanId, discountOffered, discountActive, promoCo
   const [cardError, setCardError] = useState<string | null>(null)
   const sessionId = useQuizStore(s => s.sessionId)
   const userId = useQuizStore(s => s.answers.Id)
+
+  // Detect dark mode to style Stripe elements
+  const [isDark, setIsDark] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const update = () => {
+      const docDark = document.documentElement.classList.contains('dark')
+      setIsDark(docDark || mq.matches)
+    }
+    update()
+    try { mq.addEventListener('change', update) } catch { /* older browsers */ }
+    return () => {
+      try { mq.removeEventListener('change', update) } catch { /* older browsers */ }
+    }
+  }, [])
 
   // Create a PaymentIntent for card fallback
   useEffect(() => {
@@ -812,7 +849,7 @@ function PaymentModal({ selectedPlanId, discountOffered, discountActive, promoCo
     <motion.div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
       <motion.div
-  className="relative mx-0 w-full max-w-[768px] rounded-t-3xl sm:rounded-3xl bg-white px-5 py-5 sm:px-8 sm:py-8 shadow-[0_32px_64px_rgba(0,0,0,0.24)] max-h-[85vh] sm:max-h-[88vh] overflow-y-auto scrollbar-none"
+  className="relative mx-0 w-full max-w-[768px] rounded-t-3xl sm:rounded-3xl bg-surface px-5 py-5 sm:px-8 sm:py-8 shadow-[0_32px_64px_rgba(0,0,0,0.24)] max-h-[85vh] sm:max-h-[88vh] overflow-y-auto scrollbar-none"
         initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 24, opacity: 0 }}
@@ -847,7 +884,7 @@ function PaymentModal({ selectedPlanId, discountOffered, discountActive, promoCo
               <span className="flex-1 h-px bg-border-subtle" />
             </div>
             {pubKey && stripePromise && clientSecret ? (
-              <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
+              <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: isDark ? 'night' : 'stripe', variables: { colorPrimary: '#7C5CCB', colorBackground: isDark ? '#0F0F14' : '#FFFFFF', colorText: isDark ? '#E5E7EB' : '#111827', colorTextSecondary: isDark ? '#9CA3AF' : '#6B7280', borderRadius: '12px' } } }}>
                 <CardPaymentSection onComplete={onComplete} setError={setCardError} />
               </Elements>
             ) : (
@@ -865,6 +902,25 @@ function CardPaymentSection({ onComplete, setError }: { onComplete: () => void; 
   const stripe = useStripe()
   const elements = useElements()
   const [submitting, setSubmitting] = useState(false)
+  // Hide unnecessary fields in the Payment Element (country, email, name, etc.)
+  const paymentElOptions: any = {
+    layout: 'tabs',
+    fields: {
+      billingDetails: {
+        name: 'never',
+        email: 'never',
+        phone: 'never',
+        address: {
+          country: 'never',
+          postalCode: 'never',
+          line1: 'never',
+          line2: 'never',
+          city: 'never',
+          state: 'never',
+        },
+      },
+    },
+  }
   const handlePay = async () => {
     setError(null)
     if (!stripe || !elements) return
@@ -900,7 +956,7 @@ function CardPaymentSection({ onComplete, setError }: { onComplete: () => void; 
   }
   return (
     <div className="mt-2">
-      <PaymentElement options={{ layout: 'tabs' }} />
+      <PaymentElement options={paymentElOptions} />
       <button
         type="button"
         onClick={handlePay}

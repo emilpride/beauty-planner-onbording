@@ -503,7 +503,29 @@ export default function ProcedureSetupStep() {
 
     return selectedActivities.map((activityId) => {
       const override = activityMetaOverrides[activityId]
-      const initial = createActivitySetting(activityId, override?.name, genderKey)
+      let initial = createActivitySetting(activityId, override?.name, genderKey)
+      // Apply pre-config (if provided from inline setup)
+      if (override && typeof override.preConfig === 'object' && override.preConfig) {
+        const pre = override.preConfig as Partial<ActivitySetting> & { note?: string }
+        initial = {
+          ...initial,
+          note: typeof pre.note === 'string' ? pre.note : initial.note,
+          repeat: (pre.repeat ?? initial.repeat) as ActivitySetting['repeat'],
+          weeklyInterval: typeof pre.weeklyInterval === 'number' ? pre.weeklyInterval : initial.weeklyInterval,
+          allDay: typeof pre.allDay === 'boolean' ? pre.allDay : initial.allDay,
+          weekdays: Array.isArray(pre.weekdays) ? (pre.weekdays as number[]) : initial.weekdays,
+          monthlyDays: Array.isArray(pre.monthlyDays) ? (pre.monthlyDays as number[]) : initial.monthlyDays,
+          time: typeof pre.time === 'string' ? pre.time : initial.time,
+          timePeriod: (pre.timePeriod ?? initial.timePeriod) as ActivitySetting['timePeriod'],
+          endDate: typeof pre.endDate === 'boolean' ? pre.endDate : initial.endDate,
+          endType: (pre.endType ?? initial.endType) as ActivitySetting['endType'],
+          endDateValue: typeof pre.endDateValue === 'string' ? pre.endDateValue : initial.endDateValue,
+          endDaysValue: typeof pre.endDaysValue === 'number' ? pre.endDaysValue : initial.endDaysValue,
+          remind: typeof pre.remind === 'boolean' ? pre.remind : initial.remind,
+          remindAmount: typeof pre.remindAmount === 'number' ? pre.remindAmount : initial.remindAmount,
+          remindUnit: (pre.remindUnit ?? initial.remindUnit) as ActivitySetting['remindUnit'],
+        }
+      }
       const persistedNote = answers.ActivityNotes?.[activityId]
       return persistedNote ? { ...initial, note: persistedNote } : initial
     })
@@ -533,7 +555,28 @@ export default function ProcedureSetupStep() {
           return existingActivity
         }
 
-        const created = createActivitySetting(activityId, override?.name, genderKey)
+        let created = createActivitySetting(activityId, override?.name, genderKey)
+        if (override && typeof override.preConfig === 'object' && override.preConfig) {
+          const pre = override.preConfig as Partial<ActivitySetting> & { note?: string }
+          created = {
+            ...created,
+            note: typeof pre.note === 'string' ? pre.note : created.note,
+            repeat: (pre.repeat ?? created.repeat) as ActivitySetting['repeat'],
+            weeklyInterval: typeof pre.weeklyInterval === 'number' ? pre.weeklyInterval : created.weeklyInterval,
+            allDay: typeof pre.allDay === 'boolean' ? pre.allDay : created.allDay,
+            weekdays: Array.isArray(pre.weekdays) ? (pre.weekdays as number[]) : created.weekdays,
+            monthlyDays: Array.isArray(pre.monthlyDays) ? (pre.monthlyDays as number[]) : created.monthlyDays,
+            time: typeof pre.time === 'string' ? pre.time : created.time,
+            timePeriod: (pre.timePeriod ?? created.timePeriod) as ActivitySetting['timePeriod'],
+            endDate: typeof pre.endDate === 'boolean' ? pre.endDate : created.endDate,
+            endType: (pre.endType ?? created.endType) as ActivitySetting['endType'],
+            endDateValue: typeof pre.endDateValue === 'string' ? pre.endDateValue : created.endDateValue,
+            endDaysValue: typeof pre.endDaysValue === 'number' ? pre.endDaysValue : created.endDaysValue,
+            remind: typeof pre.remind === 'boolean' ? pre.remind : created.remind,
+            remindAmount: typeof pre.remindAmount === 'number' ? pre.remindAmount : created.remindAmount,
+            remindUnit: (pre.remindUnit ?? created.remindUnit) as ActivitySetting['remindUnit'],
+          }
+        }
         const persistedNote = answers.ActivityNotes?.[activityId]
         return persistedNote ? { ...created, note: persistedNote } : created
       })
@@ -800,7 +843,7 @@ export default function ProcedureSetupStep() {
                     <button
                       type="button"
                       onClick={() => setOpenMonthlyModal({ index, days: activity.monthlyDays })}
-                      className="flex w-full items-center justify-between rounded-[12px] border border-border-subtle bg-surface px-4 py-3 text-left text-[14px] text-text-primary"
+                      className={`flex w-full items-center justify-between rounded-[12px] border bg-surface px-4 py-3 text-left text-[14px] text-text-primary ${showErrors && issues.includes('monthlyNoDays') ? 'border-red-500 ring-2 ring-red-400' : 'border-border-subtle'}`}
                     >
                       <span className="truncate">
                         {activity.monthlyDays.length
@@ -827,12 +870,12 @@ export default function ProcedureSetupStep() {
                     <div className="mb-2 flex items-center flex-wrap gap-2 px-1 text-[14px] font-bold text-text-primary">
                       <span>On these days</span>
                       <span className="text-text-secondary font-medium">every</span>
-                      <div className="relative">
+                      <div className={`relative ${showErrors && issues.includes('weeklyNoDays') ? 'ring-2 ring-red-400 rounded-[10px]' : ''}`}>
                         <select
                           aria-label="Weekly interval"
                           value={activity.weeklyInterval}
                           onChange={(e) => updateActivity(index, { weeklyInterval: Math.min(7, Math.max(1, Number(e.target.value) || 1)) })}
-                          className="appearance-none rounded-[8px] border border-border-subtle bg-surface px-2 py-1 pr-7 text-[14px] font-semibold text-text-primary focus:outline-none"
+                          className="appearance-none rounded-[10px] border border-border-subtle bg-surface px-3 py-2 pr-9 text-[14px] font-semibold text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/70 hover:border-primary/60 shadow-sm"
                         >
                           {[1,2,3,4,5,6,7].map((n) => (
                             <option key={n} value={n}>{n}</option>
@@ -895,8 +938,8 @@ export default function ProcedureSetupStep() {
                       type="button"
                       disabled={activity.allDay}
                       onClick={() => setOpenTimeModal({ index, time: activity.time })}
-                      className={`flex w-full items-center justify-between rounded-[8px] border border-border-subtle bg-surface px-4 py-3 text-[15px] transition ${
-                        activity.allDay ? 'opacity-60 cursor-not-allowed' : 'hover:border-[#8F74E5]'
+                      className={`flex w-full items-center justify-between rounded-[10px] border bg-surface px-4 py-3 text-[15px] transition ${
+                        activity.allDay ? 'opacity-60 cursor-not-allowed border-border-subtle' : `${showErrors && issues.includes('missingTime') ? 'border-red-500 ring-2 ring-red-400' : 'border-border-subtle hover:border-[#8F74E5] focus:ring-2 focus:ring-primary/70'}`
                       }`}
                     >
                       <span className="font-medium text-text-primary">{activity.time ? formatTimeLabel(activity.time) : 'Pick a time'}</span>
@@ -1004,30 +1047,44 @@ export default function ProcedureSetupStep() {
                   <div className="mt-3">
                     <div className="px-1 text-[12px] font-medium text-text-secondary">Before activity</div>
                     <div className="mt-2 grid grid-cols-2 gap-3">
-                      <select
+                      <div className="relative">
+                        <select
                         value={activity.remindAmount}
                         onChange={(event) => updateActivity(index, { remindAmount: Number(event.target.value) })}
-                        className="w-full rounded-[8px] border border-border-subtle bg-surface px-3 py-2 text-[14px] text-text-primary focus:outline-none"
+                        className="w-full appearance-none rounded-[10px] border border-border-subtle bg-surface px-3 py-2 pr-9 text-[14px] text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/70 hover:border-primary/60 shadow-sm"
                       >
                         {remindAmountOptions.map((n) => (
                           <option key={n} value={n}>
                             {n}
                           </option>
                         ))}
-                      </select>
-                      <select
+                        </select>
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <select
                         value={activity.remindUnit}
                         onChange={(event) =>
                           updateActivity(index, { remindUnit: event.target.value as ActivitySetting['remindUnit'] })
                         }
-                        className="w-full rounded-[8px] border border-border-subtle bg-surface px-3 py-2 text-[14px] text-text-primary focus:outline-none"
+                        className="w-full appearance-none rounded-[10px] border border-border-subtle bg-surface px-3 py-2 pr-9 text+[14px] text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/70 hover:border-primary/60 shadow-sm"
                       >
                         {remindUnits.map((u) => (
                           <option key={u} value={u}>
                             {u}
                           </option>
                         ))}
-                      </select>
+                        </select>
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}

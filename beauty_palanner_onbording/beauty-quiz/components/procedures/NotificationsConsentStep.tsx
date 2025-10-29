@@ -9,12 +9,25 @@ import Image from 'next/image'
 export default function NotificationsConsentStep() {
   const { currentStep, nextStep, answers, setAnswer } = useQuizStore()
   const router = useRouter()
-  const [dailyReminders, setDailyReminders] = useState(answers.DailyMoodReminder || false)
-  const [dailyPush, setDailyPush] = useState<boolean>(answers.DailyPushNotifications ?? true)
-  const [dailyEmail, setDailyEmail] = useState<boolean>(answers.DailyEmailNotifications ?? false)
-  const [activityReminders, setActivityReminders] = useState<boolean>(answers.ActivityReminder ?? true)
-  const [emailNotifications, setEmailNotifications] = useState<boolean>(answers.EmailNotifications ?? false)
-  const [pushNotifications, setPushNotifications] = useState<boolean>(answers.PushNotifications ?? true)
+  // Default everything ON unless a stored value exists
+  const [dailyReminders, setDailyReminders] = useState<boolean>(
+    (answers.DailyMoodReminder as boolean | undefined) ?? true
+  )
+  const [dailyPush, setDailyPush] = useState<boolean>(
+    (answers.DailyPushNotifications as boolean | undefined) ?? true
+  )
+  const [dailyEmail, setDailyEmail] = useState<boolean>(
+    (answers.DailyEmailNotifications as boolean | undefined) ?? true
+  )
+  const [activityReminders, setActivityReminders] = useState<boolean>(
+    (answers.ActivityReminder as boolean | undefined) ?? true
+  )
+  const [emailNotifications, setEmailNotifications] = useState<boolean>(
+    (answers.EmailNotifications as boolean | undefined) ?? true
+  )
+  const [pushNotifications, setPushNotifications] = useState<boolean>(
+    (answers.PushNotifications as boolean | undefined) ?? true
+  )
 
   const handleSave = () => {
   setAnswer('DailyMoodReminder', dailyReminders)
@@ -23,8 +36,9 @@ export default function NotificationsConsentStep() {
   setAnswer('ActivityReminder', activityReminders)
   setAnswer('EmailNotifications', emailNotifications)
   setAnswer('PushNotifications', pushNotifications)
-    
-    router.push('/procedures/4')
+
+    // Flow shifted: after notifications (step 2) go to contract (step 3)
+    router.push('/procedures/3')
   }
 
   const getAssistantImage = () => {
@@ -35,9 +49,9 @@ export default function NotificationsConsentStep() {
   }
 
   return (
-    <div className="h-full bg-gradient-to-br from-background to-surface-muted flex flex-col">
+    <div className="h-full bg-gradient-to-br from-background to-surface-muted flex flex-col overflow-hidden">
       {/* Top Section with Character */}
-  <div className="flex-1 flex flex-col items-center justify-start p-6 relative">
+  <div className="flex-1 flex flex-col items-center justify-start p-6 relative overflow-y-auto min-h-0">
         {/* Floating Bell Icon */}
         <motion.div
           className="absolute top-20 right-8 z-20"

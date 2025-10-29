@@ -51,7 +51,8 @@ export default function GeneratingScheduleStep() {
           clearInterval(interval)
           // Navigate to next step after all steps are complete
           setTimeout(() => {
-            router.push('/procedures/3')
+            // Flow shifted: after generating (step 1) go to notifications (step 2)
+            router.push('/procedures/2')
           }, 1200)
           return prev
         }
