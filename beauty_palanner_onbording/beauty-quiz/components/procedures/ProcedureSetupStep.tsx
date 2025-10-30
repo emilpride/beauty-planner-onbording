@@ -18,8 +18,7 @@ interface ActivitySetting {
   allDay: boolean
   weekdays: number[]
   monthlyDays: number[]
-  time: string
-  timePeriod: 'Morning' | 'Afternoon' | 'Evening' | null
+  times: { time: string; timePeriod: 'Morning' | 'Afternoon' | 'Evening' }[]
   endDate: boolean
   endType: 'date' | 'days'
   endDateValue: string
@@ -41,8 +40,7 @@ const createActivitySetting = (activityId: string, fallbackName?: string, gender
     allDay: true,
     weekdays: [],
     monthlyDays: [],
-    time: '',
-    timePeriod: null,
+  times: [],
     endDate: false,
     endType: 'date',
     endDateValue: '',
@@ -56,7 +54,7 @@ const createActivitySetting = (activityId: string, fallbackName?: string, gender
 const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const repeatOptions: Exclude<ActivitySetting['repeat'], null>[] = ['Daily', 'Weekly', 'Monthly']
-const periodOptions: Exclude<ActivitySetting['timePeriod'], null>[] = ['Morning', 'Afternoon', 'Evening']
+const periodOptions: Array<'Morning' | 'Afternoon' | 'Evening'> = ['Morning', 'Afternoon', 'Evening']
 // Reminder controls
 const remindAmountOptions = Array.from({ length: 60 }, (_, i) => i + 1)
 const remindUnits = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'] as const
@@ -515,8 +513,11 @@ export default function ProcedureSetupStep() {
           allDay: typeof pre.allDay === 'boolean' ? pre.allDay : initial.allDay,
           weekdays: Array.isArray(pre.weekdays) ? (pre.weekdays as number[]) : initial.weekdays,
           monthlyDays: Array.isArray(pre.monthlyDays) ? (pre.monthlyDays as number[]) : initial.monthlyDays,
-          time: typeof pre.time === 'string' ? pre.time : initial.time,
-          timePeriod: (pre.timePeriod ?? initial.timePeriod) as ActivitySetting['timePeriod'],
+          times: Array.isArray((pre as any).times)
+            ? ((pre as any).times as { time: string; timePeriod: 'Morning' | 'Afternoon' | 'Evening' }[])
+            : (typeof (pre as any).time === 'string' && (pre as any).time
+                ? [{ time: (pre as any).time, timePeriod: ((pre as any).timePeriod as any) || 'Morning' }]
+                : initial.times),
           endDate: typeof pre.endDate === 'boolean' ? pre.endDate : initial.endDate,
           endType: (pre.endType ?? initial.endType) as ActivitySetting['endType'],
           endDateValue: typeof pre.endDateValue === 'string' ? pre.endDateValue : initial.endDateValue,
@@ -531,7 +532,7 @@ export default function ProcedureSetupStep() {
     })
   })
   const [openMonthlyModal, setOpenMonthlyModal] = useState<{ index: number; days: number[] } | null>(null)
-  const [openTimeModal, setOpenTimeModal] = useState<{ index: number; time: string | undefined } | null>(null)
+  const [openTimeModal, setOpenTimeModal] = useState<{ activityIndex: number; timeIndex: number; time: string | undefined } | null>(null)
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({})
   const [showErrors, setShowErrors] = useState(false)
   const activityRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -566,8 +567,11 @@ export default function ProcedureSetupStep() {
             allDay: typeof pre.allDay === 'boolean' ? pre.allDay : created.allDay,
             weekdays: Array.isArray(pre.weekdays) ? (pre.weekdays as number[]) : created.weekdays,
             monthlyDays: Array.isArray(pre.monthlyDays) ? (pre.monthlyDays as number[]) : created.monthlyDays,
-            time: typeof pre.time === 'string' ? pre.time : created.time,
-            timePeriod: (pre.timePeriod ?? created.timePeriod) as ActivitySetting['timePeriod'],
+            times: Array.isArray((pre as any).times)
+              ? ((pre as any).times as { time: string; timePeriod: 'Morning' | 'Afternoon' | 'Evening' }[])
+              : (typeof (pre as any).time === 'string' && (pre as any).time
+                  ? [{ time: (pre as any).time, timePeriod: ((pre as any).timePeriod as any) || 'Morning' }]
+                  : created.times),
             endDate: typeof pre.endDate === 'boolean' ? pre.endDate : created.endDate,
             endType: (pre.endType ?? created.endType) as ActivitySetting['endType'],
             endDateValue: typeof pre.endDateValue === 'string' ? pre.endDateValue : created.endDateValue,
@@ -661,11 +665,11 @@ export default function ProcedureSetupStep() {
     const weeklyCount = activitySettings.filter((activity) => activity.repeat === 'Weekly').length
     const monthlyCount = activitySettings.filter((activity) => activity.repeat === 'Monthly').length
     const dailyCount = total - weeklyCount - monthlyCount
-    const nextTimed = activitySettings.find((activity) => !activity.allDay && activity.time)
+  const nextTimed = activitySettings.find((activity) => !activity.allDay && activity.times && activity.times[0] && activity.times[0].time)
     const fallbackAllDay = activitySettings.find((activity) => activity.allDay)
 
     const nextValue = nextTimed
-      ? formatTimeLabel(nextTimed.time)
+      ? formatTimeLabel(nextTimed.times[0]!.time)
       : fallbackAllDay
       ? 'All day flow'
       : 'Flexible'
@@ -694,21 +698,34 @@ export default function ProcedureSetupStep() {
       },
     ]
   }, [activitySettings, remindCount])
-  const setPeriodAndTime = (idx: number, period: Exclude<ActivitySetting['timePeriod'], null>) => {
-    const timeMap: Record<typeof period, string> = {
+  const setPeriodAndTime = (idx: number, period: 'Morning' | 'Afternoon' | 'Evening') => {
+    const timeMap: Record<'Morning' | 'Afternoon' | 'Evening', string> = {
       Morning: '07:00',
       Afternoon: '13:00',
       Evening: '19:00',
     }
-    updateActivity(idx, { timePeriod: period, time: timeMap[period], allDay: false })
+    setActivitySettings(prev => prev.map((a, i) => {
+      if (i !== idx) return a
+      const exists = (a.times || []).some(t => t.timePeriod === period)
+      const nextTimes = exists ? a.times.filter(t => t.timePeriod !== period) : [...(a.times || []), { time: timeMap[period], timePeriod: period }].slice(0,3)
+      return { ...a, allDay: false, times: nextTimes }
+    }))
   }
 
-  const savePickedTime = (idx: number, time24: string) => {
-    // Derive period from hour
+  const savePickedTime = (activityIndex: number, timeIndex: number, time24: string) => {
     const [hhStr] = time24.split(':')
     const hh = Number(hhStr)
-    const period: ActivitySetting['timePeriod'] = hh < 12 ? 'Morning' : hh < 18 ? 'Afternoon' : 'Evening'
-    updateActivity(idx, { time: time24, allDay: false, timePeriod: period })
+    const period: 'Morning' | 'Afternoon' | 'Evening' = hh < 12 ? 'Morning' : hh < 18 ? 'Afternoon' : 'Evening'
+    setActivitySettings(prev => prev.map((a, i) => {
+      if (i !== activityIndex) return a
+      const times = [...(a.times || [])]
+      if (times[timeIndex]) {
+        times[timeIndex] = { time: time24, timePeriod: period }
+      } else {
+        times.push({ time: time24, timePeriod: period })
+      }
+      return { ...a, allDay: false, times }
+    }))
   }
 
   // Validation helpers
@@ -718,7 +735,9 @@ export default function ProcedureSetupStep() {
     if (!a.repeat) issues.push('missingRepeat')
     if (a.repeat === 'Weekly' && (!a.weekdays || a.weekdays.length === 0)) issues.push('weeklyNoDays')
     if (a.repeat === 'Monthly' && (!a.monthlyDays || a.monthlyDays.length === 0)) issues.push('monthlyNoDays')
-    if (!a.allDay && !a.time) issues.push('missingTime')
+    if (!a.allDay) {
+      if (!Array.isArray(a.times) || a.times.length === 0 || a.times.some(t => !t.time)) issues.push('missingTime')
+    }
     return issues
   }
 
@@ -787,7 +806,7 @@ export default function ProcedureSetupStep() {
                   <div className="min-w-0">
                     <p className="truncate text-[16px] font-medium leading-5 text-text-primary">{displayName}</p>
                     <p className="text-[12px] leading-5 text-text-secondary">
-                      {activity.time ? formatTimeLabel(activity.time).replace(' ', '') : activity.allDay ? 'All day' : '—'}
+                      {activity.times && activity.times[0]?.time ? formatTimeLabel(activity.times[0]!.time).replace(' ', '') : activity.allDay ? 'All day' : '—'}
                     </p>
                   </div>
                 </div>
@@ -924,53 +943,95 @@ export default function ProcedureSetupStep() {
                       <span>All day</span>
                       <ToggleSwitch
                         checked={activity.allDay}
-                        onChange={(value) =>
-                          updateActivity(index, {
-                            allDay: value,
-                            time: value ? '' : activity.time || '07:00',
-                          })
-                        }
+                        onChange={(value) => updateActivity(index, { allDay: value })}
                       />
                     </label>
                   </div>
-                  <div>
-                    <button
-                      type="button"
-                      disabled={activity.allDay}
-                      onClick={() => setOpenTimeModal({ index, time: activity.time })}
-                      className={`flex w-full items-center justify-between rounded-[10px] border bg-surface px-4 py-3 text-[15px] transition ${
-                        activity.allDay ? 'opacity-60 cursor-not-allowed border-border-subtle' : `${showErrors && issues.includes('missingTime') ? 'border-red-500 ring-2 ring-red-400' : 'border-border-subtle hover:border-[#8F74E5] focus:ring-2 focus:ring-primary/70'}`
-                      }`}
-                    >
-                      <span className="font-medium text-text-primary">{activity.time ? formatTimeLabel(activity.time) : 'Pick a time'}</span>
-                      <span className="grid h-8 w-8 place-items-center rounded-full text-text-secondary">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.5" />
-                          <path d="M12 8V12L14.5 13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                    </button>
-                  </div>
-                  {showErrors && issues.includes('missingTime') && (
-                    <div className="mt-2 px-1 text-[12px] font-semibold text-red-500">Pick a time or set All day</div>
+                  {!activity.allDay && (
+                    <>
+                      {/* Quick multi-select presets */}
+                      <div className="mt-3 flex gap-2">
+                        {periodOptions.map((period) => {
+                          const active = (activity.times || []).some(t => t.timePeriod === period)
+                          return (
+                            <button
+                              key={period}
+                              type="button"
+                              onClick={() => setPeriodAndTime(index, period)}
+                              className={`flex-1 rounded-[9px] px-3 py-[6px] text-[14px] leading-[13px] transition-colors ${
+                                active
+                                  ? 'bg-[#5C4688] text-white shadow'
+                                  : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'
+                              }`}
+                            >
+                              {period}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {/* Times list */}
+                      <div className="mt-3 space-y-2">
+                        {(activity.times || []).map((entry, tIdx) => (
+                          <div key={tIdx} className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setOpenTimeModal({ activityIndex: index, timeIndex: tIdx, time: entry.time })}
+                              className={`flex-1 items-center justify-between rounded-[10px] border bg-surface px-4 py-3 text-left text-[15px] transition ${showErrors && issues.includes('missingTime') && !entry.time ? 'border-red-500 ring-2 ring-red-400' : 'border-border-subtle hover:border-[#8F74E5] focus:ring-2 focus:ring-primary/70'}`}
+                            >
+                              <span className="font-medium text-text-primary">{entry.time ? formatTimeLabel(entry.time) : 'Pick a time'}</span>
+                            </button>
+                            <select
+                              value={entry.timePeriod}
+                              onChange={(e) => setActivitySettings(prev => prev.map((a, i) => {
+                                if (i !== index) return a
+                                const times = [...(a.times || [])]
+                                const curr = times[tIdx] as { time: string; timePeriod: 'Morning' | 'Afternoon' | 'Evening' }
+                                const newPeriod = e.target.value as 'Morning' | 'Afternoon' | 'Evening'
+                                times[tIdx] = { time: curr?.time || '07:00', timePeriod: newPeriod }
+                                return { ...a, times }
+                              }))}
+                              className="w-36 rounded-[10px] border border-border-subtle bg-surface px-3 py-2 text-[14px] text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/70 hover:border-primary/60 shadow-sm"
+                            >
+                              {periodOptions.map(p => (
+                                <option key={p} value={p}>{p}</option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => setActivitySettings(prev => prev.map((a, i) => {
+                                if (i !== index) return a
+                                const times = (a.times || []).filter((_, ii) => ii !== tIdx)
+                                return { ...a, times }
+                              }))}
+                              className="w-9 h-9 rounded-full border border-border-subtle text-text-secondary hover:text-red-500 hover:border-red-400"
+                              aria-label="Remove time"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          onClick={() => setActivitySettings(prev => prev.map((a, i) => {
+                            if (i !== index) return a
+                            const cur = a.times || []
+                            if (cur.length >= 3) return a
+                            const missingPeriod = (['Morning','Afternoon','Evening'] as const).find(p => !(cur || []).some(t => t.timePeriod === p)) || 'Morning'
+                            const timeMap: Record<'Morning'|'Afternoon'|'Evening', string> = { Morning: '07:00', Afternoon: '13:00', Evening: '19:00' }
+                            return { ...a, times: [...cur, { time: timeMap[missingPeriod], timePeriod: missingPeriod }] }
+                          }))}
+                          className="w-full rounded-[10px] border border-dashed border-border-subtle px-3 py-2 text-[14px] text-text-secondary hover:border-primary hover:text-text-primary"
+                        >
+                          + Add another time
+                        </button>
+                        {showErrors && issues.includes('missingTime') && (
+                          <div className="mt-2 px-1 text-[12px] font-semibold text-red-500">Pick at least one time or set All day</div>
+                        )}
+                      </div>
+                    </>
                   )}
-
-                  <div className="mt-3 flex gap-2">
-                    {periodOptions.map((period) => (
-                      <button
-                        key={period}
-                        type="button"
-                        onClick={() => setPeriodAndTime(index, period)}
-                        className={`flex-1 rounded-[9px] px-3 py-[6px] text-[14px] leading-[13px] transition-colors ${
-                          activity.timePeriod === period
-                            ? 'bg-[#5C4688] text-white shadow'
-                            : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'
-                        }`}
-                      >
-                        {period}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
 
@@ -1134,7 +1195,7 @@ export default function ProcedureSetupStep() {
         onCancel={() => setOpenTimeModal(null)}
         onSave={(time24) => {
           if (openTimeModal) {
-            savePickedTime(openTimeModal.index, time24)
+            savePickedTime(openTimeModal.activityIndex, openTimeModal.timeIndex, time24)
             setOpenTimeModal(null)
           }
         }}

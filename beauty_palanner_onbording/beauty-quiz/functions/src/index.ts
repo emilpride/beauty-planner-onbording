@@ -585,6 +585,20 @@ export const recomputeAchievements = onRequest(async (req, res) => {
 	}
 })
 
+type RecommendedScheduleItem = {
+	id: string
+	repeat: 'Daily' | 'Weekly' | 'Monthly'
+	weeklyInterval?: number
+	weeklyDays?: number[]
+	monthlyDays?: number[]
+	allDay?: boolean
+	timePeriod?: 'Morning' | 'Afternoon' | 'Evening' | null
+	time?: string | null
+	// New: when the same id should occur multiple times per day, we aggregate here
+	times?: { time: string, timePeriod: 'Morning' | 'Afternoon' | 'Evening' }[]
+	note?: string
+}
+
 type AIAnalysisModel = {
 	bmi: number | null
 	bmiCategory: string
@@ -597,6 +611,7 @@ type AIAnalysisModel = {
 	bmsScore: number
 	bmsCategory: string
 	bmsDescription: string
+	recommendedSchedule?: RecommendedScheduleItem[]
 }
 
 // BMI calculation and conversion functions
@@ -878,6 +893,139 @@ function validateGeminiResponse(obj: any): boolean {
 	}
 	
 	console.log('Validation passed for Gemini response')
+	// Validate optional recommendedSchedule array
+	try {
+		const sched = obj['recommendedSchedule']
+		if (typeof sched !== 'undefined') {
+			if (!Array.isArray(sched)) {
+				console.warn('Validation: recommendedSchedule is not an array – dropping')
+				delete obj['recommendedSchedule']
+			} else {
+				const allowedIds = new Set([
+					'breathing-exercises', 'cardio-boost', 'cleanse-hydrate', 'cycling', 'dance-it-out',
+					'deep-hydration', 'deep-nourishment', 'evening-stretch', 'exfoliate', 'face-massage',
+					'gratitude-exercises', 'heat-protection', 'learn-grow', 'lip-eye-care', 'mindful-meditation',
+					'mood-check-in', 'morning-stretch', 'positive-affirmations', 'post-color-care', 'posture-fix',
+					'scalp-detox', 'scalp-massage', 'social-media-detox', 'spf-protection', 'strength-training',
+					'stress-relief', 'swimming-time', 'talk-it-out', 'trim-split-ends', 'wash-care',
+					'yoga-flexibility', 'beard-shave-care', 'hair-loss-support', 'leave-in-care', 'night-care-routine'
+				])
+				const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n))
+				const isHHMM = (s: string) => /^\d{2}:\d{2}$/.test(s)
+				// Normalize 12h time strings like "7pm", "7:30 PM" to HH:MM (24h) and infer period
+				const to24h = (raw: any): { time: string | null; inferredPeriod: 'Morning'|'Afternoon'|'Evening'|null } => {
+					if (typeof raw !== 'string') return { time: null, inferredPeriod: null }
+					const s = raw.trim()
+					if (isHHMM(s)) {
+						const hh = Number(s.slice(0,2))
+						if (!Number.isFinite(hh)) return { time: s, inferredPeriod: null }
+						if (hh >= 5 && hh < 12) return { time: s, inferredPeriod: 'Morning' }
+						if (hh >= 12 && hh < 17) return { time: s, inferredPeriod: 'Afternoon' }
+						return { time: s, inferredPeriod: 'Evening' }
+					}
+					const m = s.match(/^\s*(\d{1,2})(?::(\d{2}))?\s*([ap]\.?m\.?|am|pm)\s*$/i)
+					if (m) {
+						let h = Number(m[1])
+						const mm = typeof m[2] === 'string' && m[2] ? Number(m[2]) : 0
+						const ap = (m[3] || '').toLowerCase()
+						if (ap.startsWith('p') && h < 12) h += 12
+						if (ap.startsWith('a') && h === 12) h = 0
+						const pad = (n: number) => (n < 10 ? `0${n}` : String(n))
+						const hhmm = `${pad(Math.max(0, Math.min(23, h)))}:${pad(Math.max(0, Math.min(59, mm)))}`
+						const inferred: 'Morning'|'Afternoon'|'Evening' = ((): any => {
+							if (h >= 5 && h < 12) return 'Morning'
+							if (h >= 12 && h < 17) return 'Afternoon'
+							return 'Evening'
+						})()
+						return { time: hhmm, inferredPeriod: inferred }
+					}
+					return { time: null, inferredPeriod: null }
+				}
+				const normPeriod = (raw: any, fallbackFromTime: 'Morning'|'Afternoon'|'Evening'|null): 'Morning'|'Afternoon'|'Evening'|null => {
+					const v = typeof raw === 'string' ? raw.trim().toLowerCase() : ''
+					if (!v) return fallbackFromTime
+					if (v === 'morning' || v === 'am') return 'Morning'
+					if (v === 'afternoon' || v === 'midday' || v === 'noon') return 'Afternoon'
+					if (v === 'evening' || v === 'pm' || v === 'night' || v === 'late evening') return 'Evening'
+					return fallbackFromTime
+				}
+				// Merge duplicate ids to aggregate multiple times per day
+				const merged = new Map<string, any>()
+				for (const it of sched) {
+					if (!it || typeof it !== 'object') continue
+					const id = String((it as any).id || '')
+					if (!allowedIds.has(id)) continue
+					let repeat = String((it as any).repeat || 'Daily') as any
+					if (!['Daily','Weekly','Monthly'].includes(repeat)) repeat = 'Daily'
+					const weeklyInterval = clamp(Number((it as any).weeklyInterval ?? 1), 1, 12)
+					const weeklyDaysSrc = Array.isArray((it as any).weeklyDays) ? (it as any).weeklyDays : []
+					const weeklyDays = weeklyDaysSrc
+						.map((d: any) => Number(d))
+						.filter((d: number) => Number.isFinite(d) && d >= 0 && d <= 6)
+					const monthlyDaysSrc = Array.isArray((it as any).monthlyDays) ? (it as any).monthlyDays : []
+					const monthlyDays = monthlyDaysSrc
+						.map((d: any) => Number(d))
+						.filter((d: number) => Number.isFinite(d) && d >= 1 && d <= 31)
+					const allDay = Boolean((it as any).allDay ?? true)
+					const rawTime = (it as any).time
+					let time: string | null = null
+					let inferredFromTime: 'Morning'|'Afternoon'|'Evening'|null = null
+					if (!allDay && typeof rawTime === 'string') {
+						if (isHHMM(rawTime)) {
+							time = rawTime
+							const hh = Number(rawTime.slice(0,2))
+							inferredFromTime = (hh >= 5 && hh < 12) ? 'Morning' : (hh >= 12 && hh < 17) ? 'Afternoon' : 'Evening'
+						} else {
+							const cv = to24h(rawTime)
+							time = cv.time
+							inferredFromTime = cv.inferredPeriod
+						}
+					}
+					const timePeriod = normPeriod((it as any).timePeriod, inferredFromTime)
+					const note = typeof (it as any).note === 'string' ? (it as any).note : undefined
+
+					if (repeat === 'Weekly' && weeklyDays.length === 0) continue
+					if (repeat === 'Monthly' && monthlyDays.length === 0) continue
+
+					const existing = merged.get(id)
+					if (!existing) {
+						const base: any = { id, repeat, weeklyInterval, weeklyDays, monthlyDays, allDay, time: null, timePeriod: null, note, times: [] as { time: string, timePeriod: 'Morning'|'Afternoon'|'Evening' }[] }
+						if (!allDay && time && timePeriod) base.times.push({ time, timePeriod })
+						merged.set(id, base)
+					} else {
+						// Reconcile: keep the first repeat/days; warn on conflicts but don't override
+						if (allDay) {
+							existing.allDay = true
+							existing.times = []
+							existing.time = null
+							existing.timePeriod = null
+						} else if (time && timePeriod && !existing.allDay) {
+							const existsPair = existing.times.some((t: any) => t.time === time && t.timePeriod === timePeriod)
+							if (!existsPair && existing.times.length < 3) existing.times.push({ time, timePeriod })
+						}
+					}
+				}
+
+				const filtered = Array.from(merged.values())
+				if (filtered.length) {
+					// For back-compat fill single fields from first time if present
+					for (const item of filtered) {
+						if (!item.allDay && Array.isArray(item.times) && item.times.length > 0) {
+							item.time = item.times[0].time
+							item.timePeriod = item.times[0].timePeriod
+						}
+					}
+					obj['recommendedSchedule'] = filtered.slice(0, 7)
+				} else {
+					delete obj['recommendedSchedule']
+				}
+			}
+		}
+	} catch (e) {
+		console.warn('Validation: error processing recommendedSchedule:', (e as any)?.message || e)
+		delete obj['recommendedSchedule']
+	}
+
 	return true
 }
 
@@ -917,7 +1065,8 @@ function buildCompleteAnalysis(geminiResponse: any, answers: any): AIAnalysisMod
 		mentalCondition: geminiResponse.mentalCondition,
 		bmsScore: bmsScore,
 		bmsCategory: bmsInfo.category,
-		bmsDescription: bmsInfo.description
+		bmsDescription: bmsInfo.description,
+		recommendedSchedule: Array.isArray(geminiResponse.recommendedSchedule) ? geminiResponse.recommendedSchedule as RecommendedScheduleItem[] : []
 	}
 }
 
@@ -1193,7 +1342,7 @@ export const analyzeUserData = onRequest({
 			'yoga-flexibility', 'beard-shave-care', 'hair-loss-support', 'leave-in-care', 'night-care-routine'
 		]
 		
-		const basePrompt = `You are an AI assistant that MUST return ONLY valid JSON. NO other text allowed.
+				const basePrompt = `You are an AI assistant that MUST return ONLY valid JSON. NO other text allowed.
 
 CRITICAL RULES:
 1. ONLY return a JSON object matching this exact schema
@@ -1202,13 +1351,30 @@ CRITICAL RULES:
 4. Choose 1-3 procedure IDs per condition that match user's specific needs
 5. If uncertain, prefer common procedures like 'cleanse-hydrate', 'mindful-meditation', 'morning-stretch'
 6. DO NOT calculate BMI or BMS - the server handles these calculations
+7. ALSO return a top-level field "recommendedSchedule" with 4-7 items describing a weekly schedule. Use ONLY allowed procedure IDs, no duplicates.
+8. Schedules must be realistic for the user's day: prefer Morning near wake_up_time, Evening near end_day. If you choose exact time, use HH:MM 24h format.
+9. Gender-aware: avoid 'beard-shave-care'/'hair-loss-support' for females; avoid 'leave-in-care'/'night-care-routine' for males unless clearly supported.
+10. If uncertain, use simple defaults: 'cleanse-hydrate' Daily Morning, 'spf-protection' Daily Morning, 'mindful-meditation' Daily Evening, 'exfoliate' Weekly.
 
 Required JSON schema: ${JSON.stringify({
-			skinCondition: { score: 'number 0-10', explanation: 'string', recommendations: ['exact-procedure-ids-only'] },
-			hairCondition: { score: 'number 0-10', explanation: 'string', recommendations: ['exact-procedure-ids-only'] },
-			physicalCondition: { score: 'number 0-10', explanation: 'string', recommendations: ['exact-procedure-ids-only'] },
-			mentalCondition: { score: 'number 0-10', explanation: 'string', recommendations: ['exact-procedure-ids-only'] }
-		})}
+						skinCondition: { score: 'number 0-10', explanation: 'string', recommendations: ['exact-procedure-ids-only'] },
+						hairCondition: { score: 'number 0-10', explanation: 'string', recommendations: ['exact-procedure-ids-only'] },
+						physicalCondition: { score: 'number 0-10', explanation: 'string', recommendations: ['exact-procedure-ids-only'] },
+						mentalCondition: { score: 'number 0-10', explanation: 'string', recommendations: ['exact-procedure-ids-only'] },
+						recommendedSchedule: [
+							{
+								id: '<one-of-allowed-procedure-ids>',
+								repeat: 'one-of: Daily|Weekly|Monthly',
+								weeklyInterval: 'number >= 1',
+								weeklyDays: '[numbers 0..6] required if Weekly',
+								monthlyDays: '[numbers 1..31] required if Monthly',
+								allDay: 'boolean',
+								timePeriod: 'one-of: Morning|Afternoon|Evening|null',
+								time: 'HH:MM or empty when allDay is true',
+								note: 'short practical tip string'
+							}
+						]
+				})}
 
 User profile: ${JSON.stringify(optimizedAnswers)}`
 

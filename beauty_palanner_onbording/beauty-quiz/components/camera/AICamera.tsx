@@ -358,8 +358,11 @@ export default function AICamera({ mode = 'face', onCapture, onCancel }: AICamer
     c.toBlob((blob) => { if (blob) { const url = URL.createObjectURL(blob); setPreview({ url, blob }) } setTimeout(() => setFlash(false), 130) }, 'image/jpeg', 0.95)
   }
 
+  const [accepting, setAccepting] = useState(false)
   const acceptPreview = () => {
     if (!preview) return
+    if (accepting) return
+    setAccepting(true)
     if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null }
     if (detectTimerRef.current) { window.clearInterval(detectTimerRef.current); detectTimerRef.current = null }
     onCapture(preview.url, preview.blob)
@@ -442,8 +445,8 @@ export default function AICamera({ mode = 'face', onCapture, onCancel }: AICamer
               </div>
             </div>
             <div className="flex items-center gap-3 mt-2">
-              <button onClick={retake} className="flex-1 h-11 rounded-xl font-semibold border hover:bg-gray-100 border-gray-300 bg-white text-gray-800">Retake</button>
-              <button onClick={acceptPreview} className="flex-1 h-11 rounded-xl text-white font-semibold shadow-md" style={{ background: `linear-gradient(160deg, ${theme.primary}, ${theme.accent})` }}>Use this photo</button>
+              <button onClick={retake} disabled={accepting} className={`flex-1 h-11 rounded-xl font-semibold border border-gray-300 bg-white text-gray-800 ${accepting ? 'opacity-60 cursor-not-allowed' : 'hover:bg-gray-100'}`}>Retake</button>
+              <button onClick={acceptPreview} disabled={accepting} className={`flex-1 h-11 rounded-xl text-white font-semibold shadow-md ${accepting ? 'opacity-70 cursor-wait' : ''}`} style={{ background: `linear-gradient(160deg, ${theme.primary}, ${theme.accent})` }}>{accepting ? 'Using…' : 'Use this photo'}</button>
             </div>
           </div>
         </div>

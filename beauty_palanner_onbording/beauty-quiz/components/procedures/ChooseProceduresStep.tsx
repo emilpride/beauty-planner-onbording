@@ -7,7 +7,7 @@ import { useQuizStore } from '@/store/quizStore'
 import Image from 'next/image'
 import { PROCEDURES_ICON_CATALOG, getProceduresIconById, getProceduresIconCategories, type ProceduresIconEntry } from './proceduresIconCatalog'
 import { getIconById } from './iconCatalog'
-import { getActivityMeta } from './activityMeta'
+import { getActivityMeta, ACTIVITY_META } from './activityMeta'
 import { getDefaultNote, type GenderKey } from './defaultActivityNotes'
 import { saveOnboardingSession } from '@/lib/firebase'
 
@@ -186,6 +186,7 @@ export default function ChooseProceduresStep() {
   // Inline settings per selected activity (kept local to avoid altering overall design/state)
   type RepeatType = 'Daily' | 'Weekly' | 'Monthly' | null
   type TimePeriod = 'Morning' | 'Afternoon' | 'Evening' | null
+  type TimeEntry = { time: string; timePeriod: Exclude<TimePeriod, null> }
   type RemindUnit = 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | 'years'
   interface InlineActivitySettings {
     note: string
@@ -194,8 +195,7 @@ export default function ChooseProceduresStep() {
     weekdays: number[]
     monthlyDays: number[]
     allDay: boolean
-    time: string
-    timePeriod: TimePeriod
+    times: TimeEntry[]
     endDate: boolean
     endType: 'date' | 'days'
     endDateValue: string
@@ -205,6 +205,10 @@ export default function ChooseProceduresStep() {
     remindUnit: RemindUnit
   }
   const [inlineSettings, setInlineSettings] = useState<Record<string, InlineActivitySettings>>({})
+  // Track which selected activities have their inline settings expanded
+  const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set())
+  // Guard to avoid re-prefilling after user edits
+  const didPrefillFromAI = useRef(false)
   // Validation state to highlight required fields on Next
   const [showErrors, setShowErrors] = useState(false)
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
@@ -259,6 +263,452 @@ export default function ChooseProceduresStep() {
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers.Gender, analysis])
+
+  // ---- Helpers to prefill schedule from AI or defaults ----
+  const toMinutes = (hhmm?: string | null): number | null => {
+    if (!hhmm || typeof hhmm !== 'string') return null
+    const [hh, mm] = hhmm.split(':')
+    const h = Number(hh)
+    const m = Number(mm)
+    if (Number.isNaN(h) || Number.isNaN(m)) return null
+    return h * 60 + m
+  }
+  const fmt = (min: number): string => {
+    const mm = (min % 60 + 60) % 60
+    let h = Math.floor(min / 60)
+    while (h < 0) h += 24
+    h = h % 24
+    const pad = (n: number) => (n < 10 ? `0${n}` : String(n))
+    return `${pad(h)}:${pad(mm)}`
+  }
+  const aroundMorning = (): string | null => {
+    const w = toMinutes(answers.WakeUp)
+    if (w == null) return null
+    return fmt(w + 30)
+  }
+  const aroundEvening = (): string | null => {
+    const e = toMinutes(answers.EndDay)
+    if (e == null) return null
+    return fmt(e - 30)
+  }
+
+  type PartialInline = Partial<InlineActivitySettings>
+  const defaultScheduleForId = (id: string): PartialInline => {
+    switch (id) {
+      case 'cleanse-hydrate':
+        return { repeat: 'Daily', allDay: false, times: [{ time: aroundMorning() || '07:30', timePeriod: 'Morning' }] }
+      case 'spf-protection':
+        return { repeat: 'Daily', allDay: false, times: [{ time: aroundMorning() || '08:00', timePeriod: 'Morning' }] }
+      case 'evening-stretch':
+        return { repeat: 'Daily', allDay: false, times: [{ time: aroundEvening() || '21:30', timePeriod: 'Evening' }] }
+      case 'mindful-meditation':
+        return { repeat: 'Daily', allDay: false, times: [{ time: aroundEvening() || '21:00', timePeriod: 'Evening' }] }
+      case 'exfoliate':
+        return { repeat: 'Weekly', weeklyInterval: 1, weekdays: [1,4], allDay: true, times: [] }
+      case 'deep-hydration':
+        return { repeat: 'Weekly', weeklyInterval: 1, weekdays: [0], allDay: true, times: [] }
+      case 'strength-training':
+        return { repeat: 'Weekly', weeklyInterval: 1, weekdays: [1,3], allDay: false, times: [{ time: '18:30', timePeriod: 'Evening' }] }
+      case 'morning-stretch':
+        return { repeat: 'Daily', allDay: false, times: [{ time: aroundMorning() || '07:15', timePeriod: 'Morning' }] }
+      default:
+        return { repeat: 'Daily', allDay: true, times: [] }
+    }
+  }
+
+  // Normalize time strings like "7pm" -> "19:00" and period synonyms (used in multiple places)
+  const parse12hTo24h = (raw?: any): { time: string | null; inferred: 'Morning'|'Afternoon'|'Evening'|null } => {
+    if (typeof raw !== 'string') return { time: null, inferred: null }
+    const s = raw.trim()
+    const hhmm = /^\d{2}:\d{2}$/.test(s)
+    if (hhmm) {
+      const hh = Number(s.slice(0,2))
+      if (!Number.isFinite(hh)) return { time: s, inferred: null }
+      if (hh >= 5 && hh < 12) return { time: s, inferred: 'Morning' }
+      if (hh >= 12 && hh < 17) return { time: s, inferred: 'Afternoon' }
+      return { time: s, inferred: 'Evening' }
+    }
+    const m = s.match(/^\s*(\d{1,2})(?::(\d{2}))?\s*([ap]\.?m\.?|am|pm)\s*$/i)
+    if (m) {
+      let h = Number(m[1])
+      const mm = typeof m[2] === 'string' && m[2] ? Number(m[2]) : 0
+      const ap = (m[3] || '').toLowerCase()
+      if (ap.startsWith('p') && h < 12) h += 12
+      if (ap.startsWith('a') && h === 12) h = 0
+      const pad = (n: number) => (n < 10 ? `0${n}` : String(n))
+      const time = `${pad(Math.max(0, Math.min(23, h)))}:${pad(Math.max(0, Math.min(59, mm)))}`
+      const inferred: 'Morning'|'Afternoon'|'Evening' = h >= 5 && h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening'
+      return { time, inferred }
+    }
+    return { time: null, inferred: null }
+  }
+  const normPeriod = (raw: any, fallback: 'Morning'|'Afternoon'|'Evening'|null): 'Morning'|'Afternoon'|'Evening'|null => {
+    const v = typeof raw === 'string' ? raw.trim().toLowerCase() : ''
+    if (!v) return fallback
+    if (v === 'morning' || v === 'am') return 'Morning'
+    if (v === 'afternoon' || v === 'midday' || v === 'noon') return 'Afternoon'
+    if (v === 'evening' || v === 'pm' || v === 'night' || v === 'late evening') return 'Evening'
+    return fallback
+  }
+
+  // Map Gemini free-text recommendations to our curated activity IDs
+  const normalizeLabel = (s: string) => s.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ')
+  const NAME_TO_ID: Record<string, string> = {
+    'cleanse and hydrate': 'cleanse-hydrate',
+    'spf protection': 'spf-protection',
+    'exfoliate': 'exfoliate',
+    'deep hydration': 'deep-hydration',
+    'face massage': 'face-massage',
+    'lip and eye care': 'lip-eye-care',
+    'wash and care': 'wash-care',
+    'deep nourishment': 'deep-nourishment',
+    'scalp detox': 'scalp-detox',
+    'heat protection': 'heat-protection',
+    'scalp massage': 'scalp-massage',
+    'trim split ends': 'trim-split-ends',
+    'post color care': 'post-color-care',
+    'leave in care': 'leave-in-care',
+    'leave in conditioner': 'leave-in-care',
+    'leave in treatment': 'leave-in-care',
+    'morning stretch': 'morning-stretch',
+    'cardio boost': 'cardio-boost',
+    'strength training': 'strength-training',
+    'yoga flexibility': 'yoga-flexibility',
+    'dance it out': 'dance-it-out',
+    'swimming time': 'swimming-time',
+    'cycling': 'cycling',
+    'posture fix': 'posture-fix',
+    'evening stretch': 'evening-stretch',
+    'mindful meditation': 'mindful-meditation',
+    'breathing exercises': 'breathing-exercises',
+    'gratitude exercises': 'gratitude-exercises',
+    'mood check in': 'mood-check-in',
+    'learn and grow': 'learn-grow',
+    'social media detox': 'social-media-detox',
+    'positive affirmations': 'positive-affirmations',
+    'talk it out': 'talk-it-out',
+    'stress relief': 'stress-relief',
+    // common synonyms
+    'sunscreen': 'spf-protection',
+    'spf': 'spf-protection',
+    'hydrate': 'cleanse-hydrate',
+    'hydration mask': 'deep-hydration',
+    'hydration masks': 'deep-hydration',
+    'mask hydration': 'deep-hydration',
+    'exfoliation': 'exfoliate',
+    'face massage lymphatic': 'face-massage',
+  }
+  const curatedNameToId: Record<string, string> = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const [id, meta] of Object.entries(ACTIVITY_META)) {
+      const key = (meta?.name || '').toLowerCase().trim()
+      if (key) map[key] = id
+    }
+    return map
+  }, [])
+  const mapLabelToId = (label: unknown): string | null => {
+    if (typeof label !== 'string' || !label.trim()) return null
+    const raw = label.trim()
+    const lower = raw.toLowerCase()
+    // If Gemini already sent a curated ID
+    if (ACTIVITY_META[lower]) return lower
+    const norm = normalizeLabel(raw)
+    if (NAME_TO_ID[norm]) return NAME_TO_ID[norm]
+    if (curatedNameToId[lower]) return curatedNameToId[lower]
+    return null
+  }
+
+  const buildInlineFromGemini = (id: string, src: any): InlineActivitySettings => {
+    const genderKeyLocal: GenderKey = answers.Gender === 1 ? 'male' : answers.Gender === 2 ? 'female' : 'unknown'
+    const base: InlineActivitySettings = {
+      note: getDefaultNote(id, genderKeyLocal),
+      repeat: null,
+      weeklyInterval: 1,
+      weekdays: [],
+      monthlyDays: [],
+      allDay: true,
+      times: [],
+      endDate: false,
+      endType: 'date',
+      endDateValue: '',
+      endDaysValue: 30,
+      remind: false,
+      remindAmount: 15,
+      remindUnit: 'minutes',
+    }
+    const def = defaultScheduleForId(id)
+    const merged = { ...base, ...def }
+    if (src && typeof src === 'object') {
+      if (typeof src.note === 'string' && src.note.trim()) merged.note = src.note
+      const r = src.repeat
+      if (r === 'Daily' || r === 'Weekly' || r === 'Monthly') merged.repeat = r
+      if (typeof src.weeklyInterval === 'number' && src.weeklyInterval >= 1) merged.weeklyInterval = src.weeklyInterval
+      if (Array.isArray(src.weeklyDays)) merged.weekdays = src.weeklyDays.filter((d: any) => Number.isFinite(d))
+      if (Array.isArray(src.monthlyDays)) merged.monthlyDays = src.monthlyDays.filter((d: any) => Number.isFinite(d))
+      if (typeof src.allDay === 'boolean') merged.allDay = src.allDay
+      // Prefer multi-times if provided by server; else fall back to single
+      if (Array.isArray(src.times) && src.times.length > 0) {
+        const arr: TimeEntry[] = []
+        for (const t of src.times) {
+          let tt: string | null = null
+          let inferred: 'Morning'|'Afternoon'|'Evening'|null = null
+          if (typeof t?.time === 'string') {
+            if (/^\d{2}:\d{2}$/.test(t.time)) {
+              tt = t.time
+              if (tt) {
+                const hh = Number(tt.slice(0,2))
+                inferred = hh >= 5 && hh < 12 ? 'Morning' : hh < 17 ? 'Afternoon' : 'Evening'
+              }
+            } else {
+              const cv = parse12hTo24h(t.time)
+              tt = cv.time
+              inferred = cv.inferred
+            }
+          }
+          const tp = (t?.timePeriod === 'Morning' || t?.timePeriod === 'Afternoon' || t?.timePeriod === 'Evening')
+            ? t.timePeriod
+            : normPeriod(t?.timePeriod, inferred)
+          if (tt && tp && arr.length < 3) arr.push({ time: tt, timePeriod: tp })
+        }
+        if (arr.length > 0) {
+          merged.times = arr
+          merged.allDay = false
+        }
+      } else {
+        // Back-compat: convert single time/timePeriod into one entry in times
+        const rawTp = src.timePeriod
+        const rawTt = src.time
+        let tt: string | null = null
+        let inferred: 'Morning'|'Afternoon'|'Evening'|null = null
+        if (typeof rawTt === 'string') {
+          if (/^\d{2}:\d{2}$/.test(rawTt)) {
+            tt = rawTt
+            if (tt) {
+              const hh = Number(tt.slice(0,2))
+              inferred = hh >= 5 && hh < 12 ? 'Morning' : hh < 17 ? 'Afternoon' : 'Evening'
+            }
+          } else {
+            const cv = parse12hTo24h(rawTt)
+            tt = cv.time
+            inferred = cv.inferred
+          }
+        }
+        const period = normPeriod(rawTp, inferred)
+        if (tt && period) {
+          merged.times = [{ time: tt, timePeriod: period }]
+          merged.allDay = false
+        }
+      }
+    }
+    // Ensure repeat is set
+    if (!merged.repeat) merged.repeat = 'Daily'
+    return merged
+  }
+
+  // Prefill from AI recommendedSchedule once per visit; if schedule is short, top-up with condition recommendations
+  useEffect(() => {
+    if (didPrefillFromAI.current) return
+    const sched: any[] = Array.isArray((analysis as any)?.recommendedSchedule) ? (analysis as any).recommendedSchedule : []
+    try {
+      if (sched.length) {
+        const scheduleIds = sched.map((s) => s?.id).filter((v: any) => typeof v === 'string') as string[]
+        if (scheduleIds.length) {
+          // Top up selection with general AI recommendations if schedule is too short (<6)
+          const recSet = extractAIRecommendations(analysis)
+          // Build allowed curated IDs list
+          const ensureAdd: string[] = []
+          const already = new Set(scheduleIds)
+          // Only accept IDs that exist in our curated activities list to ensure they actually render/select
+          const allowedIds = new Set<string>()
+          for (const list of Object.values(activities)) {
+            for (const a of (list as any[])) {
+              if (a && typeof (a as any).id === 'string') allowedIds.add((a as any).id)
+            }
+          }
+          const pickFirstAvailable = (arr: any): string | null => {
+            const list = Array.isArray(arr) ? arr : []
+            for (const x of list) {
+              if (typeof x === 'string') {
+                const mapped = mapLabelToId(x)
+                if (mapped && !already.has(mapped) && allowedIds.has(mapped)) return mapped
+              }
+            }
+            return null
+          }
+          const phys1 = pickFirstAvailable((analysis as any)?.physicalCondition?.recommendations)
+          if (phys1) { ensureAdd.push(phys1); already.add(phys1) }
+          const ment1 = pickFirstAvailable((analysis as any)?.mentalCondition?.recommendations)
+          if (ment1) { ensureAdd.push(ment1); already.add(ment1) }
+
+          // Map all remaining recommendations to curated IDs and include them all (deduped)
+          const mappedRecs: string[] = []
+          for (const rec of recSet) {
+            const mapped = mapLabelToId(rec)
+            if (mapped && allowedIds.has(mapped) && !already.has(mapped)) {
+              mappedRecs.push(mapped)
+              already.add(mapped)
+            }
+          }
+          const targetIds = Array.from(new Set(scheduleIds.concat(ensureAdd).concat(mappedRecs)))
+
+          // Always ensure AI targets are included on first prefill; don't remove user's existing selections
+          setSelectedActivities((prev) => Array.from(new Set([...(prev || []), ...targetIds])))
+
+          setInlineSettings((prev) => {
+            const next: Record<string, InlineActivitySettings> = { ...prev }
+            // Fill settings from Gemini for schedule items
+            for (const item of sched) {
+              const id = typeof item?.id === 'string' ? item.id : ''
+              if (!id) continue
+              if (!next[id]) {
+                next[id] = buildInlineFromGemini(id, item)
+              } else {
+                // Merge duplicate entries for same id to support multiple times per day
+                const existing = next[id]
+                // Prefer src.times if provided
+                if (Array.isArray((item as any)?.times) && (item as any).times.length > 0) {
+                  let added = false
+                  for (const t of (item as any).times) {
+                    let tt: string | null = null
+                    let inferred: 'Morning'|'Afternoon'|'Evening'|null = null
+                    if (typeof t?.time === 'string') {
+                      if (/^\d{2}:\d{2}$/.test(t.time)) {
+                        tt = t.time
+                        if (tt) {
+                          const hh = Number(tt.slice(0,2))
+                          inferred = hh >= 5 && hh < 12 ? 'Morning' : hh < 17 ? 'Afternoon' : 'Evening'
+                        }
+                      } else {
+                        const cv = parse12hTo24h(t.time)
+                        tt = cv.time
+                        inferred = cv.inferred
+                      }
+                    }
+                    const tp = (t?.timePeriod === 'Morning' || t?.timePeriod === 'Afternoon' || t?.timePeriod === 'Evening')
+                      ? t.timePeriod
+                      : normPeriod(t?.timePeriod, inferred)
+                    if (tt && tp) {
+                      const dup = (existing.times || []).some(x => x.time === tt && x.timePeriod === tp)
+                      if (!dup && (existing.times || []).length < 3) {
+                        existing.times = [...(existing.times || []), { time: tt, timePeriod: tp }]
+                        added = true
+                      }
+                    }
+                  }
+                  if (added) existing.allDay = false
+                } else {
+                  // Fallback to single time/timePeriod
+                  const rawTp = (item as any)?.timePeriod
+                  const rawTt = (item as any)?.time
+                  let tt: string | null = null
+                  let inferred: 'Morning'|'Afternoon'|'Evening'|null = null
+                  if (typeof rawTt === 'string') {
+                    if (/^\d{2}:\d{2}$/.test(rawTt)) {
+                      tt = rawTt
+                      if (tt) {
+                        const hh = Number(tt.slice(0,2))
+                        inferred = hh >= 5 && hh < 12 ? 'Morning' : hh < 17 ? 'Afternoon' : 'Evening'
+                      }
+                    } else {
+                      const cv = parse12hTo24h(rawTt)
+                      tt = cv.time
+                      inferred = cv.inferred
+                    }
+                    const period = normPeriod(rawTp, inferred)
+                    if (tt && period) {
+                      const dup = (existing.times || []).some(x => x.time === tt && x.timePeriod === period)
+                      if (!dup && (existing.times || []).length < 3) {
+                        existing.times = [...(existing.times || []), { time: tt, timePeriod: period }]
+                        existing.allDay = false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            // For topped-up items, ensure defaults exist
+            for (const id of targetIds) {
+              if (!next[id]) {
+                const base: InlineActivitySettings = {
+                  note: getDefaultNote(id, genderKey),
+                  repeat: null,
+                  weeklyInterval: 1,
+                  weekdays: [],
+                  monthlyDays: [],
+                  allDay: true,
+                  times: [],
+                  endDate: false,
+                  endType: 'date',
+                  endDateValue: '',
+                  endDaysValue: 30,
+                  remind: false,
+                  remindAmount: 15,
+                  remindUnit: 'minutes',
+                }
+                const merged = { ...base, ...defaultScheduleForId(id) }
+                if (!merged.repeat) merged.repeat = 'Daily'
+                next[id] = merged
+              }
+            }
+            return next
+          })
+
+          // Expand only the core schedule items by default to avoid overwhelming the UI
+          setExpandedActivities(new Set(scheduleIds))
+          didPrefillFromAI.current = true
+          return
+        }
+      }
+      // Fallback: derive a small set from AI condition recommendations if schedule missing
+      const recsRaw = Array.from(extractAIRecommendations(analysis))
+      // Use mapping to turn labels into curated IDs and include all available curated ones
+      const allowedIds = new Set<string>()
+      for (const list of Object.values(activities)) {
+        for (const a of (list as any[])) {
+          if (a && typeof (a as any).id === 'string') allowedIds.add((a as any).id)
+        }
+      }
+      const recs = recsRaw.map(mapLabelToId).filter((id): id is string => !!id && allowedIds.has(id))
+      if (recs.length) {
+        // Fallback: include all curated AI recs while preserving any existing selections
+        setSelectedActivities((prev) => Array.from(new Set([...(prev || []), ...recs])))
+        setInlineSettings((prev) => {
+          const next: Record<string, InlineActivitySettings> = { ...prev }
+          for (const id of recs) {
+            if (!next[id]) {
+              // Use deterministic defaults per id
+              const base: InlineActivitySettings = {
+                note: getDefaultNote(id, genderKey),
+                repeat: null,
+                weeklyInterval: 1,
+                weekdays: [],
+                monthlyDays: [],
+                allDay: true,
+                times: [],
+                endDate: false,
+                endType: 'date',
+                endDateValue: '',
+                endDaysValue: 30,
+                remind: false,
+                remindAmount: 15,
+                remindUnit: 'minutes',
+              }
+              next[id] = { ...base, ...defaultScheduleForId(id) }
+              // Ensure repeat
+              if (!next[id].repeat) next[id].repeat = 'Daily'
+            }
+          }
+          return next
+        })
+        // Expand all selected in fallback (consistent with prior expectation)
+        setExpandedActivities(new Set(recs))
+        didPrefillFromAI.current = true
+      }
+    } catch {
+      // ignore bad AI data
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysis])
   
 
   const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] = useState(false)
@@ -389,7 +839,9 @@ export default function ChooseProceduresStep() {
 
   useEffect(() => {
     const stored = answers.SelectedActivities
-    if (Array.isArray(stored)) {
+    // Only hydrate from persisted answers if there is something to restore.
+    // Avoid overriding AI prefill or user selections with an empty array.
+    if (Array.isArray(stored) && stored.length > 0) {
       setSelectedActivities(stored)
     }
   }, [answers.SelectedActivities])
@@ -401,6 +853,17 @@ export default function ChooseProceduresStep() {
         ? prev.filter(id => id !== activityId)
         : [...prev, activityId]
     )
+
+    // When selecting manually, expand that activity by default; when deselecting, collapse it
+    setExpandedActivities(prev => {
+      const next = new Set(prev)
+      if (next.has(activityId)) {
+        next.delete(activityId)
+      } else {
+        next.add(activityId)
+      }
+      return next
+    })
 
     // Initialize inline defaults on first expand (do not change global answers here)
     setInlineSettings(prev => {
@@ -422,8 +885,7 @@ export default function ChooseProceduresStep() {
           weekdays: [],
           monthlyDays: [],
           allDay: true,
-          time: '',
-          timePeriod: null,
+          times: [],
           endDate: false,
           endType: 'date',
           endDateValue: '',
@@ -508,7 +970,11 @@ export default function ChooseProceduresStep() {
     if (!s.repeat) issues.push('missingRepeat')
     if (s.repeat === 'Weekly' && (!s.weekdays || s.weekdays.length === 0)) issues.push('weeklyNoDays')
     if (s.repeat === 'Monthly' && (!s.monthlyDays || s.monthlyDays.length === 0)) issues.push('monthlyNoDays')
-    if (!s.allDay && !s.time) issues.push('missingTime')
+    if (!s.allDay) {
+      if (!Array.isArray(s.times) || s.times.length === 0 || s.times.some(t => !t.time)) {
+        issues.push('missingTime')
+      }
+    }
     if (s.endDate) {
       if (s.endType === 'date' && !s.endDateValue) issues.push('missingEndDate')
       if (s.endType === 'days' && (!s.endDaysValue || s.endDaysValue < 1)) issues.push('invalidEndDays')
@@ -528,8 +994,7 @@ export default function ChooseProceduresStep() {
         weekdays: [],
         monthlyDays: [],
         allDay: true,
-        time: '',
-        timePeriod: null,
+        times: [],
         endDate: false,
         endType: 'date',
         endDateValue: '',
@@ -582,6 +1047,7 @@ export default function ChooseProceduresStep() {
           surface: meta.surface,
         }
       }
+      const firstTime = s?.times && s.times.length > 0 ? s.times[0] : undefined
       nextOverrides[id].preConfig = {
         note: s?.note,
         repeat: s?.repeat,
@@ -589,8 +1055,11 @@ export default function ChooseProceduresStep() {
         weekdays: s?.weekdays,
         monthlyDays: s?.monthlyDays,
         allDay: s?.allDay,
-        time: s?.time,
-        timePeriod: s?.timePeriod,
+        // Back-compat single fields populated from first time entry
+        time: firstTime?.time,
+        timePeriod: firstTime?.timePeriod,
+        // New multi-time support
+        times: s?.times || [],
         endDate: s?.endDate,
         endType: s?.endType,
         endDateValue: s?.endDateValue,
@@ -622,7 +1091,7 @@ export default function ChooseProceduresStep() {
           IsRecommended: false,
           Type: 'regular',
           ActiveStatus: true,
-          Time: s?.allDay ? null : (s?.time || ''),
+          Time: s?.allDay ? null : ((s?.times && s.times[0]?.time) || ''),
           Frequency: freq, // 'daily' | 'weekly' | 'monthly'
           SelectedDays: freq === 'weekly' ? (s?.weekdays || []) : [],
           WeeksInterval: s?.weeklyInterval ?? 1,
@@ -887,8 +1356,7 @@ export default function ChooseProceduresStep() {
                            weekdays: [],
                            monthlyDays: [],
                            allDay: true,
-                           time: '',
-                           timePeriod: null,
+                           times: [],
                            endDate: false,
                            endType: 'date',
                            endDateValue: '',
@@ -897,6 +1365,11 @@ export default function ChooseProceduresStep() {
                            remindAmount: 15,
                            remindUnit: 'minutes',
                          }
+                         // Determine configuration completeness to drive the status indicator
+                         const configured = ((): boolean => {
+                           const issues = getIssues(settings)
+                           return issues.length === 0
+                         })()
                          return (
                            <div
                              key={activity.id}
@@ -908,9 +1381,11 @@ export default function ChooseProceduresStep() {
                              <button
                                onClick={() => handleActivityToggle(activity.id)}
                                className={`w-full flex items-center px-3 py-3 rounded-full transition-colors ${
-                                 selected ? 'hover:opacity-80' : 'hover:opacity-80 opacity-50'
+                                 selected
+                                   ? 'hover:opacity-80'
+                                   : 'border border-border-subtle bg-surface grayscale opacity-70 hover:opacity-80'
                                }`}
-                               style={{ backgroundColor: extractRgbaFromClass(activity.bgColor) }}
+                               style={selected ? { backgroundColor: extractRgbaFromClass(activity.bgColor) } : undefined}
                              >
                                <ActivityIcon activityId={activity.id} iconId={activity.iconId} color={activity.color} label={activity.name} />
                                <div className="ml-3 flex-1 text-left">
@@ -922,17 +1397,43 @@ export default function ChooseProceduresStep() {
                                  )}
                                </div>
                                {selected && (
-                                 <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                 <button
+                                   type="button"
+                                   aria-label={expandedActivities.has(activity.id) ? 'Collapse settings' : 'Expand settings'}
+                                   onClick={(e) => {
+                                     e.stopPropagation()
+                                     setExpandedActivities(prev => {
+                                       const next = new Set(prev)
+                                       if (next.has(activity.id)) next.delete(activity.id)
+                                       else next.add(activity.id)
+                                       return next
+                                     })
+                                   }}
+                                   className="mr-3 w-6 h-6 rounded-full flex items-center justify-center text-text-secondary hover:text-text-primary"
+                                 >
+                                   <svg className={`w-4 h-4 transition-transform ${expandedActivities.has(activity.id) ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                     <path d="M6 9l6 6 6-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                    </svg>
+                                 </button>
+                               )}
+                               {selected && (
+                                 <div
+                                   className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                                     configured ? 'bg-primary' : 'border-2 border-primary'
+                                   }`}
+                                 >
+                                   {configured && (
+                                     <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                     </svg>
+                                   )}
                                  </div>
                                )}
                              </button>
 
                              {/* Inline settings (collapsed when not selected) */}
                              <AnimatePresence initial={false}>
-                               {selected && (
+                               {selected && expandedActivities.has(activity.id) && (
                                  <motion.div
                                    initial={{ height: 0, opacity: 0 }}
                                    animate={{ height: 'auto', opacity: 1 }}
@@ -1073,7 +1574,7 @@ export default function ChooseProceduresStep() {
                                        )}
                                      </div>
 
-                                     {/* All day + Time */}
+                                     {/* All day + Time(s) */}
                                      <div className="mt-3 flex items-center gap-2 px-1">
                                        <input
                                          type="checkbox"
@@ -1085,37 +1586,107 @@ export default function ChooseProceduresStep() {
                                      </div>
                                      {!settings.allDay && (
                                        <div className="mt-2">
-                                         <div className="px-1 text-[14px] font-bold text-text-primary">Time</div>
-                                         <div className="mt-2">
-                                           <input
-                                             type="time"
-                                             value={settings.time}
-                                             onChange={(e) => setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, time: e.target.value } }))}
-                                             className={`w-full rounded-[10px] border px-3 py-2 bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/70 hover:border-primary/60 shadow-sm ${showErrors && validationErrors[activity.id]?.includes('missingTime') ? 'border-red-500 ring-red-400 focus:ring-red-400' : 'border-border-subtle'}`}
-                                           />
-                                           {/* Quick presets */}
-                                           <div className="mt-2 flex gap-2">
-                                             {(['Morning','Afternoon','Evening'] as const).map(period => (
+                                         <div className="px-1 text-[14px] font-bold text-text-primary">Time(s)</div>
+                                         {/* Quick multi-select presets */}
+                                         <div className="mt-2 flex gap-2">
+                                           {(['Morning','Afternoon','Evening'] as const).map(period => {
+                                             const active = (settings.times || []).some(t => t.timePeriod === period)
+                                             return (
                                                <button
                                                  key={period}
                                                  type="button"
                                                  onClick={() => {
                                                    const timeMap: Record<Exclude<TimePeriod, null>, string> = { Morning: '07:00', Afternoon: '13:00', Evening: '19:00' }
-                                                   setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, time: timeMap[period], timePeriod: period } }))
+                                                   setInlineSettings(prev => {
+                                                     const cur = prev[activity.id] || settings
+                                                     const exists = (cur.times || []).some(t => t.timePeriod === period)
+                                                     let nextTimes: TimeEntry[]
+                                                     if (exists) {
+                                                       nextTimes = (cur.times || []).filter(t => t.timePeriod !== period)
+                                                     } else {
+                                                       const toAdd: TimeEntry = { time: timeMap[period], timePeriod: period }
+                                                       nextTimes = [ ...(cur.times || []), toAdd ].slice(0,3)
+                                                     }
+                                                     return { ...prev, [activity.id]: { ...cur, times: nextTimes } }
+                                                   })
                                                  }}
                                                  className={`flex-1 rounded-[9px] px-3 py-[6px] text-[14px] leading-[13px] transition-colors ${
-                                                   settings.timePeriod === period
+                                                   active
                                                      ? 'bg-[#5C4688] text-white shadow'
                                                      : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'
                                                  }`}
                                                >
                                                  {period}
                                                </button>
-                                             ))}
-                                           </div>
-                                            {showErrors && validationErrors[activity.id]?.includes('missingTime') && (
-                                              <div className="mt-2 px-1 text-[12px] font-semibold text-red-500">Pick a time or set All day</div>
-                                            )}
+                                             )
+                                           })}
+                                         </div>
+                                         {/* Times list */}
+                                         <div className="mt-3 space-y-2">
+                                           {(settings.times || []).map((entry, idx) => (
+                                             <div key={idx} className="flex items-center gap-2">
+                                               <input
+                                                 type="time"
+                                                 value={entry.time}
+                                                 onChange={(e) => setInlineSettings(prev => {
+                                                   const cur = prev[activity.id] || settings
+                                                   const nextTimes = [...(cur.times || [])]
+                                                   const current = nextTimes[idx] as TimeEntry
+                                                   nextTimes[idx] = { time: e.target.value, timePeriod: current?.timePeriod || 'Morning' }
+                                                   return { ...prev, [activity.id]: { ...cur, times: nextTimes } }
+                                                 })}
+                                                 className={`flex-1 rounded-[10px] border px-3 py-2 bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/70 hover:border-primary/60 shadow-sm ${showErrors && validationErrors[activity.id]?.includes('missingTime') ? 'border-red-500 ring-red-400 focus:ring-red-400' : 'border-border-subtle'}`}
+                                               />
+                                               <select
+                                                 value={entry.timePeriod}
+                                                 onChange={(e) => setInlineSettings(prev => {
+                                                   const cur = prev[activity.id] || settings
+                                                   const nextTimes = [...(cur.times || [])]
+                                                   const current = nextTimes[idx] as TimeEntry
+                                                   const newPeriod = e.target.value as TimeEntry['timePeriod']
+                                                   nextTimes[idx] = { time: current?.time || '07:00', timePeriod: newPeriod }
+                                                   return { ...prev, [activity.id]: { ...cur, times: nextTimes } }
+                                                 })}
+                                                 className="w-36 rounded-[10px] border border-border-subtle bg-surface px-3 py-2 text-[14px] text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/70 hover:border-primary/60 shadow-sm"
+                                               >
+                                                 {(['Morning','Afternoon','Evening'] as const).map(p => (
+                                                   <option key={p} value={p}>{p}</option>
+                                                 ))}
+                                               </select>
+                                               <button
+                                                 type="button"
+                                                 onClick={() => setInlineSettings(prev => {
+                                                   const cur = prev[activity.id] || settings
+                                                   const nextTimes = (cur.times || []).filter((_, i) => i !== idx)
+                                                   return { ...prev, [activity.id]: { ...cur, times: nextTimes } }
+                                                 })}
+                                                 className="w-9 h-9 rounded-full border border-border-subtle text-text-secondary hover:text-red-500 hover:border-red-400"
+                                                 aria-label="Remove time"
+                                               >
+                                                 ×
+                                               </button>
+                                             </div>
+                                           ))}
+                                         </div>
+                                         <div className="mt-2">
+                                           <button
+                                             type="button"
+                                             onClick={() => setInlineSettings(prev => {
+                                               const cur = prev[activity.id] || settings
+                                               const defaults: TimeEntry[] = (cur.times || [])
+                                               if (defaults.length >= 3) return prev
+                                               const missingPeriod = (['Morning','Afternoon','Evening'] as const).find(p => !(defaults || []).some(t => t.timePeriod === p)) || 'Morning'
+                                               const timeMap: Record<Exclude<TimePeriod, null>, string> = { Morning: '07:00', Afternoon: '13:00', Evening: '19:00' }
+                                               const nextTimes = [ ...(defaults || []), { time: timeMap[missingPeriod], timePeriod: missingPeriod } ]
+                                               return { ...prev, [activity.id]: { ...cur, times: nextTimes } }
+                                             })}
+                                             className="w-full rounded-[10px] border border-dashed border-border-subtle px-3 py-2 text-[14px] text-text-secondary hover:border-primary hover:text-text-primary"
+                                           >
+                                             + Add another time
+                                           </button>
+                                           {showErrors && validationErrors[activity.id]?.includes('missingTime') && (
+                                             <div className="mt-2 px-1 text-[12px] font-semibold text-red-500">Pick at least one time or set All day</div>
+                                           )}
                                          </div>
                                        </div>
                                      )}

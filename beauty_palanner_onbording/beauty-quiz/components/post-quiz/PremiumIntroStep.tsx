@@ -27,9 +27,29 @@ export default function PremiumIntroStep() {
   const handleContinue = useCallback(() => {
     if (loading) return
     setLoading(true)
-    router.push('/procedures/0')
-    // Fallback safety timeout to re-enable after 8s if something blocks navigation.
-    setTimeout(() => setLoading(false), 8000)
+    // Try client-side navigation first
+    try {
+      router.push('/procedures/0')
+    } catch (_) {
+      // ignore
+    }
+
+    // Hard fallback: if something blocks navigation (PWA cache, router hiccup), force a full redirect shortly after
+    const hardFallback = setTimeout(() => {
+      try {
+        if (typeof window !== 'undefined') {
+          window.location.assign('/procedures/0')
+        }
+      } catch (_) {
+        // noop
+      }
+    }, 1200)
+
+    // Safety timeout to re-enable button if still not navigated after a while
+    setTimeout(() => {
+      clearTimeout(hardFallback)
+      setLoading(false)
+    }, 8000)
   }, [loading, router])
 
   return (

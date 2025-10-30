@@ -71,7 +71,15 @@ export default function SignUpStep() {
   router.push('/quiz/32')
     } catch (err: any) {
       console.error('Sign up error', err)
-      setError(err?.message || 'Failed to create account')
+      const code = (err?.code || '').toString()
+      const friendly =
+        code === 'auth/email-already-in-use' ? 'This email is already registered. Try signing in or use a different email.' :
+        code === 'auth/invalid-email' ? 'Please enter a valid email address.' :
+        code === 'auth/weak-password' ? 'Password should be at least 6 characters.' :
+        code === 'auth/network-request-failed' ? 'Network error. Check your connection and try again.' :
+        code === 'auth/too-many-requests' ? 'Too many attempts. Please wait a minute and try again.' :
+        (err?.message || 'Failed to create account. Please try again.')
+      setError(friendly)
     } finally {
       setLoading(false)
     }
@@ -111,7 +119,13 @@ export default function SignUpStep() {
       setError(`${providerName} sign-in is not implemented yet`)
     } catch (err: any) {
       console.error('Social sign up error', err)
-      setError(err?.message || `Failed to sign in with ${providerName}`)
+      const code = (err?.code || '').toString()
+      const friendly =
+        code === 'auth/popup-closed-by-user' ? 'Sign-in was canceled. You can try again.' :
+        code === 'auth/cancelled-popup-request' ? 'Sign-in canceled. Please try again.' :
+        code === 'auth/network-request-failed' ? 'Network error. Check your connection and try again.' :
+        (err?.message || `Failed to sign in with ${providerName}`)
+      setError(friendly)
     } finally {
       setLoading(false)
     }
@@ -226,13 +240,25 @@ export default function SignUpStep() {
                 />
                 <button
                   type="button"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-secondary hover:text-text-primary"
                 >
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M10 4C3 4 0.73 7.11 0.73 7.11S2.73 9.11 5.73 10.11C8.73 11.11 10 4 10 4Z" fill="#969AB7"/>
-                    <path d="M10 4C17 4 19.27 7.11 19.27 7.11S17.27 9.11 14.27 10.11C11.27 11.11 10 4 10 4Z" fill="#969AB7"/>
-                  </svg>
+                  {showPassword ? (
+                    // EyeOff icon
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5 0-9.27-3-11-8 1.07-2.86 3.05-5.12 5.5-6.53" />
+                      <path d="M1 1l22 22" />
+                      <path d="M9.88 9.88A3 3 0 0 0 12 15a3 3 0 0 0 2.12-.88" />
+                      <path d="M16.12 7.88A10.94 10.94 0 0 1 23 12c-.58 1.55-1.5 2.94-2.62 4.06" />
+                    </svg>
+                  ) : (
+                    // Eye icon
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
                 </button>
               </div>
             </div>
@@ -253,7 +279,7 @@ export default function SignUpStep() {
             {/* Sign In Link */}
             <div className="text-center">
               <span className="text-text-secondary text-sm">Already have an account? </span>
-              <button className="text-primary text-sm font-medium hover:underline">
+              <button className="text-primary text-sm font-medium hover:underline" onClick={() => router.push('/signin')}>
                 Sign in
               </button>
             </div>

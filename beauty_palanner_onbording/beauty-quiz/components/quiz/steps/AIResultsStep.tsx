@@ -153,6 +153,7 @@ export default function AIResultsStep() {
     'web-anonymous'
   
   const [status, setStatus] = useState<'running' | 'success' | 'error'>('running')
+  const [isSlow, setIsSlow] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
   const [questionIndex, setQuestionIndex] = useState(0)
@@ -361,15 +362,14 @@ export default function AIResultsStep() {
     setProgress(0) // Reset progress on retry
     setInterludeIndex(null)
     setIsPaused(false)
+    setIsSlow(false)
 
     try {
       if (analysisTimeoutRef.current) clearTimeout(analysisTimeoutRef.current)
       analysisTimeoutRef.current = setTimeout(() => {
-        // If server is too slow, continue with fallback to avoid endless 99%
-        if (typeof window !== 'undefined') {
-          continueWithBasicAnalysis()
-        }
-      }, 25000)
+        // If server is slow, keep running and show a gentle "still working" hint
+        setIsSlow(true)
+      }, 30000)
       const { BodyImageUrl, BodyImageSkipped, ...sanitizedAnswers } = storeAnswers as any;
       // Provide explicit numeric sleepHours to Gemini based on WakeUp/EndDay
       const parseHHMM = (v?: string) => {
@@ -416,20 +416,22 @@ export default function AIResultsStep() {
           analysisTimeoutRef.current = null
         }
         setAnalysis(json.analysis)
-        // Ensure we unpause and mark success but don't force 100 until interludes are shown
+        // Immediately complete to avoid any chance of stalling at 99%
+        // We intentionally skip interludes after success for a snappier UX.
         setIsPaused(false)
         setStatus('success')
-        // If no interludes remain to be shown, finalize progress to 100%
-        if (shownInterludesCountRef.current >= interludes.length) {
-          setProgress(100)
-        }
+        shownInterludesCountRef.current = interludes.length
+        setShownInterludes(interludes.length)
+        setProgress(100)
       } else {
         throw new Error(json?.error || 'Invalid response from analysis server.')
       }
     } catch (e: any) {
       console.error('Analysis failed:', e)
-      // Fall back to basic analysis to unblock flow
-      continueWithBasicAnalysis()
+      // Only surface an error for real failures (network/HTTP), not slow responses
+      setStatus('error')
+      setErrorMessage('We were unable to complete your analysis. This may be a temporary server issue. Please retry or contact support.')
+      setProgress(0)
     }
   }
 
@@ -449,11 +451,7 @@ export default function AIResultsStep() {
 
   // Client-side fallback: do NOT proceed with fallback analysis
   // Instead, inform user and allow retry or contact support
-  const continueWithBasicAnalysis = () => {
-    setStatus('error')
-    setErrorMessage('We were unable to complete your analysis. This may be a temporary server issue. Please retry or contact support.')
-    setProgress(0)
-  }
+  // Removed premature fallback; we now wait and show a gentle slow hint.
 
   // Testimonials scroller (copied from Procedures step with identical behavior)
   // count shown interludes when user responds
@@ -465,7 +463,7 @@ export default function AIResultsStep() {
           {status === 'error' ? 'Something Went Wrong' : 'Analyzing Your Profile'}
         </h1>
         <p className="text-text-secondary mt-2">
-          {status === 'error' ? errorMessage : questions[questionIndex]}
+          {status === 'error' ? errorMessage : (isSlow && progress >= 98 ? 'Still working… finalizing your results' : questions[questionIndex])}
         </p>
       </div>
 
@@ -499,7 +497,7 @@ export default function AIResultsStep() {
           {(status === 'running' || (status === 'success' && shownInterludes < interludes.length)) && !isPaused && (
             <div className="text-center">
               <p className="text-3xl font-bold text-text-primary">{Math.floor(progress)}%</p>
-              <p className="text-xs text-text-secondary">Analyzing...</p>
+              <p className="text-xs text-text-secondary">{status === 'running' && progress >= 98 ? (isSlow ? 'Still working…' : 'Finishing up…') : 'Analyzing...'}</p>
             </div>
           )}
           {(status === 'running' || status === 'success') && isPaused && interludeIndex !== null && (

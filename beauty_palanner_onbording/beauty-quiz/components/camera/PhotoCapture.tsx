@@ -49,6 +49,7 @@ export default function PhotoCapture({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [hasBackCamera, setHasBackCamera] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [accepting, setAccepting] = useState(false)
 
   // No mirroring: keep preview and capture unmirrored on all devices
 
@@ -210,14 +211,20 @@ export default function PhotoCapture({
 
   // Compress current canvas content to max side and quality, then emit
   const accept = async () => {
+    if (accepting) return
+    setAccepting(true)
     const source = rawCaptureRef.current || canvasRef.current
     if (!source) return
     try {
       const blob = await compressCanvas(source, 1200, 0.85)
-      onCapture(blob)
+      await onCapture(blob)
     } catch (e) {
       console.error('Compression failed, falling back to original canvas', e)
-      source.toBlob((blob) => blob && onCapture(blob), 'image/jpeg', 0.85)
+      source.toBlob(async (blob) => {
+        if (blob) await onCapture(blob)
+      }, 'image/jpeg', 0.85)
+    } finally {
+      setAccepting(false)
     }
   }
 
@@ -287,7 +294,7 @@ export default function PhotoCapture({
                   {/* White rectangle is visible, shape (oval or square) is cut out */}
                   <rect x="0" y="0" width="100" height="100" fill="white" />
                   {guideShape === 'square' ? (
-                    <rect x="-25" y="-25" width="150" height="150" fill="black" />
+                    <rect x="10" y="10" width="80" height="80" fill="black" />
                   ) : (
                     <ellipse cx="50" cy="50" rx="48" ry="50" fill="black" />
                   )}
@@ -297,7 +304,7 @@ export default function PhotoCapture({
               <rect x="0" y="0" width="100" height="100" fill="rgba(0, 0, 0, 0.6)" mask="url(#vignette-mask)" />
               {/* Guide shape border: visible in the cutout area */}
               {guideShape === 'square' ? (
-                <rect x="-25" y="-25" width="150" height="150" fill="none" stroke="var(--brand-primary)" strokeWidth="1.5" />
+                <rect x="10" y="10" width="80" height="80" fill="none" stroke="var(--brand-primary)" strokeWidth="1.5" />
               ) : (
                 <ellipse cx="50" cy="50" rx="48" ry="50" fill="none" stroke="var(--brand-primary)" strokeWidth="1.5" />
               )}
@@ -331,8 +338,18 @@ export default function PhotoCapture({
             <button className="pc-shutter" onClick={capture} aria-label="Take photo" />
           ) : (
             <div className="pc-preview-actions">
-              <button className="pc-retake" onClick={retake}>↻ Retake</button>
-              <button className="pc-accept" onClick={accept}>✓ Use</button>
+              <button className="pc-retake" onClick={retake} disabled={accepting}>
+                ↻ Retake
+              </button>
+              <button className={`pc-accept ${accepting ? 'pc-accept-loading' : ''}`} onClick={accept} disabled={accepting}>
+                {accepting ? (
+                  <span className="pc-inline-loader">
+                    <span className="pc-dot" />
+                    <span className="pc-dot" />
+                    <span className="pc-dot" />
+                  </span>
+                ) : '✓ Use'}
+              </button>
             </div>
           )}
 
@@ -557,6 +574,29 @@ export default function PhotoCapture({
           transform: scale(0.96);
           box-shadow: 0 0 12px rgba(90, 69, 225, 0.5);
         }
+
+        .pc-accept:disabled {
+          opacity: 0.75;
+          cursor: not-allowed;
+        }
+
+        .pc-accept-loading {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          min-width: 96px;
+        }
+
+        .pc-inline-loader {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .pc-dot { width: 6px; height: 6px; border-radius: 999px; background: white; opacity: 0.8; animation: pc-bounce 0.9s infinite }
+        .pc-dot:nth-child(2) { animation-delay: 0.15s }
+        .pc-dot:nth-child(3) { animation-delay: 0.3s }
+        @keyframes pc-bounce { 0%, 80%, 100% { transform: scale(0.8); opacity: 0.6 } 40% { transform: scale(1); opacity: 1 } }
 
         .pc-spacer-small {
           width: 32px;

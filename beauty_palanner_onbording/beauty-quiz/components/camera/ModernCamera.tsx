@@ -297,8 +297,11 @@ export default function ModernCamera({ mode = 'face', onCapture, onCancel }: Mod
     }, 'image/jpeg', 0.95)
   }
 
+  const [accepting, setAccepting] = useState(false)
   const acceptPreview = () => {
     if (!preview) return
+    if (accepting) return
+    setAccepting(true)
     // stop camera and timers before returning
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop())
@@ -414,8 +417,8 @@ export default function ModernCamera({ mode = 'face', onCapture, onCancel }: Mod
               </div>
             </div>
             <div className="flex items-center gap-3 mt-2">
-              <button onClick={retake} className="flex-1 h-11 rounded-xl font-semibold border hover:bg-gray-100 border-gray-300 bg-white text-gray-800">Retake</button>
-              <button onClick={acceptPreview} className="flex-1 h-11 rounded-xl text-white font-semibold shadow-md bg-gradient-to-r from-purple-600 to-pink-600 hover:brightness-110">Use this photo</button>
+              <button onClick={retake} disabled={accepting} className={`flex-1 h-11 rounded-xl font-semibold border border-gray-300 bg-white text-gray-800 ${accepting ? 'opacity-60 cursor-not-allowed' : 'hover:bg-gray-100'}`}>Retake</button>
+              <button onClick={acceptPreview} disabled={accepting} className={`flex-1 h-11 rounded-xl text-white font-semibold shadow-md bg-gradient-to-r from-purple-600 to-pink-600 ${accepting ? 'opacity-70 cursor-wait' : 'hover:brightness-110'}`}>{accepting ? 'Using…' : 'Use this photo'}</button>
             </div>
           </div>
         </div>
