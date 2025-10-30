@@ -4,11 +4,12 @@ import Image from "next/image"
 import { useMemo, useRef, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
+import { Apple, Globe } from "lucide-react"
 import { useQuizStore } from "../../store/quizStore"
 import { auth, saveUserToFirestore } from '@/lib/firebase'
 import StripeExpressPay from "../payments/StripeExpressPay"
 import PayPalPay from "../payments/PayPalPay"
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
+import { Elements, PaymentElement, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 
 // Types
@@ -912,7 +913,7 @@ function PaymentModal({ selectedPlanId, discountOffered, discountActive, promoCo
                   },
                 }}
               >
-                <CardPaymentSection onComplete={onComplete} setError={setCardError} />
+                <CardPaymentSection onComplete={onComplete} setError={setCardError} clientSecret={clientSecret} />
               </Elements>
             ) : (
               <div className="text-sm text-text-secondary">Loading secure card form…</div>
@@ -931,7 +932,10 @@ function PaymentModal({ selectedPlanId, discountOffered, discountActive, promoCo
   )
 }
 
-function CardPaymentSection({ onComplete, setError }: { onComplete: () => void; setError: (msg: string | null) => void }) {
+// Toggle to false to completely avoid PaymentElement (hides Link "Save my info" UI)
+const USE_PAYMENT_ELEMENT = false
+
+function CardPaymentSection({ onComplete, setError, clientSecret }: { onComplete: () => void; setError: (msg: string | null) => void; clientSecret: string }) {
   const stripe = useStripe()
   const elements = useElements()
   const [submitting, setSubmitting] = useState(false)
@@ -945,34 +949,65 @@ function CardPaymentSection({ onComplete, setError }: { onComplete: () => void; 
       // Provide minimal billing details explicitly (no extra fields visible)
       const billingName = (answers?.Name || '').trim() || 'Customer'
       const billingEmail = (answers?.Email || '').trim() || undefined
-      const { error, paymentIntent } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: typeof window !== 'undefined' ? `${window.location.origin}/success` : undefined,
-          payment_method_data: {
+      if (USE_PAYMENT_ELEMENT) {
+        const { error, paymentIntent } = await stripe.confirmPayment({
+          elements,
+          confirmParams: {
+            return_url: typeof window !== 'undefined' ? `${window.location.origin}/success` : undefined,
+            payment_method_data: {
+              billing_details: {
+                name: billingName,
+                ...(billingEmail ? { email: billingEmail } : {}),
+              },
+            },
+            ...(billingEmail ? { receipt_email: billingEmail } : {}),
+          },
+          redirect: 'if_required',
+        })
+        if (error) {
+          setError(error.message || 'Payment failed. Please try again.')
+          setSubmitting(false)
+          return
+        }
+        const status = paymentIntent?.status
+        if (status === 'succeeded' || status === 'processing' || status === 'requires_capture') {
+          onComplete()
+        } else if (status === 'requires_action') {
+          onComplete()
+        } else {
+          setError(`Unexpected status: ${status}`)
+        }
+      } else {
+        // Split card fields flow using CardNumberElement to avoid Link save UI entirely
+        const cardNumber = elements.getElement(CardNumberElement)
+        if (!clientSecret || !cardNumber) {
+          setError('Card form not ready yet. Please wait a moment and try again.')
+          setSubmitting(false)
+          return
+        }
+        const result = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: {
+            card: cardNumber,
             billing_details: {
               name: billingName,
               ...(billingEmail ? { email: billingEmail } : {}),
             },
           },
-          ...(billingEmail ? { receipt_email: billingEmail } : {}),
-        },
-        redirect: 'if_required',
-      })
-      if (error) {
-        setError(error.message || 'Payment failed. Please try again.')
-        setSubmitting(false)
-        return
-      }
-      const status = paymentIntent?.status
-      if (status === 'succeeded' || status === 'processing' || status === 'requires_capture') {
-        onComplete()
-      } else if (status === 'requires_action') {
-        // Additional action handled via redirect when needed; we used redirect: 'if_required'
-        // If not redirected, treat as pending
-        onComplete()
-      } else {
-        setError(`Unexpected status: ${status}`)
+          ...(billingEmail ? { receipt_email: billingEmail } as any : {}),
+        })
+        if (result.error) {
+          setError(result.error.message || 'Payment failed. Please try again.')
+          setSubmitting(false)
+          return
+        }
+        const status = result.paymentIntent?.status
+        if (status === 'succeeded' || status === 'processing' || status === 'requires_capture') {
+          onComplete()
+        } else if (status === 'requires_action') {
+          onComplete()
+        } else {
+          setError(`Unexpected status: ${status}`)
+        }
       }
     } catch (e: any) {
       setError(e?.message || 'Payment exception')
@@ -983,20 +1018,40 @@ function CardPaymentSection({ onComplete, setError }: { onComplete: () => void; 
   return (
     <div className="mt-2">
       <PaymentBrandsRow />
-      <div className="rounded-xl border border-border-subtle bg-surface px-3 py-2">
-        <PaymentElement options={{
-          layout: 'tabs',
-          paymentMethodOrder: ['card'],
-          fields: {
-            billingDetails: {
-              name: 'never',
-              email: 'never',
-              phone: 'never',
-              address: { country: 'never', postalCode: 'never', line1: 'never', line2: 'never', city: 'never', state: 'never' },
+      {USE_PAYMENT_ELEMENT ? (
+        <div className="rounded-xl border border-border-subtle bg-surface px-3 py-2">
+          <PaymentElement options={{
+            layout: 'tabs',
+            paymentMethodOrder: ['card'],
+            fields: {
+              billingDetails: {
+                name: 'never',
+                email: 'never',
+                phone: 'never',
+                address: { country: 'never', postalCode: 'never', line1: 'never', line2: 'never', city: 'never', state: 'never' },
+              },
             },
-          },
-        }} />
-      </div>
+          }} />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="rounded-xl border border-border-subtle bg-surface px-3 py-2">
+            <CardNumberElement options={{
+              showIcon: true,
+              placeholder: 'Card number',
+              style: { base: { fontSize: '16px' } },
+            }} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-xl border border-border-subtle bg-surface px-3 py-2">
+              <CardExpiryElement options={{ style: { base: { fontSize: '16px' } } }} />
+            </div>
+            <div className="rounded-xl border border-border-subtle bg-surface px-3 py-2">
+              <CardCvcElement options={{ style: { base: { fontSize: '16px' } } }} />
+            </div>
+          </div>
+        </div>
+      )}
       <button
         type="button"
         onClick={handlePay}
@@ -1139,37 +1194,52 @@ function PlatformAvailability() {
 
         {/* Mobile: compact chips */}
         <div className="grid grid-cols-3 gap-2 sm:hidden">
-          <PlatformChip
-            icon={<PlatformIcon light="/custom-icons/platforms/android-icon-light.svg" dark="/custom-icons/platforms/android-icon-dark.svg" />}
-            label="Android"
-          />
-          <PlatformChip
-            icon={<PlatformIcon light="/custom-icons/platforms/apple-icon-light.svg" dark="/custom-icons/platforms/apple-icon-dark.svg" />}
-            label="Apple"
-          />
-          <PlatformChip
-            icon={<PlatformIcon light="/custom-icons/platforms/web-icon-light.svg" dark="/custom-icons/platforms/web-icon-dark.svg" />}
-            label="Web"
-          />
+          <PlatformChip icon={<AndroidIcon className="h-5 w-5 text-text-primary" />} label="Android" />
+          <PlatformChip icon={<Apple className="h-5 w-5 text-text-primary" />} label="Apple" />
+          <PlatformChip icon={<Globe className="h-5 w-5 text-text-primary" />} label="Web" />
         </div>
 
-        {/* sm+ : pill row */}
-        <div className="hidden sm:flex items-center justify-center gap-3">
-          <PlatformPill
-            icon={<PlatformIcon light="/custom-icons/platforms/android-icon-light.svg" dark="/custom-icons/platforms/android-icon-dark.svg" size={22} />}
-            label="Android"
-          />
-          <PlatformPill
-            icon={<PlatformIcon light="/custom-icons/platforms/apple-icon-light.svg" dark="/custom-icons/platforms/apple-icon-dark.svg" size={22} />}
-            label="Apple"
-          />
-          <PlatformPill
-            icon={<PlatformIcon light="/custom-icons/platforms/web-icon-light.svg" dark="/custom-icons/platforms/web-icon-dark.svg" size={22} />}
-            label="Web"
-          />
+        {/* sm+ : pill row (left-aligned) */}
+        <div className="hidden sm:flex items-center justify-start gap-3">
+          <PlatformPill icon={<AndroidIcon className="h-5 w-5 text-text-primary" />} label="Android" />
+          <PlatformPill icon={<Apple className="h-5 w-5 text-text-primary" />} label="Apple" />
+          <PlatformPill icon={<Globe className="h-5 w-5 text-text-primary" />} label="Web" />
         </div>
       </div>
     </div>
+  )
+}
+
+function AndroidIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+    >
+      {/* Antennas */}
+      <path d="M8 4 L6.5 2.5" />
+      <path d="M16 4 L17.5 2.5" />
+      {/* Head */}
+      <rect x="6" y="5" width="12" height="6" rx="3" />
+      {/* Eyes */}
+      <circle cx="10" cy="8" r="0.8" fill="currentColor" stroke="none" />
+      <circle cx="14" cy="8" r="0.8" fill="currentColor" stroke="none" />
+      {/* Body */}
+      <rect x="7" y="11" width="10" height="7" rx="2" />
+      {/* Arms */}
+      <rect x="4" y="11" width="2" height="6" rx="1" />
+      <rect x="18" y="11" width="2" height="6" rx="1" />
+      {/* Legs */}
+      <rect x="9" y="18" width="2.5" height="3" rx="1" />
+      <rect x="12.5" y="18" width="2.5" height="3" rx="1" />
+    </svg>
   )
 }
 

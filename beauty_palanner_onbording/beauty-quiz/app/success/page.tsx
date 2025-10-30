@@ -83,6 +83,17 @@ export default function SuccessPage() {
   const { answers } = useQuizStore()
   const router = useRouter()
 
+  // Ensure page can scroll even if a previous modal added body/html overflow locks
+  useEffect(() => {
+    try {
+      document.documentElement.classList.remove('modal-open')
+      document.body.classList.remove('modal-open')
+      // Also clear any inline overflow hidden that might persist
+      if (document.documentElement.style.overflow === 'hidden') document.documentElement.style.overflow = ''
+      if (document.body.style.overflow === 'hidden') document.body.style.overflow = ''
+    } catch { /* noop */ }
+  }, [])
+
   useEffect(() => {
     if (!answers.PaymentCompleted) {
       router.push('/payment')
@@ -115,7 +126,7 @@ export default function SuccessPage() {
   // No extra actions on this screen; simple confirmation only
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-x-hidden">
       <AnimatedBackground />
       <div className="relative z-10 min-h-screen px-4 py-10 flex justify-center">
         <div className="w-full max-w-[430px]">
@@ -137,7 +148,8 @@ function SuccessCard() {
       const sid = (answers.sessionId || '').trim()
       if (!sid) throw new Error('Missing session id')
   const result = await finalizeOnboarding(sid)
-  const base = 'https://beauty-planner-26cc0.web.app'
+  // Use current host by default to avoid 404s if external app route isn't present
+  const base = typeof window !== 'undefined' ? window.location.origin : 'https://quiz-beautymirror-app.web.app'
       if (result?.token) {
         const url = `${base}/auth/consume?token=${encodeURIComponent(result.token)}`
         window.location.assign(url)
