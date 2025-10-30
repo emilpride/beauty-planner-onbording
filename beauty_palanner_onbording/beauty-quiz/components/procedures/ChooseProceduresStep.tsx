@@ -183,6 +183,10 @@ export default function ChooseProceduresStep() {
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [iconSearchQuery, setIconSearchQuery] = useState('')
+  // Inline note expand state per activity (for inline setup Note textarea)
+  const [expandedInlineNotes, setExpandedInlineNotes] = useState<Record<string, boolean>>({})
+  // Create Activity modal Note expand toggle
+  const [createNoteExpanded, setCreateNoteExpanded] = useState(false)
   // Inline settings per selected activity (kept local to avoid altering overall design/state)
   type RepeatType = 'Daily' | 'Weekly' | 'Monthly' | null
   type TimePeriod = 'Morning' | 'Afternoon' | 'Evening' | null
@@ -212,6 +216,9 @@ export default function ChooseProceduresStep() {
   // Validation state to highlight required fields on Next
   const [showErrors, setShowErrors] = useState(false)
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
+  // Validation modal state
+  const [showValidationModal, setShowValidationModal] = useState(false)
+  const [validationSummary, setValidationSummary] = useState<Array<{ id: string; issues: string[] }>>([])
   // Refs to scroll to first invalid activity block
   const activityRefs = useRef<Record<string, HTMLDivElement | null>>({})
   // Extract AI recommendations from analysis results
@@ -304,15 +311,15 @@ export default function ChooseProceduresStep() {
       case 'mindful-meditation':
         return { repeat: 'Daily', allDay: false, times: [{ time: aroundEvening() || '21:00', timePeriod: 'Evening' }] }
       case 'exfoliate':
-        return { repeat: 'Weekly', weeklyInterval: 1, weekdays: [1,4], allDay: true, times: [] }
+        return { repeat: 'Weekly', weeklyInterval: 1, weekdays: [1,4], allDay: false, times: [] }
       case 'deep-hydration':
-        return { repeat: 'Weekly', weeklyInterval: 1, weekdays: [0], allDay: true, times: [] }
+        return { repeat: 'Weekly', weeklyInterval: 1, weekdays: [0], allDay: false, times: [] }
       case 'strength-training':
         return { repeat: 'Weekly', weeklyInterval: 1, weekdays: [1,3], allDay: false, times: [{ time: '18:30', timePeriod: 'Evening' }] }
       case 'morning-stretch':
         return { repeat: 'Daily', allDay: false, times: [{ time: aroundMorning() || '07:15', timePeriod: 'Morning' }] }
       default:
-        return { repeat: 'Daily', allDay: true, times: [] }
+        return { repeat: 'Daily', allDay: false, times: [] }
     }
   }
 
@@ -426,7 +433,7 @@ export default function ChooseProceduresStep() {
       weeklyInterval: 1,
       weekdays: [],
       monthlyDays: [],
-      allDay: true,
+      allDay: false,
       times: [],
       endDate: false,
       endType: 'date',
@@ -635,7 +642,7 @@ export default function ChooseProceduresStep() {
                   weeklyInterval: 1,
                   weekdays: [],
                   monthlyDays: [],
-                  allDay: true,
+                  allDay: false,
                   times: [],
                   endDate: false,
                   endType: 'date',
@@ -653,8 +660,8 @@ export default function ChooseProceduresStep() {
             return next
           })
 
-          // Expand only the core schedule items by default to avoid overwhelming the UI
-          setExpandedActivities(new Set(scheduleIds))
+          // Expand all selected items by default so their settings are visible
+          setExpandedActivities(new Set(targetIds))
           didPrefillFromAI.current = true
           return
         }
@@ -683,7 +690,7 @@ export default function ChooseProceduresStep() {
                 weeklyInterval: 1,
                 weekdays: [],
                 monthlyDays: [],
-                allDay: true,
+                allDay: false,
                 times: [],
                 endDate: false,
                 endType: 'date',
@@ -884,7 +891,7 @@ export default function ChooseProceduresStep() {
           weeklyInterval: 1,
           weekdays: [],
           monthlyDays: [],
-          allDay: true,
+          allDay: false,
           times: [],
           endDate: false,
           endType: 'date',
@@ -993,7 +1000,7 @@ export default function ChooseProceduresStep() {
         weeklyInterval: 1,
         weekdays: [],
         monthlyDays: [],
-        allDay: true,
+        allDay: false,
         times: [],
         endDate: false,
         endType: 'date',
@@ -1010,6 +1017,15 @@ export default function ChooseProceduresStep() {
     if (Object.keys(errs).length > 0) {
       // Stop and highlight invalid fields
       const firstInvalidId = selectedActivities.find((id) => (errs[id] || []).length > 0)
+      // Expand all activities that have errors for visibility
+      const errorIds = Object.keys(errs)
+      setExpandedActivities(prev => {
+        const next = new Set(prev)
+        for (const id of errorIds) next.add(id)
+        return next
+      })
+      setValidationSummary(errorIds.map(id => ({ id, issues: errs[id] || [] })))
+      setShowValidationModal(true)
       if (firstInvalidId) {
         const el = activityRefs.current[firstInvalidId]
         if (el && typeof el.scrollIntoView === 'function') {
@@ -1355,7 +1371,7 @@ export default function ChooseProceduresStep() {
                            weeklyInterval: 1,
                            weekdays: [],
                            monthlyDays: [],
-                           allDay: true,
+                           allDay: false,
                            times: [],
                            endDate: false,
                            endType: 'date',
@@ -1444,19 +1460,31 @@ export default function ChooseProceduresStep() {
                                    <div className="px-3 pt-2 pb-3">
                                      {/* Note */}
                                      <div className="mt-2">
-                                       <div className="px-1 text-[14px] font-bold text-text-primary">Note</div>
+                                       <div className="flex items-center justify-between px-1">
+                                         <div className="text-[14px] font-bold text-text-primary">Note</div>
+                                         <button
+                                           type="button"
+                                           onClick={(e) => {
+                                             e.stopPropagation()
+                                             setExpandedInlineNotes(prev => ({ ...prev, [activity.id]: !prev[activity.id] }))
+                                           }}
+                                           className="text-[12px] font-semibold text-text-secondary hover:text-text-primary"
+                                         >
+                                           {expandedInlineNotes[activity.id] ? 'Collapse' : 'Expand'}
+                                         </button>
+                                       </div>
                                        <textarea
                                          value={settings.note}
                                          onChange={(e) => setInlineSettings(prev => ({ ...prev, [activity.id]: { ...settings, note: e.target.value } }))}
                                          placeholder="Type the note here.."
-                                         className="mt-2 w-full rounded-[8px] border border-border-subtle bg-surface px-3 py-2 text-[14px] text-text-primary resize-none"
+                                         className={`mt-2 w-full rounded-[8px] border border-border-subtle bg-surface px-3 py-2 text-[14px] text-text-primary ${expandedInlineNotes[activity.id] ? 'resize-y min-h-[120px]' : 'resize-none'}`}
                                        />
                                      </div>
 
                                      {/* Repeat controls */}
                                      <div className="mt-3">
                                        <div className="px-1 text-[14px] font-bold text-text-primary">Repeat</div>
-                                       <div className="mt-2 flex gap-2">
+                                       <div className={`mt-2 flex gap-2 ${showErrors && validationErrors[activity.id]?.includes('missingRepeat') ? 'ring-2 ring-red-400 rounded-[10px] p-1' : ''}`}>
                                          {(['Daily','Weekly','Monthly'] as const).map((option) => (
                                            <button
                                              key={option}
@@ -1588,7 +1616,7 @@ export default function ChooseProceduresStep() {
                                        <div className="mt-2">
                                          <div className="px-1 text-[14px] font-bold text-text-primary">Time(s)</div>
                                          {/* Quick multi-select presets */}
-                                         <div className="mt-2 flex gap-2">
+                                         <div className={`mt-2 flex gap-2 ${showErrors && validationErrors[activity.id]?.includes('missingTime') && (settings.times || []).length === 0 ? 'ring-2 ring-red-400 rounded-[10px] p-1' : ''}`}>
                                            {(['Morning','Afternoon','Evening'] as const).map(period => {
                                              const active = (settings.times || []).some(t => t.timePeriod === period)
                                              return (
@@ -1828,6 +1856,85 @@ export default function ChooseProceduresStep() {
         </div>
       </div>
 
+      {/* Validation summary modal */}
+      {showValidationModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-lg rounded-2xl bg-surface shadow-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border-subtle flex items-center justify-between">
+              <div className="text-[16px] font-semibold text-text-primary">Complete procedure settings</div>
+              <button
+                type="button"
+                aria-label="Close"
+                className="w-9 h-9 rounded-full grid place-items-center text-text-secondary hover:text-text-primary"
+                onClick={() => setShowValidationModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              <div className="text-sm text-text-secondary">
+                Some selected procedures need configuration. Please fill the highlighted fields.
+              </div>
+              <ul className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {validationSummary.map(({ id, issues }) => {
+                  const meta = getActivityMeta(id)
+                  const readable = issues.map((iss) =>
+                    iss === 'missingRepeat' ? 'Frequency not selected (Daily/Weekly/Monthly)'
+                    : iss === 'weeklyNoDays' ? 'Weekdays not selected'
+                    : iss === 'monthlyNoDays' ? 'Monthly days not selected'
+                    : iss === 'missingTime' ? 'Time not selected (or enable All day)'
+                    : iss === 'missingEndDate' ? 'End date not specified'
+                    : iss === 'invalidEndDays' ? 'Invalid number of days until end'
+                    : iss
+                  )
+                  return (
+                    <li key={id} className="flex items-start gap-2">
+                      <span className="mt-1 text-red-500">•</span>
+                      <button
+                        type="button"
+                        className="text-left flex-1 text-[14px] text-text-primary hover:text-primary"
+                        onClick={() => {
+                          setShowValidationModal(false)
+                          setExpandedActivities(prev => new Set(prev).add(id))
+                          const el = activityRefs.current[id]
+                          if (el && typeof el.scrollIntoView === 'function') {
+                            requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+                          }
+                        }}
+                      >
+                        <span className="font-medium">{meta.name}:</span> {readable.join('; ')}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  className="rounded-full border border-border-subtle px-4 py-2 text-sm text-text-primary hover:border-primary/60"
+                  onClick={() => setShowValidationModal(false)}
+                >
+                  Got it
+                </button>
+                <button
+                  type="button"
+                  className="rounded-full bg-primary text-white px-4 py-2 text-sm hover:bg-primary/90"
+                  onClick={() => {
+                    // Ensure all with errors are expanded
+                    const ids = new Set(expandedActivities)
+                    validationSummary.forEach(({ id }) => ids.add(id))
+                    setExpandedActivities(ids)
+                    setShowValidationModal(false)
+                  }}
+                >
+                  Expand all
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Prompt modal removed */}
 
       {/* Create Activity Modal */}
@@ -1866,12 +1973,21 @@ export default function ChooseProceduresStep() {
 
               {/* Note */}
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-1">Note</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-text-primary">Note</label>
+                  <button
+                    type="button"
+                    onClick={() => setCreateNoteExpanded(v => !v)}
+                    className="text-[12px] font-semibold text-text-secondary hover:text-text-primary"
+                  >
+                    {createNoteExpanded ? 'Collapse' : 'Expand'}
+                  </button>
+                </div>
                 <textarea
                   value={newActivity.note}
                   onChange={(e) => handleNewActivityChange('note', e.target.value)}
                   placeholder="Type the note here..."
-                  className="w-full h-16 p-2 border border-border-subtle/60 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent text-sm scrollbar-hide text-text-primary"
+                  className={`w-full p-2 border border-border-subtle/60 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent text-sm text-text-primary ${createNoteExpanded ? 'resize-y min-h-[120px]' : 'resize-none h-16'}`}
                 />
               </div>
 

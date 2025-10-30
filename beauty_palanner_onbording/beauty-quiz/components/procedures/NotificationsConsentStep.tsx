@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useQuizStore } from '@/store/quizStore'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -28,6 +28,20 @@ export default function NotificationsConsentStep() {
   const [pushNotifications, setPushNotifications] = useState<boolean>(
     (answers.PushNotifications as boolean | undefined) ?? true
   )
+
+  const initialized = useRef(false)
+
+  // Enforce all notifications and channels ON when arriving at this step
+  useEffect(() => {
+    if (initialized.current) return
+    setDailyReminders(true)
+    setDailyPush(true)
+    setDailyEmail(true)
+    setActivityReminders(true)
+    setEmailNotifications(true)
+    setPushNotifications(true)
+    initialized.current = true
+  }, [])
 
   const handleSave = () => {
   setAnswer('DailyMoodReminder', dailyReminders)

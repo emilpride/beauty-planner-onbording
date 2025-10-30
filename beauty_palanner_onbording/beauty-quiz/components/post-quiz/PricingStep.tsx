@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { useQuizStore } from "../../store/quizStore"
 import { auth, saveUserToFirestore } from '@/lib/firebase'
 import StripeExpressPay from "../payments/StripeExpressPay"
+import PayPalPay from "../payments/PayPalPay"
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 
@@ -346,7 +347,7 @@ export default function PricingStep() {
 function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpire?: () => void }) {
   const [secondsRemaining, setSecondsRemaining] = useState(totalSeconds)
   const [compact, setCompact] = useState(false)
-  const normalRef = useRef<HTMLDivElement | null>(null)
+  const headerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -362,22 +363,20 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
     return () => window.clearInterval(id)
   }, [totalSeconds, onExpire])
 
+  // Toggle compact mode when the full header leaves the viewport (robust across layouts)
   useEffect(() => {
-    // Debug override: allow forcing sticky mini-timer via URL params
-    // Usage: /payment?debugSticky=1 or /payment?timer=sticky
-    try {
-      const params = new URLSearchParams(window.location.search)
-      const debugSticky = params.has('debugSticky') || params.get('timer') === 'sticky'
-      if (debugSticky) {
-        setCompact(true)
-        return
-      }
-    } catch {}
-
-    const onScroll = () => setCompact(window.scrollY > 180)
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    if (!headerRef.current) return
+    const el = headerRef.current
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0]
+        // When the main timer row is NOT visible, show the compact sticky bar
+        setCompact(!(first?.isIntersecting ?? true))
+      },
+      { root: null, threshold: 0 }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
   }, [])
   const minutes = String(Math.floor(secondsRemaining / 60)).padStart(2, '0')
   const seconds = String(secondsRemaining % 60).padStart(2, '0')
@@ -385,22 +384,20 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
   const handleClick = () => {
     const el = document.getElementById('plans')
     if (!el) return
-    const fixedBar = document.querySelector('[data-compact-timer]') as HTMLElement | null
-    const offset = fixedBar ? fixedBar.getBoundingClientRect().height + 16 : 96
-    const y = el.getBoundingClientRect().top + window.scrollY - offset
-    window.scrollTo({ top: y, behavior: 'smooth' })
+    // Use native smooth scroll that respects scroll-margin-top on the target
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const expired = secondsRemaining <= 0
 
   return (
     <>
-      <div ref={normalRef} className="mx-auto w-[min(92vw,1040px)] px-0">
+  <div className="mx-auto w-[min(92vw,1040px)] px-0" ref={headerRef}>
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
-          className={`flex w-full items-center justify-between gap-4 rounded-2xl bg-surface px-4 py-3 shadow-sm ${compact ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          className={`flex w-full items-center justify-between gap-4 rounded-2xl bg-surface px-4 py-3 shadow-sm`}
         >
           <div className="flex items-center gap-3">
             <span className="hidden sm:inline text-sm font-semibold text-text-primary">{expired ? 'Offer ended' : 'Discount is reserved for:'}</span>
@@ -421,7 +418,7 @@ function TopTimerRow({ totalSeconds, onExpire }: { totalSeconds: number; onExpir
       </div>
 
       {compact && (
-        <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+8px)] z-50 pointer-events-none" data-compact-timer>
+        <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+8px)] z-[1000] pointer-events-none" data-compact-timer>
           <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -805,20 +802,15 @@ function PaymentModal({ selectedPlanId, discountOffered, discountActive, promoCo
   const sessionId = useQuizStore(s => s.sessionId)
   const userId = useQuizStore(s => s.answers.Id)
 
-  // Detect dark mode to style Stripe elements
+  // Detect dark mode to style Stripe elements (follow app theme only, not OS)
   const [isDark, setIsDark] = useState(false)
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const update = () => {
-      const docDark = document.documentElement.classList.contains('dark')
-      setIsDark(docDark || mq.matches)
-    }
-    update()
-    try { mq.addEventListener('change', update) } catch { /* older browsers */ }
-    return () => {
-      try { mq.removeEventListener('change', update) } catch { /* older browsers */ }
-    }
+    const apply = () => setIsDark(document.documentElement.classList.contains('dark'))
+    apply()
+    const observer = new MutationObserver(apply)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
   }, [])
 
   // Create a PaymentIntent for card fallback
@@ -884,13 +876,54 @@ function PaymentModal({ selectedPlanId, discountOffered, discountActive, promoCo
               <span className="flex-1 h-px bg-border-subtle" />
             </div>
             {pubKey && stripePromise && clientSecret ? (
-              <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: isDark ? 'night' : 'stripe', variables: { colorPrimary: '#7C5CCB', colorBackground: isDark ? '#0F0F14' : '#FFFFFF', colorText: isDark ? '#E5E7EB' : '#111827', colorTextSecondary: isDark ? '#9CA3AF' : '#6B7280', borderRadius: '12px' } } }}>
+              <Elements
+                stripe={stripePromise}
+                options={{
+                  clientSecret,
+                  appearance: {
+                    theme: isDark ? 'night' : 'stripe',
+                    variables: {
+                      colorPrimary: '#7C5CCB',
+                      colorBackground: isDark ? '#0F0F14' : '#FFFFFF',
+                      colorText: isDark ? '#E5E7EB' : '#111827',
+                      colorTextSecondary: isDark ? '#9CA3AF' : '#4B5563',
+                      colorDanger: '#DC2626',
+                      borderRadius: '12px',
+                      spacingUnit: '6px',
+                      fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system',
+                    },
+                    rules: isDark
+                      ? {
+                          '.Label': { color: '#E5E7EB' },
+                          '.Input': { backgroundColor: '#0F0F14', color: '#E5E7EB', borderColor: '#30363d' },
+                          '.Input::placeholder': { color: '#9CA3AF' },
+                          '.Input:focus': { boxShadow: '0 0 0 2px rgba(124,92,203,0.35)', borderColor: '#7C5CCB' },
+                          '.Tab': { backgroundColor: '#0B0B10', borderColor: '#30363d' },
+                          '.Tab--selected': { backgroundColor: '#0F0F14', borderColor: '#7C5CCB' },
+                        }
+                      : {
+                          '.Label': { color: '#374151' },
+                          '.Input': { backgroundColor: '#FFFFFF', color: '#111827', borderColor: '#D1D5DB' },
+                          '.Input::placeholder': { color: '#6B7280' },
+                          '.Input:focus': { boxShadow: '0 0 0 2px rgba(124,92,203,0.30)', borderColor: '#7C5CCB' },
+                          '.Tab': { backgroundColor: '#F9FAFB', borderColor: '#E5E7EB' },
+                          '.Tab--selected': { backgroundColor: '#FFFFFF', borderColor: '#7C5CCB' },
+                        },
+                  },
+                }}
+              >
                 <CardPaymentSection onComplete={onComplete} setError={setCardError} />
               </Elements>
             ) : (
               <div className="text-sm text-text-secondary">Loading secure card form…</div>
             )}
             {cardError && <div className="mt-2 text-sm text-red-500">{cardError}</div>}
+            <div className="relative my-3 flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-text-secondary">
+              <span className="flex-1 h-px bg-border-subtle" />
+              <span>or pay with PayPal</span>
+              <span className="flex-1 h-px bg-border-subtle" />
+            </div>
+            <PayPalPay amountCents={amountCents} currency="USD" onSuccess={onComplete} />
           </div>
         </div>
       </motion.div>
@@ -902,34 +935,27 @@ function CardPaymentSection({ onComplete, setError }: { onComplete: () => void; 
   const stripe = useStripe()
   const elements = useElements()
   const [submitting, setSubmitting] = useState(false)
-  // Hide unnecessary fields in the Payment Element (country, email, name, etc.)
-  const paymentElOptions: any = {
-    layout: 'tabs',
-    fields: {
-      billingDetails: {
-        name: 'never',
-        email: 'never',
-        phone: 'never',
-        address: {
-          country: 'never',
-          postalCode: 'never',
-          line1: 'never',
-          line2: 'never',
-          city: 'never',
-          state: 'never',
-        },
-      },
-    },
-  }
+  // Pull minimal user info for billing fallbacks
+  const answers = useQuizStore((s) => s.answers)
   const handlePay = async () => {
     setError(null)
     if (!stripe || !elements) return
     setSubmitting(true)
     try {
+      // Provide minimal billing details explicitly (no extra fields visible)
+      const billingName = (answers?.Name || '').trim() || 'Customer'
+      const billingEmail = (answers?.Email || '').trim() || undefined
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
           return_url: typeof window !== 'undefined' ? `${window.location.origin}/success` : undefined,
+          payment_method_data: {
+            billing_details: {
+              name: billingName,
+              ...(billingEmail ? { email: billingEmail } : {}),
+            },
+          },
+          ...(billingEmail ? { receipt_email: billingEmail } : {}),
         },
         redirect: 'if_required',
       })
@@ -956,7 +982,21 @@ function CardPaymentSection({ onComplete, setError }: { onComplete: () => void; 
   }
   return (
     <div className="mt-2">
-      <PaymentElement options={paymentElOptions} />
+      <PaymentBrandsRow />
+      <div className="rounded-xl border border-border-subtle bg-surface px-3 py-2">
+        <PaymentElement options={{
+          layout: 'tabs',
+          paymentMethodOrder: ['card'],
+          fields: {
+            billingDetails: {
+              name: 'never',
+              email: 'never',
+              phone: 'never',
+              address: { country: 'never', postalCode: 'never', line1: 'never', line2: 'never', city: 'never', state: 'never' },
+            },
+          },
+        }} />
+      </div>
       <button
         type="button"
         onClick={handlePay}

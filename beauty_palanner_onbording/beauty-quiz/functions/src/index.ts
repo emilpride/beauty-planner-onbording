@@ -2040,10 +2040,11 @@ export const processPayment = onRequest({ secrets: [STRIPE_SECRET_KEY] }, async 
 		if (typeof amount !== 'number' || amount <= 0) { res.status(400).json({ error: 'Invalid amount' }); return }
 
 		// Create PaymentIntent (confirm immediately if we have a payment method from PRB)
+		// Restrict to card only to avoid showing Link/Amazon Pay and extra UI in PaymentElement
 		const params: Stripe.PaymentIntentCreateParams = {
 			amount,
 			currency,
-			automatic_payment_methods: { enabled: true },
+			payment_method_types: ['card'],
 			capture_method: 'automatic',
 			metadata: {
 				sessionId: sessionId || '',

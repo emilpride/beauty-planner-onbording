@@ -37,7 +37,7 @@ const createActivitySetting = (activityId: string, fallbackName?: string, gender
     note: getDefaultNote(activityId, gender),
     repeat: null,
     weeklyInterval: 1,
-    allDay: true,
+    allDay: false,
     weekdays: [],
     monthlyDays: [],
   times: [],
