@@ -18,11 +18,17 @@ export default function NewActivityPage() {
 
   async function onSubmitMany(list: Activity[]) {
     if (!user) return
-    for (const a of list) {
-      const withId: Activity = { ...a, id: a.id || uuidv4(), lastModifiedAt: new Date() }
-      await save.mutateAsync({ userId: user.uid, activity: withId })
+    try {
+      for (const a of list) {
+        const withId: Activity = { ...a, id: a.id || uuidv4(), lastModifiedAt: new Date() }
+        await save.mutateAsync({ userId: user.uid, activity: withId })
+      }
+      router.push('/procedures')
+    } catch (e) {
+      // Surface error to user
+      const message = e instanceof Error ? e.message : 'Unknown error while saving procedures'
+      alert(`Failed to save: ${message}`)
     }
-    router.push('/procedures')
   }
 
   return (
@@ -54,7 +60,7 @@ export default function NewActivityPage() {
 
           {/* Inline Picker Card */}
           <div className="bg-surface border border-border-subtle rounded-2xl shadow-lg p-8">
-            <InlineProcedurePicker onSubmit={onSubmitMany} />
+            <InlineProcedurePicker onSubmit={onSubmitMany} saving={save.isPending} />
           </div>
         </div>
       </PageContainer>

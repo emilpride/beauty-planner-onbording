@@ -1,4 +1,4 @@
-import { collection, doc, setDoc, Timestamp } from 'firebase/firestore'
+import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { getFirestoreDb } from '@/lib/firebase'
 import type { TaskInstance, TaskStatus } from '@/types/task'
 
@@ -14,14 +14,19 @@ export function buildUpdateId(activityId: string, date: string, hour?: number, m
 export async function setTaskStatus(userId: string, task: TaskInstance, status: TaskStatus) {
   const db = getFirestoreDb()
   const updatesCol = collection(doc(collection(db, 'Users'), userId), 'Updates')
-  const id = task.id || buildUpdateId(task.activityId, task.date, task.time?.hour, task.time?.minute)
+  // Always build a deterministic update id from activityId + date [+ time]
+  const id = buildUpdateId(task.activityId, task.date, task.time?.hour, task.time?.minute)
   const ref = doc(updatesCol, id)
-  await setDoc(ref, {
-    id,
-    activityId: task.activityId,
-    date: task.date,
-    status,
-    time: task.time ? { hour: task.time.hour, minute: task.time.minute } : undefined,
-    updatedAt: Timestamp.fromDate(new Date()),
-  }, { merge: true })
+  await setDoc(
+    ref,
+    {
+      id,
+      activityId: task.activityId,
+      date: task.date,
+      status,
+      time: task.time ? { hour: task.time.hour, minute: task.time.minute } : undefined,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  )
 }

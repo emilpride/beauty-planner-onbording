@@ -341,6 +341,16 @@ export default function CurrentConditionAnalysisStep() {
     )
   }, [bmiValue])
 
+  // Estimated body fat % using Deurenberg equation (adults)
+  const bodyFatPct = useMemo(() => {
+    if (bmiValue == null || !Number.isFinite(bmiValue)) return null
+    if (chronologicalAge == null || !Number.isFinite(chronologicalAge)) return null
+    const sexFactor = (answers.Gender === 2 /* female */) ? 0 : 1
+    const pct = 1.20 * bmiValue + 0.23 * chronologicalAge - 10.8 * sexFactor - 5.4
+    if (!Number.isFinite(pct)) return null
+    return Math.max(2, Math.min(70, pct))
+  }, [bmiValue, chronologicalAge, answers.Gender])
+
   const bmiPosition = useMemo(() => {
     if (!bmiValue) return 0.4
     const min = 15
@@ -560,6 +570,9 @@ export default function CurrentConditionAnalysisStep() {
                         <span className="text-3xl font-bold" style={{ color: bmiNumberColorAnimated }}>
                           {Number.isFinite(bmiAnimatedDisplay) ? bmiAnimatedDisplay.toFixed(1) : '—'}
                         </span>
+                        {bodyFatPct != null && (
+                          <span className="text-sm text-text-secondary">BF% ~ {bodyFatPct.toFixed(1)}%</span>
+                        )}
                         <motion.img
                           src={getPersonImage(answers.Gender === 2 ? 'female' : 'male', bmiCategory!)}
                           alt="BMI reference"

@@ -1,61 +1,65 @@
 "use client"
 
+import BmsRing from '@/components/BmsRing'
+
 export function BMSCard({
   score = 7.2,
   status = "Balanced",
   description = "Keep up with consistent routine!",
+  delta,
 }: {
   score?: number
   status?: string
   description?: string
+  delta?: number
 }) {
-  // Calculate slider position (score 0-10 mapped to 0-100%)
-  const position = ((score / 10) * 100).toFixed(0)
-  
   return (
-    <div className="flex flex-col items-center gap-6 rounded-lg border border-border-subtle bg-surface p-6 shadow-md">
+    <div className="flex h-full min-h-[260px] flex-col gap-5 rounded-lg border border-border-subtle bg-surface p-6 shadow-md">
       {/* Header */}
-      <div className="flex flex-col items-start gap-2 w-full">
-        <div className="flex w-full flex-row items-center justify-between">
-          <h3 className="text-xl font-bold text-text-primary">
-            Your BMS<sup className="text-sm text-[rgb(var(--accent))]">®</sup> is:
-          </h3>
+      <div className="flex w-full flex-row items-center justify-between">
+        <h3 className="text-xl font-bold text-text-primary">
+          Your BMS<sup className="text-sm text-[rgb(var(--accent))]">®</sup> is:
+        </h3>
+        <div className="flex items-end gap-3">
+          {typeof delta === 'number' && !Number.isNaN(delta) && (
+            <span className={`tabular-nums text-sm ${delta >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {delta >= 0 ? '+' : ''}{delta.toFixed(3)}
+            </span>
+          )}
           <span className="text-lg font-bold text-[rgb(var(--accent))]">{status}</span>
         </div>
-        <p className="leading-relaxed text-base font-semibold text-text-primary">
-          {description}
-        </p>
       </div>
+      <p className="leading-relaxed text-sm text-text-secondary">
+        {description}
+      </p>
 
-      {/* Score */}
-      <div className="text-[64px] font-semibold leading-none text-[#84DE54]">
-        {score.toFixed(1)}
-      </div>
-
-      {/* Gradient Slider */}
-      <div className="relative w-full h-9">
-        {/* Background track */}
-  <div className="absolute top-[13px] h-2.5 w-full rounded-full bg-border-subtle" />
-        
-        {/* Gradient bar */}
-        <div 
-          className="absolute w-full h-[18px] top-[9px] rounded-full"
-          style={{
-            background: 'linear-gradient(270deg, #33C75A 0%, #84DE54 36.54%, #FFA64D 69.71%, #FF7D7E 100%)',
+      {/* Onboarding-style BMS ring */}
+      <div className="flex items-center justify-center">
+        <BmsRing
+          size={220}
+          thickness={26}
+          overall={Number(score.toFixed(1))}
+          scores={{
+            skin: score,
+            hair: score,
+            physic: score,
+            mental: score,
+          }}
+          icons={{
+            skin: '/custom-icons/bms/skin_bms.svg',
+            hair: '/custom-icons/bms/hair_bms.svg',
+            physic: '/custom-icons/bms/physical_bms.svg',
+            mental: '/custom-icons/bms/mental_bms.svg',
+          }}
+          colors={{
+            skin: '#60A5FA',
+            hair: '#6EE7B7',
+            physic: '#FBBF24',
+            mental: '#F472B6',
           }}
         />
-        
-        {/* Slider handle */}
-        <div 
-          className="absolute top-[2px] h-8 w-8 rounded-full border-2 border-border-subtle bg-gradient-to-b from-[#F2F2F2] to-[#E8E8E8] shadow-md transition-all"
-          style={{ left: `calc(${position}% - 16px)` }}
-        />
       </div>
-
-      {/* Update Button */}
-  <button className="flex w-full flex-row items-center justify-center rounded-[11px] bg-[rgb(var(--accent))] py-3.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
-        Update
-      </button>
+      {/* No Update button anymore */}
     </div>
   )
 }

@@ -19,8 +19,9 @@ interface ActivityConfig {
   allDay: boolean
   weekdays: number[]
   monthlyDays: number[]
-  time: string
-  timePeriod: 'Morning' | 'Afternoon' | 'Evening' | null
+  // Multiple times support
+  times: string[]
+  periodOn: { Morning: boolean; Afternoon: boolean; Evening: boolean }
   endDate: boolean
   endType: 'date' | 'days'
   endDateValue: string
@@ -41,8 +42,8 @@ const createActivityConfig = (activityId: string, fallbackName?: string, gender:
     allDay: true,
     weekdays: [],
     monthlyDays: [],
-    time: '',
-    timePeriod: null,
+    times: [],
+    periodOn: { Morning: false, Afternoon: false, Evening: false },
     endDate: false,
     endType: 'date',
     endDateValue: '',
@@ -55,7 +56,7 @@ const createActivityConfig = (activityId: string, fallbackName?: string, gender:
 
 const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const repeatOptions: Exclude<ActivityConfig['repeat'], null>[] = ['Daily', 'Weekly', 'Monthly']
-const periodOptions: Exclude<ActivityConfig['timePeriod'], null>[] = ['Morning', 'Afternoon', 'Evening']
+const periodOptions: Array<'Morning' | 'Afternoon' | 'Evening'> = ['Morning', 'Afternoon', 'Evening']
 const remindAmountOptions = Array.from({ length: 60 }, (_, i) => i + 1)
 const remindUnits: RemindUnit[] = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years']
 const monthDays = Array.from({ length: 31 }, (_, index) => index + 1)
@@ -154,6 +155,7 @@ export function InlineProcedurePicker({
   const [configs, setConfigs] = useState<Record<string, ActivityConfig>>({})
   const [search, setSearch] = useState('')
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({})
+  const [showTimeInput, setShowTimeInput] = useState<Record<string, boolean>>({})
 
   const toggle = (id: string, name: string) => {
     setSelected((prev) => {
@@ -163,7 +165,17 @@ export function InlineProcedurePicker({
       }
       setConfigs((c) => {
         if (c[id]) return c
-        return { ...c, [id]: createActivityConfig(id, name) }
+        const base = createActivityConfig(id, name)
+        // Onboarding-like defaults: Daily + Morning 07:00 preselected
+        const withDefaults: ActivityConfig = {
+          ...base,
+          repeat: 'Daily',
+          weekdays: [...FULL_WEEK],
+          allDay: false,
+          periodOn: { Morning: true, Afternoon: false, Evening: false },
+          times: ['07:00'],
+        }
+        return { ...c, [id]: withDefaults }
       })
       return [...prev, id]
     })
@@ -179,8 +191,9 @@ export function InlineProcedurePicker({
     return !q ? items : items.filter((it) => it.name.toLowerCase().includes(q))
   }
 
-  const mapToActivity = (cfg: ActivityConfig): Activity => {
+  const mapToActivities = (cfg: ActivityConfig): Activity[] => {
     const meta = getActivityMeta(cfg.id)
+    const category = categorize(cfg.id)
     let frequency: Activity['frequency'] = 'daily'
     if (cfg.repeat === 'Weekly') frequency = 'weekly'
     if (cfg.repeat === 'Monthly') frequency = 'monthly'
@@ -190,16 +203,16 @@ export function InlineProcedurePicker({
       return { hour: Number(hStr), minute: Number(mStr) }
     }
 
-    return {
-      id: cfg.id,
+    const base = {
+      id: '', // let caller assign uuid
       name: cfg.name || meta.name,
-      category: undefined,
-      categoryId: undefined,
+      category,
+      categoryId: category,
       note: cfg.note,
       isRecommended: false,
-      type: 'regular',
+      type: 'regular' as const,
       activeStatus: true,
-      time: cfg.allDay || !cfg.time ? null : parseTime(cfg.time),
+      enabledAt: new Date(),
       frequency,
       selectedDays: frequency === 'weekly' ? cfg.weekdays : [],
       weeksInterval: frequency === 'weekly' ? cfg.weeklyInterval : 1,
@@ -211,10 +224,52 @@ export function InlineProcedurePicker({
       endBeforeUnit: cfg.endDate && cfg.endType === 'days' ? String(cfg.endDaysValue) : '',
       selectedEndBeforeDate: cfg.endDate && cfg.endType === 'date' && cfg.endDateValue ? new Date(cfg.endDateValue) : null,
     }
+
+    if (cfg.allDay || cfg.times.length === 0) {
+      return [{ ...base, time: null }]
+    }
+    return cfg.times.map((t) => ({ ...base, time: parseTime(t) }))
+  }
+
+  const [showGlobalErrors, setShowGlobalErrors] = useState<string[]>([])
+
+  const validate = (cfg: ActivityConfig): { valid: boolean; errors: string[]; fields: Record<string, boolean> } => {
+    const errors: string[] = []
+    const fields: Record<string, boolean> = {}
+    if (!cfg.repeat) {
+      errors.push('Select frequency')
+      fields.repeat = true
+    }
+    if (!cfg.allDay && cfg.times.length === 0) {
+      errors.push('Add at least one time or enable All day')
+      fields.times = true
+    }
+    if (cfg.repeat === 'Weekly' && cfg.weekdays.length === 0) {
+      errors.push('Choose at least one weekday')
+      fields.weekdays = true
+    }
+    if (cfg.repeat === 'Monthly' && cfg.monthlyDays.length === 0) {
+      errors.push('Choose day(s) of month')
+      fields.monthlyDays = true
+    }
+    return { valid: errors.length === 0, errors, fields }
   }
 
   const handleSubmit = async () => {
-    const acts = selected.map((id) => mapToActivity(configs[id]))
+    const allErrors: string[] = []
+    const acts: Activity[] = []
+    for (const id of selected) {
+      const cfg = configs[id]
+      const { valid, errors } = validate(cfg)
+      if (!valid) allErrors.push(`${cfg.name}: ${errors.join(', ')}`)
+      else acts.push(...mapToActivities(cfg))
+    }
+    if (allErrors.length) {
+      setShowGlobalErrors(allErrors)
+      // scroll to first invalid
+      document.querySelector('[data-invalid="true"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
     await onSubmit(acts)
   }
 
@@ -256,15 +311,43 @@ export function InlineProcedurePicker({
     })
   }
 
-  const setPeriodAndTime = (id: string, period: Exclude<ActivityConfig['timePeriod'], null>) => {
-    const timeMap: Record<typeof period, string> = {
-      Morning: '07:00',
-      Afternoon: '13:00',
-      Evening: '19:00',
-    }
-    setConfig(id, 'timePeriod', period)
-    setConfig(id, 'time', timeMap[period])
-    setConfig(id, 'allDay', false)
+  const periodDefault: Record<'Morning'|'Afternoon'|'Evening', string> = {
+    Morning: '07:00',
+    Afternoon: '13:00',
+    Evening: '19:00',
+  }
+  const togglePeriod = (id: string, period: 'Morning'|'Afternoon'|'Evening') => {
+    setConfigs((prev) => {
+      const cfg = prev[id]
+      if (!cfg) return prev
+      const on = !cfg.periodOn[period]
+      const nextTimes = new Set(cfg.times)
+      if (on) nextTimes.add(periodDefault[period])
+      else nextTimes.delete(periodDefault[period])
+      return {
+        ...prev,
+        [id]: { ...cfg, allDay: false, periodOn: { ...cfg.periodOn, [period]: on }, times: Array.from(nextTimes).sort() },
+      }
+    })
+  }
+
+  const addCustomTime = (id: string, time: string) => {
+    if (!time) return
+    setConfigs((prev) => {
+      const cfg = prev[id]
+      if (!cfg) return prev
+      const next = new Set(cfg.times)
+      next.add(time)
+      return { ...prev, [id]: { ...cfg, allDay: false, times: Array.from(next).sort() } }
+    })
+  }
+
+  const removeTime = (id: string, time: string) => {
+    setConfigs((prev) => {
+      const cfg = prev[id]
+      if (!cfg) return prev
+      return { ...prev, [id]: { ...cfg, times: cfg.times.filter((t) => t !== time) } }
+    })
   }
 
   const Section = ({ title, category }: { title: string; category: keyof typeof presets }) => {
@@ -281,7 +364,11 @@ export function InlineProcedurePicker({
             const isSelected = selected.includes(it.id)
             const cfg = configs[it.id]
             return (
-              <div key={it.id} className="rounded-xl p-4 hover:shadow-md transition border border-border-subtle" style={{ backgroundColor: it.surface }}>
+              <div
+                key={it.id}
+                className={`rounded-xl p-4 hover:shadow-md transition border ${selected.includes(it.id) ? 'border-border-subtle' : 'border-transparent'} ${!selected.includes(it.id) ? 'opacity-70 saturate-0' : ''}`}
+                style={{ backgroundColor: it.surface }}
+              >
                 <button type="button" className="w-full flex items-center gap-3" onClick={() => toggle(it.id, it.name)}>
                   <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: it.primary }}>
                     {it.iconPath ? <Image src={it.iconPath} alt="" width={28} height={28} /> : <span className="text-white font-semibold">{it.name.charAt(0)}</span>}
@@ -290,11 +377,22 @@ export function InlineProcedurePicker({
                     <div className="font-semibold text-text-primary">{it.name}</div>
                     <div className="text-xs text-text-secondary">Click to {isSelected ? 'collapse' : 'configure'}</div>
                   </div>
-                  <div className={`w-5 h-5 rounded-md border ${isSelected ? 'bg-[#A385E9] border-[#A385E9]' : 'border-border-subtle'} flex items-center justify-center text-white`}>{isSelected ? '✓' : ''}</div>
+                  {/* status circle */}
+                  <div className="shrink-0">
+                    {(() => {
+                      const cfg = configs[it.id]
+                      const valid = cfg ? validate(cfg).valid : false
+                      return (
+                        <div className={`h-5 w-5 rounded-full border flex items-center justify-center ${isSelected ? (valid ? 'bg-[#A385E9] border-[#A385E9] text-white' : 'border-[#A385E9]') : 'border-border-subtle'}`}>
+                          {isSelected && valid ? '✓' : ''}
+                        </div>
+                      )
+                    })()}
+                  </div>
                 </button>
 
                 {isSelected && cfg && (
-                  <div className="mt-4">
+                  <div className="mt-4" data-invalid={!validate(cfg).valid}>
                     {/* Note */}
                     <div>
                       <div className="flex items-center justify-between px-1">
@@ -319,7 +417,7 @@ export function InlineProcedurePicker({
 
                     {/* Repeat */}
                     <div className="mt-4">
-                      <div className="px-1 text-[14px] font-bold text-text-primary">Repeat</div>
+                      <div className={`px-1 text-[14px] font-bold ${!cfg.repeat && showGlobalErrors.length ? 'text-[#E53935]' : 'text-text-primary'}`}>Repeat</div>
                       <div className="mt-2 flex gap-2">
                         {repeatOptions.map((option) => (
                           <button
@@ -353,7 +451,7 @@ export function InlineProcedurePicker({
                             />
                             <span className="text-text-secondary font-medium">week{cfg.weeklyInterval > 1 ? 's' : ''}</span>
                           </div>
-                          <div className="flex flex-wrap gap-2">
+                          <div className={`flex flex-wrap gap-2 ${cfg.weekdays.length === 0 && showGlobalErrors.length ? 'ring-2 ring-[#E53935]/60 rounded-lg p-1 -m-1' : ''}`}>
                             {dayLabels.map((label, dayIndex) => {
                               const isActive = cfg.weekdays.includes(dayIndex)
                               return (
@@ -379,7 +477,7 @@ export function InlineProcedurePicker({
                       {cfg.repeat === 'Monthly' && (
                         <div className="mt-3">
                           <div className="px-1 text-[14px] font-bold text-text-primary mb-2">Days of month</div>
-                          <div className="grid grid-cols-7 gap-2 text-center">
+                          <div className={`grid grid-cols-7 gap-2 text-center ${cfg.monthlyDays.length === 0 && showGlobalErrors.length ? 'ring-2 ring-[#E53935]/60 rounded-lg p-1 -m-1' : ''}`}>
                             {monthDays.map((day) => {
                               const isActive = cfg.monthlyDays.includes(day)
                               return (
@@ -404,39 +502,40 @@ export function InlineProcedurePicker({
 
                     {/* Do it at */}
                     <div className="mt-4">
-                      <div className="px-1 text-[14px] font-bold text-text-primary">Do it at</div>
+                      <div className={`px-1 text-[14px] font-bold ${(!cfg.allDay && cfg.times.length === 0 && showGlobalErrors.length) ? 'text-[#E53935]' : 'text-text-primary'}`}>Do it at</div>
                       <div className="mt-2">
                         <div className="mb-2 flex items-center justify-end">
                           <label className="flex items-center gap-2 text-[12px] font-medium text-text-secondary">
                             <span>All day</span>
                             <ToggleSwitch
                               checked={cfg.allDay}
-                              onChange={(value) =>
-                                setConfig(it.id, 'allDay', value)
-                              }
+                              onChange={(value) => {
+                                setConfigs((prev) => {
+                                  const current = prev[it.id]
+                                  if (!current) return prev
+                                  return {
+                                    ...prev,
+                                    [it.id]: {
+                                      ...current,
+                                      allDay: value,
+                                      times: value ? [] : current.times,
+                                      periodOn: value ? { Morning: false, Afternoon: false, Evening: false } : current.periodOn,
+                                    },
+                                  }
+                                })
+                              }}
                             />
                           </label>
                         </div>
-                        <div>
-                          <input
-                            type="time"
-                            value={cfg.time}
-                            onChange={(e) => setConfig(it.id, 'time', e.target.value)}
-                            disabled={cfg.allDay}
-                            className={`w-full rounded-[8px] border border-border-subtle bg-surface px-4 py-3 text-[15px] text-text-primary focus:outline-none ${
-                              cfg.allDay ? 'opacity-60 cursor-not-allowed' : ''
-                            }`}
-                          />
-                        </div>
-
+                        {/* Period toggles (multi-select) */}
                         <div className="mt-3 flex gap-2">
                           {periodOptions.map((period) => (
                             <button
                               key={period}
                               type="button"
-                              onClick={() => setPeriodAndTime(it.id, period)}
+                              onClick={() => togglePeriod(it.id, period)}
                               className={`flex-1 rounded-[9px] px-3 py-[6px] text-[14px] leading-[13px] transition-colors ${
-                                cfg.timePeriod === period
+                                cfg.periodOn[period]
                                   ? 'bg-[#5C4688] text-white shadow'
                                   : 'bg-surface text-text-primary dark:bg-white/5 dark:text-white'
                               }`}
@@ -444,6 +543,45 @@ export function InlineProcedurePicker({
                               {period}
                             </button>
                           ))}
+                        </div>
+
+                        {/* Custom times via plus */}
+                        <div className="mt-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex flex-wrap gap-2">
+                              {cfg.times.map((t) => (
+                                <span key={t} className="inline-flex items-center gap-1 rounded-full bg-surface-hover px-2 py-1 text-[12px] font-semibold text-text-primary">
+                                  {t}
+                                  <button type="button" className="text-text-secondary hover:text-text-primary" onClick={() => removeTime(it.id, t)}>
+                                    ×
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                            <button
+                              type="button"
+                              disabled={cfg.allDay}
+                              onClick={() => setShowTimeInput((s) => ({ ...s, [it.id]: true }))}
+                              className={`inline-flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle text-text-primary ${cfg.allDay ? 'opacity-60 cursor-not-allowed' : 'hover:bg-surface-hover'}`}
+                              aria-label="Add time"
+                              title="Add time"
+                            >
+                              +
+                            </button>
+                            {showTimeInput[it.id] && !cfg.allDay && (
+                              <input
+                                autoFocus
+                                type="time"
+                                onBlur={() => setShowTimeInput((s) => ({ ...s, [it.id]: false }))}
+                                onChange={(e) => {
+                                  const v = e.target.value
+                                  if (v) addCustomTime(it.id, v)
+                                  setShowTimeInput((s) => ({ ...s, [it.id]: false }))
+                                }}
+                                className="w-40 rounded-[8px] border border-border-subtle bg-surface px-3 py-2 text-[14px] text-text-primary focus:outline-none"
+                              />
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -541,6 +679,23 @@ export function InlineProcedurePicker({
 
   return (
     <div className="space-y-6">
+      {/* Global validation popup */}
+      {showGlobalErrors.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm rounded-xl border border-[#E53935]/30 bg-[#2A1214] text-white shadow-lg">
+          <div className="flex items-start gap-3 p-4">
+            <div className="mt-0.5 text-[#FFB4A9]">⚠</div>
+            <div className="flex-1">
+              <div className="font-semibold">Please complete the required fields</div>
+              <ul className="mt-1 list-disc pl-4 text-sm opacity-90">
+                {showGlobalErrors.map((e, i) => (
+                  <li key={i}>{e}</li>
+                ))}
+              </ul>
+            </div>
+            <button className="text-sm text-[#FFB4A9] hover:underline" onClick={() => setShowGlobalErrors([])}>Close</button>
+          </div>
+        </div>
+      )}
       {/* Search */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex-1">
@@ -571,7 +726,7 @@ export function InlineProcedurePicker({
           disabled={saving || selected.length === 0}
           className="px-6 py-3 bg-gradient-to-r from-[#A385E9] to-[#8B6BC9] text-white font-semibold rounded-xl hover:shadow-lg transition disabled:opacity-50"
         >
-          {saving ? 'Saving…' : 'Create Procedure(s)'}
+          {saving ? 'Saving…' : 'Save'}
         </button>
         <button type="button" onClick={() => window.history.back()} className="px-6 py-3 border-2 border-border-subtle text-text-primary font-semibold rounded-xl hover:bg-surface transition">
           Cancel

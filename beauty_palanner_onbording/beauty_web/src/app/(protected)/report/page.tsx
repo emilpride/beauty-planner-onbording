@@ -24,6 +24,8 @@ import { CalendarStatsCard } from '@/components/report/CalendarStats'
 import { MoodChart } from '@/components/report/charts/MoodChart'
 // removed unused imports
 import { useAnalysisUploads } from '@/hooks/useAnalysisUploads'
+import { useMetrics, useSaveMetrics } from '@/hooks/useUserMetrics'
+import BMICard from '@/components/report/BMICard'
 
 export default function ReportPage() {
   const { user } = useAuth()
@@ -37,6 +39,8 @@ export default function ReportPage() {
   // Fetch AI overview (for BMS card)
   const { data: ai, isLoading: loadingAI, refetch: refetchAI } = useLatestAIAnalysis(user?.uid)
   const { data: uploads } = useAnalysisUploads(user?.uid)
+  const { data: metrics } = useMetrics(user?.uid)
+  const saveMetrics = useSaveMetrics()
 
   // If any recent upload is marked completed/ready, refresh the latest AI analysis
   useEffect(() => {
@@ -84,10 +88,34 @@ export default function ReportPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {/* Row 1: BMS Card & Current Streak */}
           <div className="xl:col-span-1">
-            <BMSCard 
-              score={loadingAI ? 0 : ai ? ai.bms_score : 7.2}
-              status={loadingAI ? 'Loading...' : ai ? getStatusFromScore(ai.bms_score) : 'Balanced'}
+            {(() => {
+              const computedScore = metrics?.bms ?? (ai ? ai.bms_score : 7.2)
+              const computedStatus = getStatusFromScore(computedScore)
+              return (
+                <BMSCard 
+                  score={computedScore}
+                  status={loadingAI ? 'Loading...' : computedStatus}
+                  delta={metrics?.bmsDelta}
               description="Keep up with consistent routine!"
+                />
+              )
+            })()}
+          </div>
+
+          {/* BMI Card */}
+          <div className="xl:col-span-1">
+            <BMICard
+              bmi={metrics?.bmi ?? null}
+              bmiCategory={metrics?.bmiCategory ?? null}
+              bodyFatPct={metrics?.bodyFatPct ?? null}
+              initialHeightCm={metrics?.heightCm}
+              initialWeightKg={metrics?.weightKg}
+              gender={metrics?.gender}
+              disabled={!user || saveMetrics.isPending}
+              onUpdate={(heightCm, weightKg) => {
+                if (!user) return
+                saveMetrics.mutate({ userId: user.uid, heightCm, weightKg })
+              }}
             />
           </div>
           

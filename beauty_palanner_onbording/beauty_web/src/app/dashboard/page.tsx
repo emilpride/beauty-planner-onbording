@@ -10,12 +10,14 @@ import { useActivities } from '@/hooks/useActivities'
 import { useAuth } from '@/hooks/useAuth'
 import { useUpdatesForDate, useUpdatesInDateRange } from '@/hooks/useUpdates'
 import { useScheduledTasks } from '@/hooks/useScheduledTasks'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
+import { motion } from 'framer-motion'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Activity } from '@/types/activity'
 import type { TaskInstance } from '@/types/task'
 import type { TaskStatus } from '@/types/task'
 import { setTaskStatus } from '@/lib/taskActions'
+import { mergeScheduledWithUpdates } from '@/lib/updatesMerge'
 
 function addDays(d: Date, days: number) {
   const x = new Date(d)
@@ -69,50 +71,8 @@ export default function DashboardPage() {
 
   // Merge scheduled tasks with Updates for the day: Updates override status/time or add one‑time tasks
   const allTodayTasks: TaskInstance[] = useMemo(() => {
-    const map = new Map<string, TaskInstance>()
-    for (const t of scheduledTasks) {
-      map.set(t.id, t)
-    }
-  const updates = (dateData?.items ?? []).filter((item) => item.status !== 'deleted')
-    for (const u of updates) {
-      const hasById = map.has(u.id)
-      if (hasById) {
-        map.set(u.id, u)
-      } else {
-        // Merge by activityId+date. If update has time and scheduled has time, require equality; if update lacks time, ignore time when matching
-        const found = Array.from(map.values()).find((x) => {
-          if (x.activityId !== u.activityId) return false
-          if (x.date !== u.date) return false
-          const uHasTime = typeof u.time?.hour === 'number' && typeof u.time?.minute === 'number'
-          const xHasTime = typeof x.time?.hour === 'number' && typeof x.time?.minute === 'number'
-          if (uHasTime && xHasTime) {
-            return x.time!.hour === u.time!.hour && x.time!.minute === u.time!.minute
-          }
-          // If update has no time, match by activity+date only (legacy docs)
-          if (!uHasTime) return true
-          // If update has time but scheduled doesn't (unlikely), don't match
-          return false
-        })
-        if (found) {
-          map.set(found.id, u)
-        } else {
-          map.set(u.id, u)
-        }
-      }
-    }
-    // Apply local overrides (optimistic UI)
-    for (const [id, st] of overrides.entries()) {
-      const item = map.get(id)
-      if (item) map.set(id, { ...item, status: st } as TaskInstance)
-    }
-    // Sort by time for display
-    const merged = Array.from(map.values()).sort((a, b) => {
-      const aH = a.time?.hour ?? 24
-      const aM = a.time?.minute ?? 0
-      const bH = b.time?.hour ?? 24
-      const bM = b.time?.minute ?? 0
-      return aH - bH || aM - bM
-    })
+    const updates = (dateData?.items ?? []).filter((item) => item.status !== 'deleted')
+    const merged = mergeScheduledWithUpdates(scheduledTasks, updates, overrides, activities ?? [])
     if (debugTasks && typeof window !== 'undefined') {
       // eslint-disable-next-line no-console
       console.debug('[Dashboard] scheduledTasks', scheduledTasks)
@@ -124,7 +84,7 @@ export default function DashboardPage() {
       console.debug('[Dashboard] mergedTasks', merged)
     }
     return merged
-  }, [scheduledTasks, dateData?.items, overrides, debugTasks])
+  }, [scheduledTasks, dateData?.items, overrides, activities, debugTasks])
 
   useEffect(() => {
     const items = dateData?.items
@@ -242,7 +202,49 @@ export default function DashboardPage() {
     { key: 'skin', pct: getPct(categoryAcc.skin.completed, categoryAcc.skin.total), color: '#0080FF', width: 18 },
     { key: 'mental', pct: getPct(categoryAcc.mental.completed, categoryAcc.mental.total), color: '#FFAE00', width: 18 },
     { key: 'hair', pct: getPct(categoryAcc.hair.completed, categoryAcc.hair.total), color: '#00C853', width: 18 },
+    { key: 'physical', pct: getPct(categoryAcc.physical.completed, categoryAcc.physical.total), color: '#FF6B6B', width: 18 },
   ]
+
+  // Perfect Day: all rings that have any tasks are closed (pct===1)
+  const ringsWithWork = rings.filter((r) => {
+    if (r.key === 'skin') return categoryAcc.skin.total > 0
+    if (r.key === 'mental') return categoryAcc.mental.total > 0
+    if (r.key === 'hair') return categoryAcc.hair.total > 0
+    if (r.key === 'physical') return categoryAcc.physical.total > 0
+    return false
+  })
+  const perfectDay = ringsWithWork.length > 0 && ringsWithWork.every((r) => r.pct >= 1)
+  const [showStamp, setShowStamp] = useState(false)
+  const firedForDateRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const y = selectedDate.getFullYear()
+    const m = selectedDate.getMonth() + 1
+    const d = selectedDate.getDate()
+    const key = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+
+    if (!perfectDay) {
+      setShowStamp(false)
+      firedForDateRef.current = null
+      return
+    }
+    if (firedForDateRef.current === key) return
+    firedForDateRef.current = key
+    setShowStamp(true)
+
+    // Lazy-load confetti in the browser
+    void import('canvas-confetti').then(({ default: confetti }) => {
+      const burst = (x: number, y: number, spread = 60, startVelocity = 45) =>
+        confetti({ particleCount: 80, spread, origin: { x, y }, startVelocity, ticks: 200 })
+      burst(0.5, 0.6)
+      setTimeout(() => burst(0.2, 0.7, 70, 50), 180)
+      setTimeout(() => burst(0.8, 0.7, 70, 50), 330)
+      setTimeout(() => confetti({ particleCount: 200, spread: 120, origin: { x: 0.5, y: 0.4 } }), 600)
+      // Keep the stamp visible as long as perfectDay is true; do not auto-hide
+    }).catch(() => {
+      // nothing
+    })
+  }, [perfectDay, selectedDate])
 
   return (
     <Protected>
@@ -321,7 +323,24 @@ skipped: ${skippedItems.length}`}
               
               {/* Progress rings */}
               <div className="flex flex-col items-center gap-6">
-                <ProgressRings size={270} rings={rings} />
+                <div className="relative pt-3 sm:pt-4">
+                  <ProgressRings size={270} rings={rings} />
+                  {(perfectDay || showStamp) ? (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <motion.div
+                        initial={{ scale: 0.3, opacity: 0, rotate: -15 }}
+                        animate={{ scale: [1.05, 1], opacity: 1, rotate: -12 }}
+                        transition={{ duration: 0.6, type: 'spring', stiffness: 140, damping: 12 }}
+                        className="select-none"
+                        style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.25))' }}
+                      >
+                        <div className="px-6 py-3 border-4 border-rose-500 text-rose-600 font-extrabold uppercase tracking-widest rounded-full bg-white/80 backdrop-blur-sm rotate-[-12deg]">
+                          Perfect day!
+                        </div>
+                      </motion.div>
+                    </div>
+                  ) : null}
+                </div>
                 
                 {/* Legend showing category progress (not status) */}
                 <div className="grid grid-cols-2 gap-4 text-sm w-full px-4">

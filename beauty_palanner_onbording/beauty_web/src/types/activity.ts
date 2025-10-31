@@ -97,11 +97,12 @@ export function toFirebaseActivity(a: Activity): Record<string, unknown> {
     NotifyBefore: a.notifyBefore ?? '',
     Cost: a.cost ?? 0,
     Color: a.color ?? '#FF7C4DFF',
-    EnabledAt: a.enabledAt ? a.enabledAt.toISOString() : undefined,
-    LastModifiedAt: a.lastModifiedAt ? a.lastModifiedAt.toISOString() : undefined,
+    // Firestore does not allow undefined values
+    EnabledAt: a.enabledAt ? a.enabledAt.toISOString() : null,
+    LastModifiedAt: a.lastModifiedAt ? a.lastModifiedAt.toISOString() : null,
     EndBeforeUnit: a.endBeforeUnit ?? '',
     EndBeforeType: a.endBeforeType ?? 'date',
     EndBeforeActive: a.endBeforeActive ?? false,
-    SelectedEndBeforeDate: a.selectedEndBeforeDate ? a.selectedEndBeforeDate.toISOString() : undefined,
+    SelectedEndBeforeDate: a.selectedEndBeforeDate ? a.selectedEndBeforeDate.toISOString() : null,
   }
 }
