@@ -254,6 +254,74 @@ function ensureHex(color?: any, fallback = '#A385E9'): string {
 	return s.startsWith('#') ? s : `#${s}`
 }
 
+const MALE_TOKENS = ['male', 'man', 'men', 'm', 'муж', 'мужской']
+const FEMALE_TOKENS = ['female', 'woman', 'women', 'f', 'жен', 'женский']
+
+function mapGenderValue(value: any): { text: string; code: number } {
+	if (typeof value === 'number' && Number.isFinite(value)) {
+		if (value === 2) return { text: 'female', code: 2 }
+		if (value === 1) return { text: 'male', code: 1 }
+		if (value > 0) return { text: 'other', code: Number(value) }
+		return { text: '', code: 0 }
+	}
+	if (typeof value === 'string') {
+		const norm = value.trim().toLowerCase()
+		if (!norm) return { text: '', code: 0 }
+		if (FEMALE_TOKENS.includes(norm)) return { text: 'female', code: 2 }
+		if (MALE_TOKENS.includes(norm)) return { text: 'male', code: 1 }
+		if (norm === 'other' || norm === 'unknown' || norm === 'non-binary' || norm === 'другое' || norm === 'иной') {
+			return { text: 'other', code: 3 }
+		}
+		return { text: norm, code: 3 }
+	}
+	return { text: '', code: 0 }
+}
+
+function toNumberStrict(value: any): number | null {
+	if (typeof value === 'number' && Number.isFinite(value)) return value
+	if (typeof value === 'string') {
+		const normalised = value.replace(/[^0-9.,-]/g, '').replace(',', '.')
+		const parsed = Number(normalised)
+		return Number.isFinite(parsed) ? parsed : null
+	}
+	return null
+}
+
+function parseHeightFeetInches(value: string): number | null {
+	const match = value.match(/(\d+)(?:[^\d]+(\d+))?/)
+	if (!match) return null
+	const feet = Number(match[1])
+	const inches = Number(match[2] ?? 0)
+	if (!Number.isFinite(feet) || feet <= 0) return null
+	const totalInches = feet * 12 + (Number.isFinite(inches) ? inches : 0)
+	if (!Number.isFinite(totalInches) || totalInches <= 0) return null
+	return parseFloat((totalInches * 2.54).toFixed(1))
+}
+
+function normalizeBirthDate(value: any): string | null {
+	if (!value) return null
+	if (typeof value === 'string') {
+		const trimmed = value.trim()
+		const iso = trimmed.match(/^(\d{4}-\d{2}-\d{2})/)
+		if (iso) return iso[1] || null
+		const parsed = new Date(trimmed)
+		if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10)
+		return null
+	}
+	if (value instanceof Date) {
+		return value.toISOString().slice(0, 10)
+	}
+	if (value && typeof value.toDate === 'function') {
+		try {
+			const d = value.toDate()
+			return d.toISOString().slice(0, 10)
+		} catch (_) {
+			return null
+		}
+	}
+	return null
+}
+
 function pickLast<T = any>(arr: any[], predicate: (e: any) => boolean): T | null {
 	if (!Array.isArray(arr)) return null
 	for (let i = arr.length - 1; i >= 0; i--) {
@@ -368,10 +436,31 @@ function buildFlutterUserDoc(input: {
 	eveningStartsAt?: string
 	reminderTime?: string
 	activities?: any[]
+	gender?: unknown
+	genderLabel?: unknown
+	genderCode?: number
+	birthDate?: unknown
+	age?: unknown
+	height?: unknown
+	heightUnit?: string
+	heightCm?: unknown
+	weight?: unknown
+	weightUnit?: string
+	weightKg?: unknown
+	bmi?: unknown
+	timeFormat?: string
+	timezone?: string
+	photoUrl?: string
+	profilePicture?: string
+	avatarUrl?: string
+	faceImageUrl?: string
+	hairImageUrl?: string
 }) {
 	const doc: any = {
 		Id: input.uid,
 		Name: input.name || '',
+		FullName: input.name || '',
+		DisplayName: input.name || '',
 		Email: input.email || '',
 		LanguageCode: input.language || 'en',
 		Assistant: mapAssistant(input.assistant),
@@ -379,6 +468,139 @@ function buildFlutterUserDoc(input: {
 		PrimaryColor: ensureHex(input.primaryColor, '#A385E9'),
 		Onboarding2Completed: true,
 	}
+
+		const genderCandidates: unknown[] = [input.gender, input.genderLabel, input.genderCode]
+		const extraSex = (input as any)?.sex
+		if (typeof extraSex !== 'undefined') genderCandidates.push(extraSex)
+		const extraNumeric = (input as any)?.genderNumeric
+		if (typeof extraNumeric !== 'undefined') genderCandidates.push(extraNumeric)
+		let genderText = ''
+		let genderCode = 0
+		for (const candidate of genderCandidates) {
+			const mapped = mapGenderValue(candidate)
+			if (!genderText && mapped.text) genderText = mapped.text
+			if (!genderCode && mapped.code) genderCode = mapped.code
+			if (genderText && genderCode) break
+		}
+		if (typeof input.genderCode === 'number' && !genderCode) genderCode = input.genderCode
+		if (genderText) {
+			doc.Gender = genderText
+			doc.Sex = genderText
+			doc.GenderLabel = (typeof input.genderLabel === 'string' && input.genderLabel) ? String(input.genderLabel) : genderText
+		}
+		if (genderCode) {
+			doc.GenderCode = genderCode
+			doc.GenderNumeric = genderCode
+			doc.GenderValue = genderCode
+		}
+
+		const birthDate = normalizeBirthDate(input.birthDate)
+		if (birthDate) {
+			doc.BirthDate = birthDate
+			doc.Birthday = birthDate
+			doc.DateOfBirth = birthDate
+		}
+
+		const ageNumber = toNumberStrict(input.age)
+		if (ageNumber !== null) {
+			const roundedAge = Math.max(0, Math.round(ageNumber))
+			doc.Age = roundedAge
+			doc.AgeYears = roundedAge
+		}
+
+		const heightUnitRaw = typeof input.heightUnit === 'string' ? input.heightUnit : ''
+		let heightCmValue = toNumberStrict(input.heightCm)
+		if (heightCmValue == null) {
+			const heightRaw = toNumberStrict(input.height)
+			if (heightRaw != null) {
+				const unit = heightUnitRaw.toLowerCase()
+				if (unit === 'cm' || unit === '') {
+					heightCmValue = heightRaw
+				} else if (unit === 'm' || unit === 'meter' || unit === 'metre') {
+					heightCmValue = heightRaw * 100
+				}
+			}
+		}
+		if (heightCmValue == null && typeof input.height === 'string') {
+			heightCmValue = parseHeightFeetInches(input.height)
+		}
+		if (heightCmValue != null) {
+			const roundedHeight = Math.round(heightCmValue * 10) / 10
+			doc.HeightCm = roundedHeight
+			doc.Height = roundedHeight
+			doc.HeightUnit = 'cm'
+			if (heightUnitRaw) doc.HeightUnitOriginal = heightUnitRaw
+		}
+
+		const weightUnitRaw = typeof input.weightUnit === 'string' ? input.weightUnit : ''
+		let weightKgValue = toNumberStrict(input.weightKg)
+		if (weightKgValue == null) {
+			const weightRaw = toNumberStrict(input.weight)
+			if (weightRaw != null) {
+				const unit = weightUnitRaw.toLowerCase()
+				if (unit === 'lbs' || unit === 'lb' || unit === 'pounds' || unit === 'pound') {
+					weightKgValue = parseFloat((weightRaw * 0.453592).toFixed(1))
+				} else {
+					weightKgValue = weightRaw
+				}
+			}
+		}
+		if (weightKgValue != null) {
+			const roundedWeight = Math.round(weightKgValue * 10) / 10
+			doc.WeightKg = roundedWeight
+			doc.Weight = roundedWeight
+			doc.WeightUnit = 'kg'
+			if (weightUnitRaw) doc.WeightUnitOriginal = weightUnitRaw
+		}
+
+		let bmiValue = toNumberStrict(input.bmi)
+		if (bmiValue == null && heightCmValue != null && weightKgValue != null) {
+			bmiValue = calculateBMI(heightCmValue, 'cm', weightKgValue, 'kg') ?? null
+		}
+		if (bmiValue != null) {
+			const roundedBmi = Math.round(bmiValue * 10) / 10
+			doc.BMI = roundedBmi
+			doc.Bmi = roundedBmi
+			if (genderCode) {
+				const bmiInfo = getBMIInfo(roundedBmi, genderCode)
+				doc.BmiCategory = bmiInfo.category
+				doc.BmiDescription = bmiInfo.description
+				doc.BmiImageId = bmiInfo.imageId
+				doc.BmiStatus = bmiInfo.category
+			}
+		}
+
+		if (typeof input.timeFormat === 'string' && input.timeFormat) {
+			doc.TimeFormat = input.timeFormat
+			doc.TimeFormatPreference = input.timeFormat
+		}
+		if (typeof input.timezone === 'string' && input.timezone) {
+			doc.Timezone = input.timezone
+			doc.TimeZone = input.timezone
+		}
+
+		const photoCandidate = (typeof input.photoUrl === 'string' && input.photoUrl.trim()) ? input.photoUrl.trim()
+			: (typeof input.profilePicture === 'string' && input.profilePicture.trim()) ? input.profilePicture.trim()
+			: (typeof input.avatarUrl === 'string' && input.avatarUrl.trim()) ? input.avatarUrl.trim()
+			: (typeof input.faceImageUrl === 'string' && input.faceImageUrl.trim()) ? input.faceImageUrl.trim()
+			: (typeof input.hairImageUrl === 'string' && input.hairImageUrl.trim()) ? input.hairImageUrl.trim()
+			: ''
+		if (photoCandidate) {
+			doc.PhotoURL = photoCandidate
+			doc.PhotoUrl = photoCandidate
+			doc.ProfilePicture = photoCandidate
+			doc.AvatarUrl = photoCandidate
+			doc.AvatarURL = photoCandidate
+			doc.ProfileImage = photoCandidate
+			doc.ProfilePhoto = photoCandidate
+			doc.PhotoUpdatedAt = admin.firestore.FieldValue.serverTimestamp()
+		}
+		if (typeof input.faceImageUrl === 'string' && input.faceImageUrl.trim()) {
+			doc.FaceImageUrl = input.faceImageUrl.trim()
+		}
+		if (typeof input.hairImageUrl === 'string' && input.hairImageUrl.trim()) {
+			doc.HairImageUrl = input.hairImageUrl.trim()
+		}
 
 	const times: Record<string, TimeHM | null> = {
 		WakeUp: toTimeHM(input.wakeUp),
@@ -455,11 +677,12 @@ export const finalizeOnboarding = onRequest(async (req, res) => {
 		const sessionRef = db.collection('users_web_onbording').doc(sessionId)
 		const snap = await sessionRef.get()
 		if (!snap.exists) { res.status(404).json({ error: 'session not found' }); return }
-		const session = snap.data() || {}
+	const session = snap.data() || {}
 
-		// Build doc: prioritize explicit overrides from body.profile over session-derived values
-		const fromSession = extractFromSession(session)
-		const profile = body.profile || {}
+	// Build doc: prioritize explicit overrides from body.profile over session-derived values
+	const fromSession = extractFromSession(session)
+	const overrides = typeof body.overrides === 'object' && body.overrides ? body.overrides : {}
+	const profile = body.profile || overrides.profile || overrides || {}
 		const input = {
 			uid: uidFromToken,
 			name: profile.name ?? fromSession.name,
@@ -479,8 +702,8 @@ export const finalizeOnboarding = onRequest(async (req, res) => {
 
 		const userDoc = buildFlutterUserDoc(input)
 
-		// Write to Users/{uid}
-		const userRef = db.collection('Users').doc(uidFromToken)
+		// Write to users_v2/{uid}
+		const userRef = db.collection('users_v2').doc(uidFromToken)
 		await userRef.set({ ...userDoc, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true })
 
 		// Mark session finalized (idempotency)
@@ -493,6 +716,84 @@ export const finalizeOnboarding = onRequest(async (req, res) => {
 		res.status(200).json({ ok: true, token })
 	} catch (e: any) {
 		console.error('finalizeOnboarding error', e?.message || e)
+		res.status(500).json({ error: 'internal' })
+	}
+})
+
+// ===== Geo enrichment for users_v2 =====
+export const enrichGeo = onRequest(async (req, res) => {
+	// CORS + headers
+	addSecurityHeaders(res)
+	res.set('Access-Control-Allow-Origin', '*')
+	res.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+	res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+	if (req.method === 'OPTIONS') { res.status(204).send(''); return }
+	if (req.method !== 'POST') { res.status(405).send({ error: 'Method not allowed' }); return }
+
+	try {
+		// Rate limit per IP
+		const xffHeader = req.headers['x-forwarded-for'] as string | undefined
+		const clientIp = (xffHeader?.split(',')?.[0]?.trim()) || (typeof req.ip === 'string' ? req.ip : undefined) || 'unknown'
+		const rlKey = `enrich_${clientIp}`
+		const allowed = await checkRateLimit(rlKey, 20, 60000)
+		if (!allowed) { res.status(429).json({ error: 'Too many requests' }); return }
+		await incrementRateLimit(rlKey, 60000)
+
+		// Auth
+		const uidFromToken = await verifyIdTokenFromRequest(req)
+		if (!uidFromToken) { res.status(401).json({ error: 'Unauthorized' }); return }
+
+		// Try to infer country/city/region from hosting/proxy headers first
+		const countryCodeHeader = (req.headers['x-appengine-country'] as string) ||
+															(req.headers['x-vercel-ip-country'] as string) ||
+															(req.headers['cf-ipcountry'] as string) || ''
+		const regionHeader = (req.headers['x-appengine-region'] as string) ||
+												 (req.headers['x-vercel-ip-country-region'] as string) || ''
+		const cityHeader = (req.headers['x-appengine-city'] as string) ||
+											 (req.headers['x-vercel-ip-city'] as string) || ''
+
+		let country = ''
+		let countryCode = (countryCodeHeader || '').toUpperCase()
+		let region = regionHeader || ''
+		let city = cityHeader || ''
+
+		// If country code is missing, do a quick best-effort lookup
+		if (!countryCode || countryCode === 'ZZ') {
+			try {
+				// Avoid long waits; 2s timeout
+				const url = `https://ipapi.co/${encodeURIComponent(clientIp)}/json/`
+				const { data } = await axios.get(url, { timeout: 2000 }).catch(() => ({ data: null }))
+				if (data && typeof data === 'object') {
+					country = (data.country_name as string) || ''
+					countryCode = ((data.country_code as string) || '').toUpperCase()
+					region = (data.region as string) || region
+					city = (data.city as string) || city
+				}
+			} catch (_) { /* ignore */ }
+		}
+
+		// If still no readable country name, attempt to map from code using a tiny map
+		if (!country && countryCode) {
+			const names: Record<string, string> = { US: 'United States', GB: 'United Kingdom', RU: 'Russia', UA: 'Ukraine', KZ: 'Kazakhstan', DE: 'Germany', FR: 'France', IT: 'Italy', ES: 'Spain', CA: 'Canada', AU: 'Australia' }
+			country = names[countryCode] || ''
+		}
+
+		const patch: Record<string, any> = {
+			IP: clientIp,
+			Country: country || undefined,
+			CountryCode: countryCode || undefined,
+			Region: region || undefined,
+			City: city || undefined,
+			UpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+		}
+
+		// Write to users_v2/{uid}
+		const ref = db.collection('users_v2').doc(uidFromToken)
+		await ref.set(patch, { merge: true })
+
+		res.status(200).json({ ok: true, ip: clientIp, country: country || null, countryCode: countryCode || null })
+	} catch (e: any) {
+		console.error('enrichGeo error', e?.message || e)
 		res.status(500).json({ error: 'internal' })
 	}
 })
@@ -529,13 +830,13 @@ function calcLevelServer(completed: number): number {
 
 async function recomputeAchievementsForUser(userId: string): Promise<ServerAchievementProgress> {
 	// Count completed updates
-	const col = db.collection('Users').doc(userId).collection('Updates')
+	const col = db.collection('users_v2').doc(userId).collection('Updates')
 	const snap = await col.where('status', '==', 'completed').get()
 	const completed = snap.size
 	const level = calcLevelServer(completed)
 
 	// Merge into Achievements/Progress
-	const ref = db.collection('Users').doc(userId).collection('Achievements').doc('Progress')
+	const ref = db.collection('users_v2').doc(userId).collection('Achievements').doc('Progress')
 	const before = await ref.get()
 	const prev = before.exists ? (before.data() || {}) : {}
 	const levelUnlockDates: Record<string, any> = (prev['LevelUnlockDates'] || prev['levelUnlockDates'] || {}) as any
@@ -552,11 +853,18 @@ async function recomputeAchievementsForUser(userId: string): Promise<ServerAchie
 		LastUpdated: payload.lastUpdated,
 		LevelUnlockDates: payload.levelUnlockDates,
 	}, { merge: true })
+	// Also mirror summary fields on users_v2 root for web header/stats
+	await db.collection('users_v2').doc(userId).set({
+		ActivitiesCompleted: payload.totalCompletedActivities,
+		TotalCompletedActivities: payload.totalCompletedActivities,
+		Level: payload.currentLevel,
+		LevelUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+	}, { merge: true })
 	return payload
 }
 
 // Firestore trigger: recompute on any update write
-export const onUpdateWriteRecomputeAchievements = onDocumentWritten('Users/{userId}/Updates/{updateId}', async (event) => {
+export const onUpdateWriteRecomputeAchievements = onDocumentWritten('users_v2/{userId}/Updates/{updateId}', async (event) => {
 	try {
 		const userId = event.params.userId as string
 		if (!userId) return
@@ -1637,7 +1945,7 @@ Cleaned text:\n', cleaned)
 						const completeAnalysis = buildCompleteAnalysis(claudeResult, answers)
 						
 						// Save with fallback flag
-						const docRef = db.collection('users').doc(userId).collection('analysis').doc()
+						const docRef = db.collection('users_v2').doc(userId).collection('analysis').doc()
 						await docRef.set({ 
 							createdAt: admin.firestore.FieldValue.serverTimestamp(), 
 							model: completeAnalysis,
@@ -1681,7 +1989,7 @@ Cleaned text:\n', cleaned)
 			
 			// Build complete analysis with fallback data
 			const fallback = buildCompleteAnalysis(fallbackGeminiResponse, answers)
-			const ref = await db.collection('users').doc(userId).collection('analysis').doc()
+			const ref = await db.collection('users_v2').doc(userId).collection('analysis').doc()
 			await ref.set({ createdAt: admin.firestore.FieldValue.serverTimestamp(), model: fallback, raw: generated || null })
 			
 			console.log('Fallback analysis created:', fallback)
@@ -1700,7 +2008,7 @@ Cleaned text:\n', cleaned)
 			bmsCategory: completeAnalysis.bmsCategory
 		})
 		
-		const docRef = db.collection('users').doc(userId).collection('analysis').doc()
+		const docRef = db.collection('users_v2').doc(userId).collection('analysis').doc()
 		await docRef.set({ createdAt: admin.firestore.FieldValue.serverTimestamp(), model: completeAnalysis })
 
 		// Save analysis to cache for future similar queries
@@ -2406,6 +2714,167 @@ export const getHealthMetrics = onRequest(async (req, res) => {
 			message: 'Failed to retrieve metrics',
 			error: error?.message,
 		})
+	}
+})
+
+// === Avatar generation (server-side processing using sharp) ===
+// Note: True AI-stylized image-to-image (e.g. "Pixar style") typically requires an image generation API.
+// For now, we implement a robust, production-ready pipeline that:
+// 1) Fetches user's face image URL from users_v2 (or request payload override)
+// 2) Crops/centers to square, resizes to 512x512, and applies a circular mask
+// 3) Exports as WebP and uploads to Cloud Storage under avatars/{uid}
+// 4) Updates users_v2 with AvatarUrl and AvatarUpdatedAt; also updates Auth photoURL
+// This is idempotent and safe to call multiple times.
+export const generateAvatar = onRequest({
+	maxInstances: 10,
+	timeoutSeconds: 60,
+	cors: true,
+}, async (req, res) => {
+	addSecurityHeaders(res)
+	if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return }
+	try {
+		// Auth
+		const uid = await verifyIdTokenFromRequest(req)
+		if (!uid) { res.status(401).json({ error: 'Unauthorized' }); return }
+
+		// Rate limit per IP
+		const xffHeader = req.headers['x-forwarded-for'] as string | undefined
+		const clientIp = (xffHeader?.split(',')?.[0]?.trim()) || (typeof req.ip === 'string' ? req.ip : undefined) || 'unknown'
+		const rlKey = `genAvatar_${clientIp}`
+		const allowed = await checkRateLimit(rlKey, 6, 60000)
+		if (!allowed) { res.status(429).json({ error: 'Too many requests' }); return }
+		await incrementRateLimit(rlKey, 60000)
+
+		// Mark status: processing (best-effort)
+		try {
+			await db.collection('users_v2').doc(uid).set({
+				AvatarStatus: 'processing',
+				AvatarUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+			}, { merge: true })
+		} catch { /* non-fatal */ }
+
+		// Source image: prefer explicit payload override, then users_v2.FaceImageUrl/ProfilePicture/PhotoURL
+		const body = (req.body || {}) as any
+		const overrideUrl = typeof body.imageUrl === 'string' ? body.imageUrl : null
+		let sourceUrl: string | null = overrideUrl
+		if (!sourceUrl) {
+			const userRef = db.collection('users_v2').doc(uid)
+			const snap = await userRef.get()
+			const data = snap.exists ? (snap.data() || {}) : {}
+			sourceUrl = (data.FaceImageUrl as string) || (data.ProfilePicture as string) || (data.PhotoURL as string) || (data.PhotoUrl as string) || null
+		}
+		if (!sourceUrl || typeof sourceUrl !== 'string' || !sourceUrl.trim()) {
+			res.status(400).json({ error: 'No source image available' })
+			return
+		}
+
+		// Download image
+		async function download(url: string): Promise<Buffer> {
+			const resp = await axios.get(url, { responseType: 'arraybuffer', timeout: 10000 }).catch((e) => { throw new Error('Image download failed') })
+			return Buffer.from(resp.data)
+		}
+		const inputBuffer = await download(sourceUrl)
+
+		// Helper: attempt Pixar-style stylization via external Gemini-backed service if configured
+		async function tryGeminiStylize(buf: Buffer, srcUrl: string | null): Promise<Buffer> {
+			const endpoint = process.env.AVATAR_GEN_URL
+			if (!endpoint) throw new Error('AVATAR_GEN_URL not configured')
+			let authHeader: Record<string, string> = {}
+			try {
+				const key = await accessGeminiKey().catch(() => process.env.GEMINI_API_KEY || '')
+				if (key) authHeader = { Authorization: `Bearer ${key}` }
+			} catch { /* optional */ }
+			const payload = {
+				prompt: 'Create a single-frame Pixar-style 3D avatar portrait from the provided selfie. Keep likeness and pose, neutral background, centered head/shoulders, bright and friendly skin/hair tones. Return PNG or WEBP image only as base64.',
+				imageBase64: buf.toString('base64'),
+				imageUrl: srcUrl || undefined,
+				style: 'pixar_3d_avatar'
+			}
+			const resp = await axios.post(endpoint, payload, { headers: { 'Content-Type': 'application/json', ...authHeader }, timeout: 60000 })
+			const b64 = (resp.data && (resp.data.imageBase64 || resp.data.data || resp.data.image)) as string | undefined
+			if (!b64 || typeof b64 !== 'string' || b64.length < 100) throw new Error('Invalid response from avatar generator')
+			return Buffer.from(b64, 'base64')
+		}
+
+		// Processing branch: Gemini stylization vs local sharp normalization
+		const provider = (process.env.AVATAR_GEN_PROVIDER || 'sharp').toLowerCase()
+		// Lazy-load sharp for local processing
+		// eslint-disable-next-line @typescript-eslint/no-var-requires
+		const sharp: any = require('sharp')
+		const size = 512
+		const svgMask = Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>\n<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">\n  <circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="#fff"/>\n</svg>`)
+		let processed: Buffer | null = null
+		if (provider === 'gemini') {
+			try {
+				processed = await tryGeminiStylize(inputBuffer, sourceUrl)
+				// Ensure output is normalized to WebP circle crop as final polish
+				processed = await sharp(processed, { failOnError: false })
+					.resize(size, size, { fit: 'cover', position: 'attention' })
+					.composite([{ input: svgMask, blend: 'dest-in' }])
+					.webp({ quality: 90 })
+					.toBuffer()
+			} catch (e) {
+				console.warn('Gemini stylization failed (no fallback).', (e as any)?.message || e)
+				// Do not fallback to selfie-based processing per requirements
+				throw e
+			}
+		} else {
+			try {
+				processed = await sharp(inputBuffer, { failOnError: false })
+					.rotate()
+					.resize(size, size, { fit: 'cover', position: 'attention' })
+					.modulate({ saturation: 1.05 })
+					.composite([{ input: svgMask, blend: 'dest-in' }])
+					.webp({ quality: 80 })
+					.toBuffer()
+			} catch (e) {
+				// Fallback minimal processing
+				processed = await sharp(inputBuffer, { failOnError: false }).resize(size, size, { fit: 'cover' }).webp({ quality: 80 }).toBuffer()
+			}
+		}
+
+		// Ensure processed buffer exists
+		if (!processed) { throw new Error('Avatar processing failed') }
+
+		// Upload to Storage
+		const bucket = admin.storage().bucket()
+		const filename = `avatar-${Date.now()}.webp`
+		const path = `avatars/${uid}/${filename}`
+		const file = bucket.file(path)
+		await file.save(processed, {
+			metadata: {
+				contentType: 'image/webp',
+				metadata: { createdBy: uid, purpose: 'avatar' },
+			},
+			resumable: false,
+		})
+
+		// Signed URL for convenient access (7 days)
+		const [signedUrl] = await file.getSignedUrl({ action: 'read', expires: Date.now() + 7 * 24 * 60 * 60 * 1000 })
+
+		// Update users_v2 and Auth photoURL
+		const patch = {
+			AvatarUrl: signedUrl,
+			AvatarStoragePath: path,
+			AvatarUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+			AvatarStatus: 'ready',
+			AvatarType: 'image/webp',
+		}
+		await db.collection('users_v2').doc(uid).set(patch, { merge: true })
+		try { await admin.auth().updateUser(uid, { photoURL: signedUrl }) } catch { /* non-fatal */ }
+
+		res.status(200).json({ ok: true, url: signedUrl })
+	} catch (e: any) {
+		console.error('generateAvatar error', e?.message || e)
+		// Mark status: failed (best-effort)
+		try {
+			await db.collection('users_v2').doc((await verifyIdTokenFromRequest(req)) || 'unknown').set({
+				AvatarStatus: 'failed',
+				AvatarError: (e?.message || 'internal').toString().slice(0, 500),
+				AvatarUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+			}, { merge: true })
+		} catch { /* ignore */ }
+		res.status(500).json({ error: 'internal' })
 	}
 })
 

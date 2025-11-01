@@ -5,7 +5,7 @@ import { parseAIAnalysis } from '@/types/aiAnalysis'
 
 export async function fetchLatestAIAnalysis(userId: string): Promise<AIAnalysisModel | null> {
   const db = getFirestoreDb()
-  const col = collection(doc(collection(db, 'Users'), userId), 'AIAnalysis')
+  const col = collection(doc(collection(db, 'users_v2'), userId), 'AIAnalysis')
   const q = query(col, orderBy('date', 'desc'), limit(1))
   const snap = await getDocs(q)
   if (snap.docs.length === 0) return null
@@ -14,7 +14,7 @@ export async function fetchLatestAIAnalysis(userId: string): Promise<AIAnalysisM
 
 export async function recordPhotoUpload(userId: string, path: string, url: string) {
   const db = getFirestoreDb()
-  const col = collection(doc(collection(db, 'Users'), userId), 'AIAnalysisUploads')
+  const col = collection(doc(collection(db, 'users_v2'), userId), 'AIAnalysisUploads')
   await addDoc(col, {
     path,
     url,

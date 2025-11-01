@@ -30,15 +30,10 @@ export function SidebarNav({ mobileOpen, setMobileOpen }: Props) {
   const { mode, setMode } = useTheme()
   const [systemDark, setSystemDark] = useState<boolean>(() => (typeof window !== 'undefined' ? window.matchMedia?.('(prefers-color-scheme: dark)').matches : false))
   const isDark = useMemo(() => mode === 'dark' || (mode === 'system' && systemDark), [mode, systemDark])
-  const [language, setLanguage] = useState<string>(() => (typeof window !== 'undefined' ? (localStorage.getItem('language') || 'en') : 'en'))
 
   // Active item handled by matching pathname directly
   
-  // Persist language for parity with header mock
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    localStorage.setItem('language', language)
-  }, [language])
+  // Language switcher is temporarily hidden; no persistence needed
   
   // Track system color scheme to derive effective theme when mode === 'system'
   useEffect(() => {
@@ -234,15 +229,8 @@ export function SidebarNav({ mobileOpen, setMobileOpen }: Props) {
                   <a href="https://beautymirror.app/contact" target="_blank" rel="noopener noreferrer" className="block px-2 py-1 rounded-md hover:bg-surface-hover">Contact</a>
                   <a href="https://beautymirror.app/about" target="_blank" rel="noopener noreferrer" className="block px-2 py-1 rounded-md hover:bg-surface-hover">About</a>
                 </div>
-                {/* Mobile-only language and theme controls */}
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    {['en','de','es'].map((code) => (
-                      <button key={code} onClick={() => setLanguage(code)} className={`px-3 py-1.5 rounded-lg text-xs border ${language===code? 'bg-[rgb(var(--accent))] text-white border-transparent':'bg-surface hover:bg-surface-hover border-border-subtle text-text-primary'}`}>
-                        {code.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
+                {/* Mobile-only theme control */}
+                <div className="mb-4 flex items-center justify-end gap-3">
                   <button onClick={toggleTheme} className="h-9 w-9 grid place-items-center rounded-lg border border-border-subtle hover:bg-surface-hover" aria-label="Toggle theme">
                     {isDark ? (
                       <svg className="w-5 h-5 text-[#A385E9]" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>

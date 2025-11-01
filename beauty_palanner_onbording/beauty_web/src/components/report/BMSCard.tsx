@@ -18,7 +18,7 @@ export function BMSCard({
       {/* Header */}
       <div className="flex w-full flex-row items-center justify-between">
         <h3 className="text-xl font-bold text-text-primary">
-          Your BMS<sup className="text-sm text-[rgb(var(--accent))]">®</sup> is:
+          Your Wellness Score is:
         </h3>
         <div className="flex items-end gap-3">
           {typeof delta === 'number' && !Number.isNaN(delta) && (

@@ -426,7 +426,7 @@ export default function WelcomeCarousel() {
             {currentSlideData?.showSignIn ? (
               <p className="text-center text-text-secondary">
                 Already have an account?{' '}
-                <button className="text-primary font-semibold">Sign in</button>
+                <a href="https://web.beautymirror.app/login" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">Sign in</a>
               </p>
             ) : (
               <p className="text-center text-text-secondary invisible pointer-events-none select-none">

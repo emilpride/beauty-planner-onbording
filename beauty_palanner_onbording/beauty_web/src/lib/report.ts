@@ -91,7 +91,8 @@ export function computeGeneralStats(instances: TaskInstance[]): GeneralStats {
   const byDay = groupBy(instances, (t) => normalizeDateKey(parseInstanceDay(t)))
   let perfectDays = 0
   for (const tasks of Object.values(byDay)) {
-    if (tasks.length && tasks.every((t) => t.status === 'completed')) perfectDays++
+    const trackable = tasks.filter((t) => isTrackable(t.status))
+    if (trackable.length && trackable.every((t) => t.status === 'completed')) perfectDays++
   }
 
   const streak = calculateStreak(instances)
@@ -106,7 +107,7 @@ export function computeGeneralStats(instances: TaskInstance[]): GeneralStats {
 }
 
 function calculateStreak(instances: TaskInstance[]): number {
-  // Consecutive days (up to today) where all tasks for the day are completed.
+  // Consecutive days (up to today) where all trackable tasks for the day are completed.
   let streak = 0
   let dateToCheck = startOfDay(new Date())
 
@@ -116,14 +117,15 @@ function calculateStreak(instances: TaskInstance[]): number {
   for (let safety = 0; safety < 1000; safety++) {
     const key = normalizeDateKey(dateToCheck)
     const tasksForDay = byDay[key] ?? []
+    const trackable = tasksForDay.filter((t) => isTrackable(t.status))
 
-    if (!tasksForDay.length) {
+    if (!trackable.length) {
       // If no tasks that day, keep going backwards
       dateToCheck = new Date(dateToCheck.getFullYear(), dateToCheck.getMonth(), dateToCheck.getDate() - 1)
       continue
     }
 
-    const allCompleted = tasksForDay.every((t) => t.status === 'completed')
+    const allCompleted = trackable.every((t) => t.status === 'completed')
     if (allCompleted) {
       streak++
       dateToCheck = new Date(dateToCheck.getFullYear(), dateToCheck.getMonth(), dateToCheck.getDate() - 1)

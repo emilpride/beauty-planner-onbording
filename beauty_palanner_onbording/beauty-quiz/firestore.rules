@@ -38,10 +38,9 @@ service cloud.firestore {
                       request.resource.data.email.matches('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}');
       
       // Update: Owner can update non-privileged fields, admin can update anything
-      allow update: if isOwner(userId) || isAdmin() {
-        // Owners cannot modify admin/moderator flags
-        allow update: if !request.resource.data.diff(resource.data).affectedKeys().hasAny(['admin', 'moderator', 'createdAt', 'uid']);
-      }
+      allow update: if isAdmin() || (
+        isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['admin', 'moderator', 'createdAt', 'uid'])
+      );
       
       // Delete: Only admin
       allow delete: if isAdmin();
@@ -57,6 +56,62 @@ service cloud.firestore {
                         resource.data.userId == request.resource.data.userId &&
                         resource.data.sessionId == request.resource.data.sessionId;
         allow delete: if isOwner(userId);
+      }
+    }
+
+    // ===== USERS_V2 (canonical user profile for web + quiz) =====
+    // Allow authenticated users (including anonymous) to create/update their own doc early in onboarding
+    match /users_v2/{userId} {
+      // Owner or admin can read their profile
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Owner can create/update their own profile document with minimal constraints
+      // We intentionally avoid strict field checks to support incremental onboarding writes
+      allow create, update: if isOwner(userId);
+
+      // Delete restricted to admin to prevent accidental loss
+      allow delete: if isAdmin();
+
+      // Subcollection: Updates (procedures)
+      match /Updates/{updateId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      // Subcollection: Activities (user procedures)
+      match /Activities/{activityId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      // Subcollection: Moods
+      match /Moods/{moodId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      // Subcollection: AIAnalysis (Gemini 3D character generation)
+      match /AIAnalysis/{analysisId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) || isAdmin();
+      }
+
+      // Subcollection: Analysis (selfie analysis)
+      match /analysis/{analysisId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) || isAdmin();
+      }
+
+      // Subcollection: Achievements
+      match /Achievements/{achievementId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      // Subcollection: FcmTokens (push notifications)
+      match /FcmTokens/{tokenId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      // Subcollection: NotificationsSent
+      match /NotificationsSent/{notificationId} {
+        allow read, write: if isOwner(userId) || isAdmin();
       }
     }
 

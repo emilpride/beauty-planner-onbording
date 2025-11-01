@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.recomputeAchievements = exports.onUpdateWriteRecomputeAchievements = exports.sendMobilePushReminders = exports.sendEmailReminders = exports.deleteAccount = exports.reactivateAccount = exports.deactivateAccount = exports.revokeOtherSessions = exports.getUserSubscription = void 0;
+exports.recomputeAchievements = exports.onUpdateWriteRecomputeAchievements = exports.sendMobilePushReminders = exports.sendEmailReminders = exports.deleteAccount = exports.redeemDeferredToken = exports.createDeferredToken = exports.exchangeIdToken = exports.reactivateAccount = exports.deactivateAccount = exports.revokeOtherSessions = exports.getUserSubscription = void 0;
 const admin = __importStar(require("firebase-admin"));
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const https_1 = require("firebase-functions/v2/https");
@@ -44,6 +44,7 @@ const firestore_1 = require("firebase-functions/v2/firestore");
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const node_fetch_1 = __importDefault(require("node-fetch"));
 const params_1 = require("firebase-functions/params");
+const node_crypto_1 = require("node:crypto");
 // Initialize Admin SDK once
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -217,7 +218,7 @@ exports.deactivateAccount = (0, https_1.onRequest)({ cors: true }, async (req, r
         const reason = (req.body?.reason || '').toString().slice(0, 500) || null;
         await admin.auth().updateUser(uid, { disabled: true });
         const now = new Date().toISOString();
-        await db.collection('Users').doc(uid).set({
+        await db.collection('users_v2').doc(uid).set({
             status: 'deactivated',
             deactivated: true,
             deactivatedAt: now,
@@ -245,7 +246,7 @@ exports.reactivateAccount = (0, https_1.onRequest)({ cors: true }, async (req, r
         const uid = await verifyBearerToUid(req);
         await admin.auth().updateUser(uid, { disabled: false });
         const now = new Date().toISOString();
-        await db.collection('Users').doc(uid).set({
+        await db.collection('users_v2').doc(uid).set({
             status: 'active',
             deactivated: false,
             reactivatedAt: now,
@@ -255,6 +256,132 @@ exports.reactivateAccount = (0, https_1.onRequest)({ cors: true }, async (req, r
     catch (e) {
         const code = e?.code === 401 ? 401 : 500;
         res.status(code).json({ error: e?.message || 'internal' });
+    }
+});
+// POST /exchangeIdToken
+// Body: { idToken?: string } or Authorization: Bearer <ID_TOKEN>
+// Returns: { customToken: string }
+exports.exchangeIdToken = (0, https_1.onRequest)({ cors: true }, async (req, res) => {
+    allowCorsPost(res);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'method_not_allowed' });
+        return;
+    }
+    try {
+        const auth = req.headers.authorization || '';
+        let idToken = '';
+        const m = auth.match(/^Bearer\s+(.+)$/i);
+        if (m) {
+            idToken = m[1];
+        }
+        else if (typeof req.body?.idToken === 'string') {
+            idToken = req.body.idToken;
+        }
+        if (!idToken) {
+            res.status(400).json({ error: 'missing_id_token' });
+            return;
+        }
+        const decoded = await admin.auth().verifyIdToken(idToken);
+        const uid = decoded.uid;
+        const customToken = await admin.auth().createCustomToken(uid);
+        res.status(200).json({ customToken });
+    }
+    catch (e) {
+        const msg = e?.message || 'internal';
+        const code = msg.includes('Firebase ID token') ? 401 : 500;
+        res.status(code).json({ error: msg });
+    }
+});
+// POST /createDeferredToken
+// Auth: Bearer <Firebase ID token>
+// Returns: { tokenId: string, dynamicLink: string }
+exports.createDeferredToken = (0, https_1.onRequest)({ cors: true }, async (req, res) => {
+    allowCorsPost(res);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'method_not_allowed' });
+        return;
+    }
+    try {
+        const uid = await verifyBearerToUid(req);
+        const tokenId = (0, node_crypto_1.randomUUID)();
+        const now = Date.now();
+        const expiresAt = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+        await db.collection('DeferredTokens').doc(tokenId).set({ uid, createdAt: new Date().toISOString(), expiresAt }, { merge: true });
+        const DOMAIN = process.env.DYNAMIC_LINK_DOMAIN || 'beauty-mirror.page.link';
+        const ANDROID_PACKAGE = process.env.ANDROID_PACKAGE || 'com.beautymirror.app';
+        const IOS_BUNDLE = process.env.IOS_BUNDLE_ID || 'com.beautymirror.app';
+        const IOS_APP_ID = process.env.IOS_APP_ID || '';
+        const FALLBACK = process.env.WEB_FALLBACK_URL || 'https://web.beautymirror.app/login';
+        // The deep link your app handles to redeem the tokenId
+        const deepLink = `https://beautymirror.app/redeem?dt=${encodeURIComponent(tokenId)}`;
+        const params = new URLSearchParams({
+            link: deepLink,
+            apn: ANDROID_PACKAGE,
+            ibi: IOS_BUNDLE,
+            ofl: FALLBACK,
+        });
+        if (IOS_APP_ID)
+            params.set('isi', IOS_APP_ID);
+        const dynamicLink = `https://${DOMAIN}/?${params.toString()}`;
+        res.status(200).json({ tokenId, dynamicLink, expiresAt });
+    }
+    catch (e) {
+        const code = e?.code === 401 ? 401 : 500;
+        res.status(code).json({ error: e?.message || 'internal' });
+    }
+});
+// POST /redeemDeferredToken
+// Body: { tokenId: string }
+// Returns: { customToken: string }
+exports.redeemDeferredToken = (0, https_1.onRequest)({ cors: true }, async (req, res) => {
+    allowCorsPost(res);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'method_not_allowed' });
+        return;
+    }
+    try {
+        const tokenId = (req.body?.tokenId || '').toString();
+        if (!tokenId) {
+            res.status(400).json({ error: 'missing_tokenId' });
+            return;
+        }
+        const ref = db.collection('DeferredTokens').doc(tokenId);
+        const snap = await ref.get();
+        if (!snap.exists) {
+            res.status(404).json({ error: 'not_found' });
+            return;
+        }
+        const data = snap.data();
+        if (!data?.uid) {
+            res.status(400).json({ error: 'invalid_token' });
+            return;
+        }
+        if (data.redeemedAt) {
+            res.status(410).json({ error: 'already_redeemed' });
+            return;
+        }
+        if (data.expiresAt && new Date(data.expiresAt).getTime() < Date.now()) {
+            res.status(410).json({ error: 'expired' });
+            return;
+        }
+        const customToken = await admin.auth().createCustomToken(data.uid);
+        await ref.set({ redeemedAt: new Date().toISOString() }, { merge: true });
+        res.status(200).json({ customToken });
+    }
+    catch (e) {
+        res.status(500).json({ error: e?.message || 'internal' });
     }
 });
 // Utilities to recursively delete user data
@@ -307,7 +434,7 @@ exports.deleteAccount = (0, https_1.onRequest)({ cors: true }, async (req, res) 
     try {
         const uid = await verifyBearerToUid(req);
         // Best-effort: remove Firestore user document and subcollections
-        const userDoc = db.collection('Users').doc(uid);
+        const userDoc = db.collection('users_v2').doc(uid);
         await deleteDocRecursively(userDoc);
         // Finally, delete the auth user
         await admin.auth().deleteUser(uid);
@@ -401,12 +528,12 @@ async function getUserEmail(uid) {
     }
 }
 async function alreadySent(userId, updateId, channel) {
-    const ref = db.collection('Users').doc(userId).collection('NotificationsSent').doc(`${updateId}-${channel}`);
+    const ref = db.collection('users_v2').doc(userId).collection('NotificationsSent').doc(`${updateId}-${channel}`);
     const snap = await ref.get();
     return snap.exists;
 }
 async function markSent(userId, updateId, channel) {
-    const ref = db.collection('Users').doc(userId).collection('NotificationsSent').doc(`${updateId}-${channel}`);
+    const ref = db.collection('users_v2').doc(userId).collection('NotificationsSent').doc(`${updateId}-${channel}`);
     await ref.set({ channel, updateId, sentAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
 }
 async function sendEmail(to, subject, html) {
@@ -417,7 +544,7 @@ exports.sendEmailReminders = (0, scheduler_1.onSchedule)({ schedule: 'every 5 mi
     const windowMinutes = 6; // include small overlap window for reliability
     const windowStart = new Date(now.getTime() - windowMinutes * 60 * 1000);
     const usersSnap = await db
-        .collection('Users')
+        .collection('users_v2')
         .where('NotificationPrefs.emailReminders', '==', true)
         .get();
     for (const userDoc of usersSnap.docs) {
@@ -441,7 +568,7 @@ exports.sendEmailReminders = (0, scheduler_1.onSchedule)({ schedule: 'every 5 mi
         const y = today.getUTCFullYear(), m = String(today.getUTCMonth() + 1).padStart(2, '0'), d = String(today.getUTCDate()).padStart(2, '0');
         const todayStr = `${y}-${m}-${d}`;
         const updatesSnap = await db
-            .collection('Users').doc(userId)
+            .collection('users_v2').doc(userId)
             .collection('Updates')
             .where('date', '==', todayStr)
             .where('status', '==', 'pending')
@@ -490,7 +617,7 @@ exports.sendMobilePushReminders = (0, scheduler_1.onSchedule)({ schedule: 'every
     const windowMinutes = 6;
     const windowStart = new Date(now.getTime() - windowMinutes * 60 * 1000);
     const usersSnap = await db
-        .collection('Users')
+        .collection('users_v2')
         .where('NotificationPrefs.mobilePush', '==', true)
         .get();
     for (const userDoc of usersSnap.docs) {
@@ -512,7 +639,7 @@ exports.sendMobilePushReminders = (0, scheduler_1.onSchedule)({ schedule: 'every
         const y = today.getUTCFullYear(), m = String(today.getUTCMonth() + 1).padStart(2, '0'), d = String(today.getUTCDate()).padStart(2, '0');
         const todayStr = `${y}-${m}-${d}`;
         const updatesSnap = await db
-            .collection('Users').doc(userId)
+            .collection('users_v2').doc(userId)
             .collection('Updates')
             .where('date', '==', todayStr)
             .where('status', '==', 'pending')
@@ -548,7 +675,7 @@ exports.sendMobilePushReminders = (0, scheduler_1.onSchedule)({ schedule: 'every
         if (due.length === 0)
             continue;
         // Fetch mobile tokens (best-effort filter by platform field)
-        const tokensSnap = await db.collection('Users').doc(userId).collection('FcmTokens').get();
+        const tokensSnap = await db.collection('users_v2').doc(userId).collection('FcmTokens').get();
         const tokens = [];
         for (const t of tokensSnap.docs) {
             const data = t.data();
@@ -562,7 +689,7 @@ exports.sendMobilePushReminders = (0, scheduler_1.onSchedule)({ schedule: 'every
             continue;
         for (const item of due) {
             const { u, act } = item;
-            const sentRef = db.collection('Users').doc(userId).collection('NotificationsSent').doc(`${u.id}-push`);
+            const sentRef = db.collection('users_v2').doc(userId).collection('NotificationsSent').doc(`${u.id}-push`);
             const sentSnap = await sentRef.get();
             if (sentSnap.exists)
                 continue;
@@ -619,11 +746,11 @@ function calcLevelServer(completed) {
     return lvl;
 }
 async function recomputeAchievementsForUser(userId) {
-    const col = db.collection('Users').doc(userId).collection('Updates');
+    const col = db.collection('users_v2').doc(userId).collection('Updates');
     const snap = await col.where('status', '==', 'completed').get();
     const completed = snap.size;
     const level = calcLevelServer(completed);
-    const ref = db.collection('Users').doc(userId).collection('Achievements').doc('Progress');
+    const ref = db.collection('users_v2').doc(userId).collection('Achievements').doc('Progress');
     const before = await ref.get();
     const prev = before.exists ? (before.data() || {}) : {};
     const levelUnlockDates = (prev['LevelUnlockDates'] || prev['levelUnlockDates'] || {});
@@ -641,10 +768,17 @@ async function recomputeAchievementsForUser(userId) {
         LastUpdated: payload.lastUpdated,
         LevelUnlockDates: payload.levelUnlockDates,
     }, { merge: true });
+    // Mirror on users_v2 root for web header/stats consumers
+    await db.collection('users_v2').doc(userId).set({
+        ActivitiesCompleted: payload.totalCompletedActivities,
+        TotalCompletedActivities: payload.totalCompletedActivities,
+        Level: payload.currentLevel,
+        LevelUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
     return payload;
 }
 // Firestore trigger: recompute on any update write
-exports.onUpdateWriteRecomputeAchievements = (0, firestore_1.onDocumentWritten)('Users/{userId}/Updates/{updateId}', async (event) => {
+exports.onUpdateWriteRecomputeAchievements = (0, firestore_1.onDocumentWritten)('users_v2/{userId}/Updates/{updateId}', async (event) => {
     try {
         const userId = event.params.userId;
         if (!userId)

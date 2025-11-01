@@ -3,7 +3,7 @@ import { getFirestoreDb } from '@/lib/firebase'
 
 export async function saveFcmToken(userId: string, token: string) {
   const db = getFirestoreDb()
-  const col = collection(doc(collection(db, 'Users'), userId), 'FcmTokens')
+  const col = collection(doc(collection(db, 'users_v2'), userId), 'FcmTokens')
   const ref = doc(col, token)
   await setDoc(ref, {
     token,
@@ -16,6 +16,6 @@ export async function saveFcmToken(userId: string, token: string) {
 
 export async function removeFcmToken(userId: string, token: string) {
   const db = getFirestoreDb()
-  const ref = doc(collection(doc(collection(db, 'Users'), userId), 'FcmTokens'), token)
+  const ref = doc(collection(doc(collection(db, 'users_v2'), userId), 'FcmTokens'), token)
   await deleteDoc(ref)
 }

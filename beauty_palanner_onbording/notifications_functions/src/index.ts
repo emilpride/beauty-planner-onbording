@@ -5,6 +5,7 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore'
 import nodemailer from 'nodemailer'
 import fetch from 'node-fetch'
 import { defineSecret } from 'firebase-functions/params'
+import { randomUUID } from 'node:crypto'
 
 // Initialize Admin SDK once
 if (!admin.apps.length) {
@@ -179,7 +180,7 @@ export const deactivateAccount = onRequest({ cors: true }, async (req, res) => {
     const reason = (req.body?.reason || '').toString().slice(0, 500) || null
     await admin.auth().updateUser(uid, { disabled: true })
     const now = new Date().toISOString()
-    await db.collection('Users').doc(uid).set({
+    await db.collection('users_v2').doc(uid).set({
       status: 'deactivated',
       deactivated: true,
       deactivatedAt: now,
@@ -201,7 +202,7 @@ export const reactivateAccount = onRequest({ cors: true }, async (req, res) => {
     const uid = await verifyBearerToUid(req)
     await admin.auth().updateUser(uid, { disabled: false })
     const now = new Date().toISOString()
-    await db.collection('Users').doc(uid).set({
+    await db.collection('users_v2').doc(uid).set({
       status: 'active',
       deactivated: false,
       reactivatedAt: now,
@@ -210,6 +211,96 @@ export const reactivateAccount = onRequest({ cors: true }, async (req, res) => {
   } catch (e: any) {
     const code = e?.code === 401 ? 401 : 500
     res.status(code).json({ error: e?.message || 'internal' })
+  }
+})
+
+// POST /exchangeIdToken
+// Body: { idToken?: string } or Authorization: Bearer <ID_TOKEN>
+// Returns: { customToken: string }
+export const exchangeIdToken = onRequest({ cors: true }, async (req, res) => {
+  allowCorsPost(res)
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'method_not_allowed' }); return }
+  try {
+    const auth = req.headers.authorization || ''
+    let idToken = ''
+    const m = auth.match(/^Bearer\s+(.+)$/i)
+    if (m) {
+      idToken = m[1]!
+    } else if (typeof req.body?.idToken === 'string') {
+      idToken = req.body.idToken
+    }
+    if (!idToken) { res.status(400).json({ error: 'missing_id_token' }); return }
+    const decoded = await admin.auth().verifyIdToken(idToken)
+    const uid = decoded.uid
+    const customToken = await admin.auth().createCustomToken(uid)
+    res.status(200).json({ customToken })
+  } catch (e: any) {
+    const msg = e?.message || 'internal'
+    const code = msg.includes('Firebase ID token') ? 401 : 500
+    res.status(code).json({ error: msg })
+  }
+})
+
+// POST /createDeferredToken
+// Auth: Bearer <Firebase ID token>
+// Returns: { tokenId: string, dynamicLink: string }
+export const createDeferredToken = onRequest({ cors: true }, async (req, res) => {
+  allowCorsPost(res)
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'method_not_allowed' }); return }
+  try {
+    const uid = await verifyBearerToUid(req)
+    const tokenId = randomUUID()
+    const now = Date.now()
+    const expiresAt = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+    await db.collection('DeferredTokens').doc(tokenId).set({ uid, createdAt: new Date().toISOString(), expiresAt }, { merge: true })
+
+    const DOMAIN = process.env.DYNAMIC_LINK_DOMAIN || 'beauty-mirror.page.link'
+    const ANDROID_PACKAGE = process.env.ANDROID_PACKAGE || 'com.beautymirror.app'
+    const IOS_BUNDLE = process.env.IOS_BUNDLE_ID || 'com.beautymirror.app'
+    const IOS_APP_ID = process.env.IOS_APP_ID || ''
+    const FALLBACK = process.env.WEB_FALLBACK_URL || 'https://web.beautymirror.app/login'
+    // The deep link your app handles to redeem the tokenId
+    const deepLink = `https://beautymirror.app/redeem?dt=${encodeURIComponent(tokenId)}`
+    const params = new URLSearchParams({
+      link: deepLink,
+      apn: ANDROID_PACKAGE,
+      ibi: IOS_BUNDLE,
+      ofl: FALLBACK,
+    })
+    if (IOS_APP_ID) params.set('isi', IOS_APP_ID)
+    const dynamicLink = `https://${DOMAIN}/?${params.toString()}`
+
+    res.status(200).json({ tokenId, dynamicLink, expiresAt })
+  } catch (e: any) {
+    const code = e?.code === 401 ? 401 : 500
+    res.status(code).json({ error: e?.message || 'internal' })
+  }
+})
+
+// POST /redeemDeferredToken
+// Body: { tokenId: string }
+// Returns: { customToken: string }
+export const redeemDeferredToken = onRequest({ cors: true }, async (req, res) => {
+  allowCorsPost(res)
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'method_not_allowed' }); return }
+  try {
+    const tokenId = (req.body?.tokenId || '').toString()
+    if (!tokenId) { res.status(400).json({ error: 'missing_tokenId' }); return }
+    const ref = db.collection('DeferredTokens').doc(tokenId)
+    const snap = await ref.get()
+    if (!snap.exists) { res.status(404).json({ error: 'not_found' }); return }
+    const data = snap.data() as { uid?: string; expiresAt?: string; redeemedAt?: string }
+    if (!data?.uid) { res.status(400).json({ error: 'invalid_token' }); return }
+    if (data.redeemedAt) { res.status(410).json({ error: 'already_redeemed' }); return }
+    if (data.expiresAt && new Date(data.expiresAt).getTime() < Date.now()) { res.status(410).json({ error: 'expired' }); return }
+    const customToken = await admin.auth().createCustomToken(data.uid)
+    await ref.set({ redeemedAt: new Date().toISOString() }, { merge: true })
+    res.status(200).json({ customToken })
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message || 'internal' })
   }
 })
 
@@ -256,7 +347,7 @@ export const deleteAccount = onRequest({ cors: true }, async (req, res) => {
   try {
     const uid = await verifyBearerToUid(req)
     // Best-effort: remove Firestore user document and subcollections
-    const userDoc = db.collection('Users').doc(uid)
+    const userDoc = db.collection('users_v2').doc(uid)
     await deleteDocRecursively(userDoc)
     // Finally, delete the auth user
     await admin.auth().deleteUser(uid)
@@ -364,13 +455,13 @@ async function getUserEmail(uid: string): Promise<string | null> {
 }
 
 async function alreadySent(userId: string, updateId: string, channel: 'email'): Promise<boolean> {
-  const ref = db.collection('Users').doc(userId).collection('NotificationsSent').doc(`${updateId}-${channel}`)
+  const ref = db.collection('users_v2').doc(userId).collection('NotificationsSent').doc(`${updateId}-${channel}`)
   const snap = await ref.get()
   return snap.exists
 }
 
 async function markSent(userId: string, updateId: string, channel: 'email') {
-  const ref = db.collection('Users').doc(userId).collection('NotificationsSent').doc(`${updateId}-${channel}`)
+  const ref = db.collection('users_v2').doc(userId).collection('NotificationsSent').doc(`${updateId}-${channel}`)
   await ref.set({ channel, updateId, sentAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true })
 }
 
@@ -384,7 +475,7 @@ export const sendEmailReminders = onSchedule({ schedule: 'every 5 minutes', time
     const windowStart = new Date(now.getTime() - windowMinutes * 60 * 1000)
 
     const usersSnap = await db
-      .collection('Users')
+      .collection('users_v2')
       .where('NotificationPrefs.emailReminders', '==', true)
       .get()
 
@@ -411,7 +502,7 @@ export const sendEmailReminders = onSchedule({ schedule: 'every 5 minutes', time
       const todayStr = `${y}-${m}-${d}`
 
       const updatesSnap = await db
-        .collection('Users').doc(userId)
+        .collection('users_v2').doc(userId)
         .collection('Updates')
         .where('date', '==', todayStr)
         .where('status', '==', 'pending')
@@ -461,7 +552,7 @@ export const sendMobilePushReminders = onSchedule({ schedule: 'every 5 minutes',
     const windowStart = new Date(now.getTime() - windowMinutes * 60 * 1000)
 
     const usersSnap = await db
-      .collection('Users')
+      .collection('users_v2')
       .where('NotificationPrefs.mobilePush', '==', true)
       .get()
 
@@ -487,7 +578,7 @@ export const sendMobilePushReminders = onSchedule({ schedule: 'every 5 minutes',
       const todayStr = `${y}-${m}-${d}`
 
       const updatesSnap = await db
-        .collection('Users').doc(userId)
+        .collection('users_v2').doc(userId)
         .collection('Updates')
         .where('date', '==', todayStr)
         .where('status', '==', 'pending')
@@ -520,7 +611,7 @@ export const sendMobilePushReminders = onSchedule({ schedule: 'every 5 minutes',
       if (due.length === 0) continue
 
       // Fetch mobile tokens (best-effort filter by platform field)
-      const tokensSnap = await db.collection('Users').doc(userId).collection('FcmTokens').get()
+      const tokensSnap = await db.collection('users_v2').doc(userId).collection('FcmTokens').get()
       const tokens: string[] = []
       for (const t of tokensSnap.docs) {
         const data = t.data() as { token?: string; platform?: string }
@@ -533,7 +624,7 @@ export const sendMobilePushReminders = onSchedule({ schedule: 'every 5 minutes',
 
       for (const item of due) {
         const { u, act } = item
-        const sentRef = db.collection('Users').doc(userId).collection('NotificationsSent').doc(`${u.id}-push`)
+        const sentRef = db.collection('users_v2').doc(userId).collection('NotificationsSent').doc(`${u.id}-push`)
         const sentSnap = await sentRef.get()
         if (sentSnap.exists) continue
 
@@ -603,12 +694,12 @@ function calcLevelServer(completed: number): number {
 }
 
 async function recomputeAchievementsForUser(userId: string): Promise<ServerAchievementProgress> {
-  const col = db.collection('Users').doc(userId).collection('Updates')
+  const col = db.collection('users_v2').doc(userId).collection('Updates')
   const snap = await col.where('status', '==', 'completed').get()
   const completed = snap.size
   const level = calcLevelServer(completed)
 
-  const ref = db.collection('Users').doc(userId).collection('Achievements').doc('Progress')
+  const ref = db.collection('users_v2').doc(userId).collection('Achievements').doc('Progress')
   const before = await ref.get()
   const prev = before.exists ? (before.data() || {}) : {}
   const levelUnlockDates: Record<string, any> = (prev['LevelUnlockDates'] || prev['levelUnlockDates'] || {}) as any
@@ -626,11 +717,18 @@ async function recomputeAchievementsForUser(userId: string): Promise<ServerAchie
     LastUpdated: payload.lastUpdated,
     LevelUnlockDates: payload.levelUnlockDates,
   }, { merge: true })
+  // Mirror on users_v2 root for web header/stats consumers
+  await db.collection('users_v2').doc(userId).set({
+    ActivitiesCompleted: payload.totalCompletedActivities,
+    TotalCompletedActivities: payload.totalCompletedActivities,
+    Level: payload.currentLevel,
+    LevelUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true })
   return payload
 }
 
 // Firestore trigger: recompute on any update write
-export const onUpdateWriteRecomputeAchievements = onDocumentWritten('Users/{userId}/Updates/{updateId}', async (event) => {
+export const onUpdateWriteRecomputeAchievements = onDocumentWritten('users_v2/{userId}/Updates/{updateId}', async (event) => {
   try {
     const userId = event.params.userId as string
     if (!userId) return

@@ -20,7 +20,7 @@ const DEFAULT_PREFS: NotificationPrefs = {
 
 export async function fetchNotificationPrefs(userId: string): Promise<NotificationPrefs> {
   const db = getFirestoreDb()
-  const ref = doc(db, 'Users', userId)
+  const ref = doc(db, 'users_v2', userId)
   const snap = await getDoc(ref)
   type RawPrefs = {
     procedures?: { push?: unknown; email?: unknown }
@@ -55,30 +55,26 @@ export async function fetchNotificationPrefs(userId: string): Promise<Notificati
 
 export async function saveNotificationPrefs(userId: string, prefs: NotificationPrefs): Promise<void> {
   const db = getFirestoreDb()
-  const ref = doc(db, 'Users', userId)
+  const ref = doc(db, 'users_v2', userId)
   // Also set legacy aggregate flags for backwards compatibility: any category enabling sets the legacy flag
   const legacyEmail = !!(prefs.procedures.email || prefs.mood.email)
   const legacyPush = !!(prefs.procedures.push || prefs.mood.push)
-  await setDoc(
-    ref,
-    {
-      NotificationPrefs: {
-        procedures: { push: !!prefs.procedures.push, email: !!prefs.procedures.email },
-        mood: { push: !!prefs.mood.push, email: !!prefs.mood.email },
-        weeklyEmail: !!prefs.weeklyEmail,
-        // legacy mirrors
-        emailReminders: legacyEmail,
-        mobilePush: legacyPush,
-        updatedAt: serverTimestamp(),
-      },
+  await setDoc(ref, {
+    NotificationPrefs: {
+      procedures: { push: !!prefs.procedures.push, email: !!prefs.procedures.email },
+      mood: { push: !!prefs.mood.push, email: !!prefs.mood.email },
+      weeklyEmail: !!prefs.weeklyEmail,
+      // legacy mirrors
+      emailReminders: legacyEmail,
+      mobilePush: legacyPush,
+      updatedAt: serverTimestamp(),
     },
-    { merge: true },
-  )
+  }, { merge: true })
 }
 
 export async function fetchUserTimezone(userId: string): Promise<string | null> {
   const db = getFirestoreDb()
-  const ref = doc(db, 'Users', userId)
+  const ref = doc(db, 'users_v2', userId)
   const snap = await getDoc(ref)
   const data = snap.data() as Record<string, unknown> | undefined
   const tz = (data?.Timezone as string | undefined) || null
@@ -87,7 +83,7 @@ export async function fetchUserTimezone(userId: string): Promise<string | null> 
 
 export async function saveUserTimezone(userId: string, timezone: string): Promise<void> {
   const db = getFirestoreDb()
-  const ref = doc(db, 'Users', userId)
+  const ref = doc(db, 'users_v2', userId)
   await setDoc(ref, { Timezone: timezone, TimezoneUpdatedAt: serverTimestamp() }, { merge: true })
 }
 
@@ -96,7 +92,7 @@ export interface LocalePrefs { language: string; region: string }
 
 export async function fetchUserLocale(userId: string): Promise<LocalePrefs> {
   const db = getFirestoreDb()
-  const ref = doc(db, 'Users', userId)
+  const ref = doc(db, 'users_v2', userId)
   const snap = await getDoc(ref)
   const data = snap.data() as Record<string, unknown> | undefined
   const language = (data?.Language as string | undefined) ?? 'en'
@@ -106,7 +102,7 @@ export async function fetchUserLocale(userId: string): Promise<LocalePrefs> {
 
 export async function saveUserLocale(userId: string, locale: LocalePrefs): Promise<void> {
   const db = getFirestoreDb()
-  const ref = doc(db, 'Users', userId)
+  const ref = doc(db, 'users_v2', userId)
   await setDoc(
     ref,
     { Language: locale.language, Region: locale.region, LocaleUpdatedAt: serverTimestamp() },
@@ -127,7 +123,7 @@ const DEFAULT_SCHEDULE: SchedulePrefs = {
 
 export async function fetchSchedulePrefs(userId: string): Promise<SchedulePrefs> {
   const db = getFirestoreDb()
-  const ref = doc(db, 'Users', userId)
+  const ref = doc(db, 'users_v2', userId)
   const snap = await getDoc(ref)
   const data = snap.data() as { SchedulePrefs?: Partial<SchedulePrefs> } | undefined
   const raw = data?.SchedulePrefs || {}
@@ -144,7 +140,7 @@ export async function fetchSchedulePrefs(userId: string): Promise<SchedulePrefs>
 
 export async function saveSchedulePrefs(userId: string, prefs: SchedulePrefs): Promise<void> {
   const db = getFirestoreDb()
-  const ref = doc(db, 'Users', userId)
+  const ref = doc(db, 'users_v2', userId)
   await setDoc(
     ref,
     {
@@ -168,7 +164,7 @@ export type AssistantId = 1 | 2
 
 export async function fetchAssistant(userId: string): Promise<AssistantId | null> {
   const db = getFirestoreDb()
-  const ref = doc(db, 'Users', userId)
+  const ref = doc(db, 'users_v2', userId)
   const snap = await getDoc(ref)
   const data = snap.data() as Record<string, unknown> | undefined
   const val = data?.Assistant
@@ -178,8 +174,9 @@ export async function fetchAssistant(userId: string): Promise<AssistantId | null
 
 export async function saveAssistant(userId: string, assistant: AssistantId): Promise<void> {
   const db = getFirestoreDb()
-  const ref = doc(db, 'Users', userId)
-  await setDoc(ref, { Assistant: assistant, AssistantUpdatedAt: serverTimestamp() }, { merge: true })
+  const ref = doc(db, 'users_v2', userId)
+  const payload = { Assistant: assistant, AssistantUpdatedAt: serverTimestamp() }
+  await setDoc(ref, payload, { merge: true })
 }
 
 // Personal Info
@@ -204,21 +201,56 @@ export interface UserStats {
 
 export async function fetchUserProfile(userId: string): Promise<UserProfile> {
   const db = getFirestoreDb()
-  const ref = doc(db, 'Users', userId)
+  const ref = doc(db, 'users_v2', userId)
   const snap = await getDoc(ref)
   const data = (snap.data() as Record<string, unknown>) || {}
   const asString = (v: unknown) => (typeof v === 'string' ? v : '')
   const fullName = asString(data['FullName']) || asString(data['Name']) || asString(data['DisplayName'])
   const email = asString(data['Email']) || asString(data['email'])
-  const genderRaw = asString(data['Gender'] || (data['Sex'] as string)).toLowerCase()
-  const toGender = (g: string): Gender => {
-    const norm = g.toLowerCase()
-    if (['male','man','men','m','муж','мужской'].includes(norm)) return 'male'
-    if (['female','woman','women','f','жен','женский'].includes(norm)) return 'female'
-    if (['other','unknown','другое','иной'].includes(norm)) return 'other'
+  // Normalize gender from multiple possible shapes (string/number/booleans, different keys)
+  const toGender = (val: unknown): Gender => {
+    if (typeof val === 'string') {
+      const g = val.trim().toLowerCase()
+      if (['male','man','men','m','муж','мужской'].includes(g)) return 'male'
+      if (['female','woman','women','f','жен','женский'].includes(g)) return 'female'
+      if (['other','unknown','другое','иной','x','u','n/a','na','unspecified'].includes(g)) return 'other'
+      // Sometimes numbers are encoded as strings
+      if (g === '1') return 'male'
+      if (g === '2') return 'female'
+      return ''
+    }
+    if (typeof val === 'number') {
+      if (val === 1) return 'male'
+      if (val === 2) return 'female'
+      return ''
+    }
+    if (typeof val === 'boolean') {
+      // Prefer true=male for IsMale; for IsFemale, true=female will be handled separately by key order
+      return val ? 'male' : ''
+    }
     return ''
   }
-  const gender: Gender = toGender(genderRaw)
+  // Try a list of known fields in priority order
+  const genderKeys: string[] = [
+    'Gender', 'gender', 'Sex', 'sex',
+    'GenderText', 'GenderLabel',
+    'GenderCode', 'GenderNumeric', 'GenderValue',
+    'IsMale', 'IsFemale'
+  ]
+  let gender: Gender = ''
+  for (const key of genderKeys) {
+    const v = (data as Record<string, unknown>)[key]
+    const mapped = toGender(v)
+    if (mapped) {
+      // Special-case IsFemale boolean
+      if ((key === 'IsFemale' || key === 'isFemale') && typeof v === 'boolean') {
+        gender = v ? 'female' : ''
+      } else {
+        gender = mapped
+      }
+      if (gender) break
+    }
+  }
   const bd = data['BirthDate'] || data['Birthday'] || data['DateOfBirth'] || data['DOB']
   let birthDate: string | null = null
   if (typeof bd === 'string' && /\d{4}-\d{2}-\d{2}/.test(bd)) birthDate = bd
@@ -240,23 +272,37 @@ export async function fetchUserProfile(userId: string): Promise<UserProfile> {
 
 export async function saveUserProfile(userId: string, profile: UserProfile): Promise<void> {
   const db = getFirestoreDb()
-  const ref = doc(db, 'Users', userId)
-  await setDoc(
-    ref,
-    {
-      FullName: profile.fullName,
-      Email: profile.email,
-      Gender: profile.gender,
-      BirthDate: profile.birthDate || null,
-      ProfileUpdatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  )
+  const ref = doc(db, 'users_v2', userId)
+  // Build payload with optional photo fields only when provided, to avoid overwriting unintentionally
+  const payload: Record<string, unknown> = {
+    FullName: profile.fullName,
+    Email: profile.email,
+    Gender: profile.gender,
+    // Back-compat numeric mirrors for other clients
+    GenderCode: profile.gender === 'male' ? 1 : profile.gender === 'female' ? 2 : 0,
+    GenderNumeric: profile.gender === 'male' ? 1 : profile.gender === 'female' ? 2 : 0,
+    GenderValue: profile.gender === 'male' ? 1 : profile.gender === 'female' ? 2 : 0,
+    BirthDate: profile.birthDate || null,
+    ProfileUpdatedAt: serverTimestamp(),
+  }
+  // Support multiple legacy-compatible fields for photo URL so other clients can pick it up
+  if (Object.prototype.hasOwnProperty.call(profile, 'photoUrl')) {
+    const url = profile.photoUrl ?? null
+    payload['PhotoURL'] = url
+    payload['PhotoUrl'] = url
+    payload['ProfilePicture'] = url
+    payload['AvatarUrl'] = url
+    payload['AvatarURL'] = url
+    payload['ProfileImage'] = url
+    payload['ProfilePhoto'] = url
+    payload['PhotoUpdatedAt'] = serverTimestamp()
+  }
+  await setDoc(ref, payload, { merge: true })
 }
 
 export async function fetchUserStats(userId: string): Promise<UserStats> {
   const db = getFirestoreDb()
-  const ref = doc(db, 'Users', userId)
+  const ref = doc(db, 'users_v2', userId)
   const snap = await getDoc(ref)
   const data = (snap.data() as Record<string, unknown>) || {}
   const asNum = (v: unknown, def = 0) => (typeof v === 'number' ? v : Number(v ?? def) || def)

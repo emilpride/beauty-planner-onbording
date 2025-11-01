@@ -30,12 +30,12 @@ export default function ProfilePage() {
       <PageContainer>
         <h1 className="text-2xl font-bold">Profile</h1>
         <div className="grid gap-6 max-w-5xl md:grid-cols-2">
-          {/* BMS Card */}
+          {/* Wellness Score Card */}
           <section className="card p-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 space-y-2">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">BMS</h2>
+                  <h2 className="text-lg font-semibold">Wellness Score</h2>
                   <span className="text-xs opacity-60">0–10</span>
                 </div>
                 <div className="flex items-end gap-3">
@@ -46,7 +46,7 @@ export default function ProfilePage() {
                     {metrics ? `${metrics.bmsDelta >= 0 ? '+' : ''}${metrics.bmsDelta.toFixed(3)}` : ''}
                   </div>
                 </div>
-                <p className="text-xs opacity-70">Changes daily based on adherence to your plan. Completing tasks increases BMS slightly; skipping decreases it.</p>
+                <p className="text-xs opacity-70">Changes daily based on adherence to your plan. Completing tasks increases Wellness Score slightly; skipping decreases it.</p>
               </div>
               <div className="shrink-0">
                 <BmsRing

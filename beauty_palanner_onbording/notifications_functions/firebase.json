@@ -1,6 +1,6 @@
 {
-  "functions": {
-    "source": ".",
-    "runtime": "nodejs20"
-  }
+  "functions": [
+    { "source": ".", "runtime": "nodejs20" },
+    { "source": "functions-min", "codebase": "minimal-getsub", "runtime": "nodejs20" }
+  ]
 }

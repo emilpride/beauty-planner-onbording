@@ -3,6 +3,7 @@
 import { onAuthStateChanged, signOut, User } from 'firebase/auth'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { getFirebaseAuth } from '@/lib/firebase'
+import { ensureUserDocument } from '@/lib/ensureUser'
 
 interface AuthContextValue {
   user: User | null
@@ -18,9 +19,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const auth = getFirebaseAuth()
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u)
       setLoading(false)
+      
+      // Ensure user document exists in Firestore
+      if (u) {
+        await ensureUserDocument(u).catch(console.error)
+      }
     })
     return () => unsub()
   }, [])

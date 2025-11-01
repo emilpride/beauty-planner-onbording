@@ -3,7 +3,7 @@ import { getFirestoreDb } from '@/lib/firebase'
 
 function userUpdateDocRef(userId: string, updateId: string) {
   const db = getFirestoreDb()
-  return doc(doc(db, 'Users', userId), 'Updates', updateId)
+  return doc(doc(db, 'users_v2', userId), 'Updates', updateId)
 }
 
 export async function updateTaskStatus(userId: string, updateId: string, status: 'completed' | 'skipped') {

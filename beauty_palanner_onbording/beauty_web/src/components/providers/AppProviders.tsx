@@ -7,6 +7,8 @@ import { AuthProvider } from '@/components/auth/AuthProvider'
 import { PWARegister } from '@/components/pwa/PWARegister'
 import { WebVitals } from '@/components/analytics/WebVitals'
 import { SchedulerBootstrap } from '@/components/providers/SchedulerBootstrap'
+import { UserThemeSync } from '@/components/providers/UserThemeSync'
+import { AchievementsNotifier } from '@/components/providers/AchievementsNotifier'
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient()
@@ -14,9 +16,11 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeProvider>
+          <UserThemeSync />
           <PWARegister />
           <WebVitals />
           <SchedulerBootstrap />
+          <AchievementsNotifier />
           {children}
         </ThemeProvider>
       </AuthProvider>

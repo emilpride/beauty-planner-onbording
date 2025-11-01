@@ -10,6 +10,7 @@ import { useScheduledTasks } from '@/hooks/useScheduledTasks'
 import { useUpdatesForDate } from '@/hooks/useUpdates'
 import { setTaskStatus } from '@/lib/taskActions'
 import type { TaskInstance, TaskStatus } from '@/types/task'
+import { buildUpdateKey, buildKeyWithoutTime } from '@/lib/updatesMerge'
 import type { Activity } from '@/types/activity'
 import Link from 'next/link'
 import { getActivityMeta } from '@/data/activityMeta'
@@ -20,6 +21,8 @@ export default function CalendarPage() {
   const today = new Date()
   const [selectedDate, setSelectedDate] = useState<Date>(today)
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'skin' | 'hair' | 'physical' | 'mental'>('all')
+  const [procedureFilter, setProcedureFilter] = useState<'all' | string>('all')
+  // Optimistic overrides keyed by semantic task key (activityId|date|HHmm)
   const [overrides, setOverrides] = useState<Map<string, TaskStatus>>(new Map())
 
   const { data: activities } = useActivities(user?.uid)
@@ -54,10 +57,18 @@ export default function CalendarPage() {
         map.set(update.id, update)
       }
     }
-    for (const [id, status] of overrides.entries()) {
-      const item = map.get(id)
-      if (item) {
-        map.set(id, { ...item, status })
+    // Apply optimistic overrides by semantic key
+    if (overrides.size) {
+      for (const [_, item] of map) {
+        const key = buildUpdateKey(item)
+        const noTime = buildKeyWithoutTime(item)
+        if (overrides.has(key)) {
+          map.set(item.id, { ...item, status: overrides.get(key)! })
+          continue
+        }
+        if (overrides.has(noTime)) {
+          map.set(item.id, { ...item, status: overrides.get(noTime)! })
+        }
       }
     }
     return Array.from(map.values()).sort((a, b) => {
@@ -78,14 +89,20 @@ export default function CalendarPage() {
 
   async function handleStatusChange(task: TaskInstance, status: TaskStatus) {
     if (!user?.uid) return
-    setOverrides((prev) => new Map(prev).set(task.id, status))
+    setOverrides((prev) => {
+      const next = new Map(prev)
+      next.set(buildUpdateKey(task), status)
+      next.set(buildKeyWithoutTime(task), status)
+      return next
+    })
     try {
       await setTaskStatus(user.uid, task, status)
     } catch (err) {
       console.error('Failed to update status', err)
       setOverrides((prev) => {
         const next = new Map(prev)
-        next.delete(task.id)
+        next.delete(buildUpdateKey(task))
+        next.delete(buildKeyWithoutTime(task))
         return next
       })
     }
@@ -120,6 +137,8 @@ export default function CalendarPage() {
               onSelectDate={setSelectedDate}
               category={categoryFilter}
               onCategoryChange={setCategoryFilter}
+              procedureId={procedureFilter}
+              onProcedureChange={setProcedureFilter}
               activities={activities ?? []}
               className="w-full max-w-5xl mx-auto"
             />

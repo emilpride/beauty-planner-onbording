@@ -142,7 +142,7 @@ export async function ensureUpcomingUpdates(userId: string, activities: Activity
       const date = addDays(today, i)
       if (!matchesSchedule(a, date)) continue
       const id = buildUpdateId(a, date)
-      const ref = doc(collection(doc(collection(db, 'Users'), userId), 'Updates'), id)
+      const ref = doc(collection(doc(collection(db, 'users_v2'), userId), 'Updates'), id)
       await setDoc(ref, {
         id,
         activityId: a.id,
@@ -157,7 +157,7 @@ export async function ensureUpcomingUpdates(userId: string, activities: Activity
 
 export async function markMissed(userId: string) {
   const db = getFirestoreDb()
-  const col = collection(doc(collection(db, 'Users'), userId), 'Updates')
+  const col = collection(doc(collection(db, 'users_v2'), userId), 'Updates')
   const todayStr = toYMD(new Date())
   // All with date < today and status == pending
   const q = query(col, where('date', '<', todayStr), where('status', '==', 'pending'), orderBy('date', 'asc'))

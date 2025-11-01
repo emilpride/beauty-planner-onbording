@@ -37,7 +37,8 @@ export function parseTaskInstance(id: string, data: Record<string, unknown>): Ta
     const raw = getField<unknown>('date', 'Date')
     if (typeof raw === 'string') {
       const trimmed = raw.trim()
-      const match = trimmed.match(/^(\d{4})\D?(\d{1,2})\D?(\d{1,2})/)
+      // Case 1: YYYY[sep]MM[sep]DD at string start
+      let match = trimmed.match(/^(\d{4})\D?(\d{1,2})\D?(\d{1,2})/)
       if (match) {
         const [, y, m, d] = match
         const year = Number(y)
@@ -45,6 +46,33 @@ export function parseTaskInstance(id: string, data: Record<string, unknown>): Ta
         const day = Number(d)
         if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
           return formatYMD(new Date(year, month - 1, day))
+        }
+      }
+      // Case 2: DD[sep]MM[sep]YYYY anywhere (common mobile format)
+      match = trimmed.match(/(\d{1,2})\D(\d{1,2})\D(\d{4})/)
+      if (match) {
+        const [, d, m, y] = match
+        const year = Number(y)
+        const month = Number(m)
+        const day = Number(d)
+        if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+          return formatYMD(new Date(year, month - 1, day))
+        }
+      }
+      // Case 3: generic 3-number pattern, pick the 4-digit part as year
+      match = trimmed.match(/(\d{1,4})\D(\d{1,2})\D(\d{1,4})/)
+      if (match) {
+        const [, a, b, c] = match
+        const nums = [a, b, c].map((n) => Number(n))
+        const idxYear = [a, b, c].findIndex((n) => n.length === 4)
+        if (idxYear >= 0) {
+          const year = nums[idxYear]
+          const other = nums.filter((_n, i) => i !== idxYear)
+          const month = other[0]
+          const day = other[1]
+          if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+            return formatYMD(new Date(year, month - 1, day))
+          }
         }
       }
     }
@@ -58,6 +86,18 @@ export function parseTaskInstance(id: string, data: Record<string, unknown>): Ta
       typeof (raw as { toDate?: unknown }).toDate === 'function'
     ) {
       return formatYMD((raw as { toDate: () => Date }).toDate())
+    }
+    // Fallback: derive date from deterministic id pattern activityId-YYYY-MM-DD[-HHmm]
+  // Prefer matching a -YYYY-MM-DD segment near the end (optionally followed by -HHmm)
+  const idMatch = id.match(/(?:^|[^0-9])(\d{4})-(\d{2})-(\d{2})(?:-|$)/)
+    if (idMatch) {
+      const [, yy, mm, dd] = idMatch
+      const year = Number(yy)
+      const month = Number(mm)
+      const day = Number(dd)
+      if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+        return formatYMD(new Date(year, month - 1, day))
+      }
     }
     return ''
   }

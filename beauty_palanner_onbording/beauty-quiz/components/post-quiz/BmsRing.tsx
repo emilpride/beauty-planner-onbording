@@ -169,7 +169,7 @@ export default function BmsRing({ size = 240, thickness = 28, scores, overall, i
 
       {/* Center overall value */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">BMS</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">Wellness Score</span>
         <span className="text-4xl font-bold text-text-primary" style={{ lineHeight: 1 }}>{animOverall.toFixed(1)}</span>
         <span className="text-[10px] text-text-secondary">/10</span>
       </div>

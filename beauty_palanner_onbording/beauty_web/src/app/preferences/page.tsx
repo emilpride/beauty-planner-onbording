@@ -23,12 +23,7 @@ export default function PreferencesPage() {
               <h3 className="text-xl font-semibold text-text-primary flex-1">Notifications</h3>
             </div>
           </Link>
-          {/* Language & Region */}
-          <Link href="/account/language" className="block">
-            <div className="bg-surface border border-border-subtle rounded-lg shadow-sm p-4 flex items-center gap-2 hover:bg-surface-hover transition">
-              <h3 className="text-xl font-semibold text-text-primary flex-1">Language & Region</h3>
-            </div>
-          </Link>
+          {/* Language & Region (temporarily hidden) */}
           {/* Calendar & Schedule */}
           <Link href="/account/schedule" className="block">
             <div className="bg-surface border border-border-subtle rounded-lg shadow-sm p-4 flex items-center gap-2 hover:bg-surface-hover transition">

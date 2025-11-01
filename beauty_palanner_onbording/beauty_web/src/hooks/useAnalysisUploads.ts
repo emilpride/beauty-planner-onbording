@@ -36,7 +36,7 @@ export function useAnalysisUploads(userId?: string | null) {
     queryFn: async () => {
       if (!userId) return null
       const db = getFirestoreDb()
-      const col = collection(doc(collection(db, 'Users'), userId), 'AIAnalysisUploads')
+      const col = collection(doc(collection(db, 'users_v2'), userId), 'AIAnalysisUploads')
       const q = query(col, orderBy('createdAt', 'desc'), limit(5))
       const snap = await getDocs(q)
       return snap.docs.map((d) => parseUpload(d.id, d.data() as Record<string, unknown>))

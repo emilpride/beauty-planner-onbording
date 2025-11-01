@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 import { Apple, Globe } from "lucide-react"
 import { useQuizStore } from "../../store/quizStore"
-import { auth, saveUserToFirestore } from '@/lib/firebase'
+import { auth, saveUserToFirestore, finalizeOnboarding, generateAvatar } from '@/lib/firebase'
+import { buildFinalizeProfilePayload, resolveGender } from '@/lib/finalizeProfile'
 import StripeExpressPay from "../payments/StripeExpressPay"
 import PayPalPay from "../payments/PayPalPay"
 import { Elements, PaymentElement, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
+
 
 // Types
 interface PlanOption {
@@ -203,13 +205,41 @@ export default function PricingStep() {
   await saveUserToFirestore(sanitizedAnswers);
     // Fire-and-forget: trigger analyzeUserData after saving. Don't block navigation.
     try {
-  const payload = { userId: answers.Id, answers: sanitizedAnswers, photoUrls: { face: answers.FaceImageUrl, hair: answers.HairImageUrl } }
+      const genderDetail = resolveGender((sanitizedAnswers as any)?.Gender)
+      const genderLabel = genderDetail.text || 'other'
+      const payload = { userId: answers.Id, answers: { ...sanitizedAnswers, GenderLabel: genderLabel }, photoUrls: { face: answers.FaceImageUrl, hair: answers.HairImageUrl } }
       fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(e => console.warn('Analyze trigger failed', e))
     } catch (e) {
       console.warn('Failed to trigger analysis', e)
     }
 
-    router.push("/success");
+    // NEW: finalize onboarding and redirect straight to the web app (auto-login)
+    try {
+      const sid = (answers.sessionId || '').trim()
+      if (sid) {
+        const finalizeProfile = buildFinalizeProfilePayload(answers)
+        
+        // Best-effort: kick off avatar generation in the background (non-blocking)
+        generateAvatar().catch(() => {})
+
+        const result = await finalizeOnboarding(sid, { 
+          profile: finalizeProfile 
+        })
+        const base = 'https://web.beautymirror.app'
+        if (result?.token) {
+          window.location.assign(`${base}/auth/consume?token=${encodeURIComponent(result.token)}`)
+          return
+        }
+        // Fallback: just send to the web root; user may need to sign in
+        window.location.assign(`${base}/`)
+        return
+      }
+    } catch (e) {
+      console.warn('Finalize onboarding redirect failed, falling back to success page')
+    }
+
+    // Absolute fallback if something above fails
+    router.push('/success')
   }
 
   const handleOpenPayment = () => setShowPayment(true)

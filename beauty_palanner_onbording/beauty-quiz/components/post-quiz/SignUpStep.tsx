@@ -279,9 +279,14 @@ export default function SignUpStep() {
             {/* Sign In Link */}
             <div className="text-center">
               <span className="text-text-secondary text-sm">Already have an account? </span>
-              <button className="text-primary text-sm font-medium hover:underline" onClick={() => router.push('/signin')}>
+              <a
+                href="https://web.beautymirror.app/login"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary text-sm font-medium hover:underline"
+              >
                 Sign in
-              </button>
+              </a>
             </div>
 
             {/* Divider */}

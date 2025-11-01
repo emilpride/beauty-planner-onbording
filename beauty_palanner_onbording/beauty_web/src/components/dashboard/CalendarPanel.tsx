@@ -102,7 +102,7 @@ async function upsertOneTimeUpdate({
     time ? time.minute : undefined,
   )
   const db = getFirestoreDb()
-  const updatesCollection = collection(doc(collection(db, 'Users'), userId), 'Updates')
+  const updatesCollection = collection(doc(collection(db, 'users_v2'), userId), 'Updates')
   const updateRef = doc(updatesCollection, updateId)
 
   await setDoc(updateRef, {
@@ -182,6 +182,8 @@ export function CalendarPanel({
   onSelectDate,
   category,
   onCategoryChange,
+  procedureId = 'all',
+  onProcedureChange,
   activities = [],
   className,
 }: {
@@ -189,6 +191,8 @@ export function CalendarPanel({
   onSelectDate: (d: Date) => void
   category: 'all' | 'skin' | 'hair' | 'physical' | 'mental'
   onCategoryChange: (c: 'all' | 'skin' | 'hair' | 'physical' | 'mental') => void
+  procedureId?: 'all' | string
+  onProcedureChange?: (id: 'all' | string) => void
   activities?: Activity[]
   className?: string
 }) {
@@ -285,6 +289,7 @@ export function CalendarPanel({
       if (inst.status === 'deleted') continue
       const [y, m, d] = inst.date.split('-').map((x) => Number(x))
       if (y !== ym.y || m !== ym.m + 1) continue
+      if (procedureId !== 'all' && inst.activityId !== procedureId) continue
       const act = activityById.get(inst.activityId)
       const cat = (act?.category || '').toLowerCase()
       const matches =
@@ -307,6 +312,7 @@ export function CalendarPanel({
       const date = new Date(ym.y, ym.m, day)
       const generated = generateTasksForDate(activities, date)
       const first = generated.find((g) => {
+        if (procedureId !== 'all' && g.activityId !== procedureId) return false
         const act = activityById.get(g.activityId)
         const cat = (act?.category || '').toLowerCase()
         return (
@@ -325,23 +331,42 @@ export function CalendarPanel({
     }
 
     return map
-  }, [monthUpdates?.items, ym, activityById, category, activities])
+  }, [monthUpdates?.items, ym, activityById, category, activities, procedureId])
 
   return (
   <aside className={containerClassName}>
       {/* Filters row */}
       <div className="flex items-center justify-between gap-2 text-sm mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-text-secondary text-xs font-bold">Category:</span>
-          <Select 
-            options={["All","Skin","Hair","Physical","Mental"]}
-            value={{ all:"All", skin:"Skin", hair:"Hair", physical:"Physical", mental:"Mental" }[category]}
-            onChange={(v) => {
-              const val = String(v).toLowerCase() as 'all'|'skin'|'hair'|'physical'|'mental'
-              onCategoryChange(val)
-            }}
-            buttonClassName="py-1 text-xs" 
-          />
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-text-secondary text-xs font-bold">Category:</span>
+            <Select 
+              options={["All","Skin","Hair","Physical","Mental"]}
+              value={{ all:"All", skin:"Skin", hair:"Hair", physical:"Physical", mental:"Mental" }[category]}
+              onChange={(v) => {
+                const val = String(v).toLowerCase() as 'all'|'skin'|'hair'|'physical'|'mental'
+                onCategoryChange(val)
+              }}
+              buttonClassName="py-1 text-xs" 
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-text-secondary text-xs font-bold">Procedure:</span>
+            <Select
+              options={[ 'All procedures', ...activities.map(a => a.name) ]}
+              value={procedureId === 'all' ? 'All procedures' : (activities.find(a => a.id === procedureId)?.name || 'All procedures')}
+              onChange={(v) => {
+                const label = String(v)
+                if (!onProcedureChange) return
+                if (label === 'All procedures') onProcedureChange('all')
+                else {
+                  const match = activities.find(a => a.name === label)
+                  onProcedureChange(match?.id || 'all')
+                }
+              }}
+              buttonClassName="py-1 text-xs"
+            />
+          </div>
         </div>
       </div>
 

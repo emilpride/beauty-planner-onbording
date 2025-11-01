@@ -1,3 +1,10 @@
+export interface AchievementLevelCfg {
+  level: number
+  requiredActivities: number
+  title: string
+}
+
+// Canonical progress shape stored in Firestore (Achievements/Progress)
 export interface AchievementProgress {
   totalCompletedActivities: number
   currentLevel: number
@@ -6,26 +13,19 @@ export interface AchievementProgress {
   lastSeenLevel: number
 }
 
-export interface AchievementLevelCfg {
-  level: number
-  requiredActivities: number
-  title: string
-}
+export const TOTAL_LEVELS = 15
+export const MAX_ACTIVITIES_FOR_MAX_LEVEL = 1000
 
-export const ACHIEVEMENT_LEVELS: AchievementLevelCfg[] = [
-  { level: 1, requiredActivities: 500, title: 'Level 1' },
-  { level: 2, requiredActivities: 1000, title: 'Level 2' },
-  { level: 3, requiredActivities: 1500, title: 'Level 3' },
-  { level: 4, requiredActivities: 2000, title: 'Level 4' },
-  { level: 5, requiredActivities: 2500, title: 'Level 5' },
-  { level: 6, requiredActivities: 3000, title: 'Level 6' },
-  { level: 7, requiredActivities: 3500, title: 'Level 7' },
-  { level: 8, requiredActivities: 4000, title: 'Level 8' },
-  { level: 9, requiredActivities: 4500, title: 'Level 9' },
-  { level: 10, requiredActivities: 5000, title: 'Level 10' },
-  { level: 11, requiredActivities: 5500, title: 'Level 11' },
-  { level: 12, requiredActivities: 6000, title: 'Level 12' },
-]
+// Evenly distribute thresholds so that:
+// - Level 1 unlocks at 1 completed activity
+// - Level 15 unlocks at 1000 completed activities
+// - Intermediate levels are spaced linearly
+export const ACHIEVEMENT_LEVELS: AchievementLevelCfg[] = Array.from({ length: TOTAL_LEVELS }, (_, i) => {
+  const level = i + 1
+  if (level === 1) return { level, requiredActivities: 1, title: `Level ${level}` }
+  const t = Math.ceil(((level - 1) * (MAX_ACTIVITIES_FOR_MAX_LEVEL - 1)) / (TOTAL_LEVELS - 1)) + 1
+  return { level, requiredActivities: t, title: `Level ${level}` }
+})
 
 export function levelThreshold(level: number) {
   if (level <= 0) return 0
@@ -34,10 +34,12 @@ export function levelThreshold(level: number) {
 }
 
 export function calculateLevel(completed: number) {
+  // No level unlocked until the first activity is completed
+  if (completed < levelThreshold(1)) return 0
   for (let i = ACHIEVEMENT_LEVELS.length - 1; i >= 0; i--) {
     if (completed >= ACHIEVEMENT_LEVELS[i].requiredActivities) return ACHIEVEMENT_LEVELS[i].level
   }
-  return 1
+  return 0
 }
 
 export function progressToNextLevel(totalCompletedActivities: number, currentLevel: number) {

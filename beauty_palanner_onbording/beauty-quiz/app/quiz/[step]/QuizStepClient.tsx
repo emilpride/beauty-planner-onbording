@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useQuizStore } from '@/store/quizStore'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { ensureAuthUser } from '@/lib/firebase'
+import { ensureAuthUser, ensureUsersV2Doc, upsertUsersV2 } from '@/lib/firebase'
 import Image from 'next/image'
 import OnboardingAppbar from '@/components/quiz/OnboardingAppbar'
 import AnimatedBackground from '@/components/AnimatedBackground'
@@ -160,6 +160,94 @@ export default function QuizStepClient({ stepNumber }: QuizStepClientProps) {
     // run once per step 0 mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepNumber])
+
+  // At the congratulatory step, ensure a users_v2 doc exists for this (anon) user
+  const createdV2Ref = useRef(false)
+  useEffect(() => {
+    const shouldInit = stepNumber === 2 && !createdV2Ref.current && Boolean(answers?.Id)
+    if (!shouldInit) return
+    createdV2Ref.current = true
+    ensureUsersV2Doc(answers.Id, { sessionId: answers.sessionId, source: 'web-quiz' })
+      .catch(() => { /* non-blocking */ })
+  }, [stepNumber, answers?.Id, answers?.sessionId])
+
+  // Debounced incremental autosave of key answers to users_v2 as user progresses
+  const autosaveTimer = useRef<number | null>(null)
+  useEffect(() => {
+    // Only autosave once we have an authenticated uid and a session id
+    if (!answers?.Id || !answers?.sessionId) return
+    // Don't spam writes on very early steps; start after step 2
+    if (stepNumber < 2) return
+
+    const buildPatch = () => {
+  const patch: Record<string, any> = {}
+      if ((answers as any)['assistant'] && (answers as any)['assistant'] > 0) patch['assistant'] = (answers as any)['assistant']
+      // Standardize capitalized Theme for users_v2
+      if ((answers as any)['theme'] && typeof (answers as any)['theme'] === 'string') patch['Theme'] = (answers as any)['theme']
+      if ((answers as any)['primaryColor'] && typeof (answers as any)['primaryColor'] === 'string') {
+        patch['primaryColor'] = (answers as any)['primaryColor']
+        const colorToHex: Record<string, string> = { purple: '#8A60FF', blue: '#3B82F6', green: '#22C55E', pink: '#EC4899', red: '#EF4444' }
+        patch['PrimaryColor'] = colorToHex[(answers as any)['primaryColor']] || '#8A60FF'
+      }
+
+      if ((answers as any)['Goals'] && Array.isArray((answers as any)['Goals']) && (answers as any)['Goals'].some((g: any) => g?.isActive)) {
+        patch['Goals'] = (answers as any)['Goals']
+      }
+      if ((answers as any)['SkinType']) patch['SkinType'] = (answers as any)['SkinType']
+      if ((answers as any)['SkinProblems'] && Array.isArray((answers as any)['SkinProblems']) && (answers as any)['SkinProblems'].some((p: any) => p?.isActive)) {
+        patch['SkinProblems'] = (answers as any)['SkinProblems']
+      }
+      if ((answers as any)['HairType']) patch['HairType'] = (answers as any)['HairType']
+      if ((answers as any)['HairProblems'] && Array.isArray((answers as any)['HairProblems']) && (answers as any)['HairProblems'].some((p: any) => p?.isActive)) {
+        patch['HairProblems'] = (answers as any)['HairProblems']
+      }
+      if (Array.isArray((answers as any)['SelectedActivities']) && (answers as any)['SelectedActivities'].length > 0) {
+        patch['SelectedActivities'] = (answers as any)['SelectedActivities']
+      }
+      if (Array.isArray((answers as any)['Diet']) && (answers as any)['Diet'].some((d: any) => d?.isActive)) {
+        patch['Diet'] = (answers as any)['Diet']
+      }
+      if ((answers as any)['WorkEnvironment']) patch['WorkEnvironment'] = (answers as any)['WorkEnvironment']
+      if (typeof (answers as any)['EnergyLevel'] === 'number') patch['EnergyLevel'] = (answers as any)['EnergyLevel']
+      if ((answers as any)['Mood']) patch['Mood'] = (answers as any)['Mood']
+      if ((answers as any)['Focus']) patch['Focus'] = (answers as any)['Focus']
+      if ((answers as any)['Procrastination']) patch['Procrastination'] = (answers as any)['Procrastination']
+      // General step details (name/age/height/weight)
+      if ((answers as any)['Name']) patch['Name'] = (answers as any)['Name']
+      if (typeof (answers as any)['Age'] === 'number') patch['Age'] = (answers as any)['Age']
+      if ((answers as any)['Height']) patch['Height'] = (answers as any)['Height']
+      if ((answers as any)['HeightUnit'] != null) patch['HeightUnit'] = (answers as any)['HeightUnit']
+      if ((answers as any)['Weight']) patch['Weight'] = (answers as any)['Weight']
+      if ((answers as any)['WeightUnit'] != null) patch['WeightUnit'] = (answers as any)['WeightUnit']
+      // Day rhythm
+      if ((answers as any)['WakeUp']) patch['WakeUp'] = (answers as any)['WakeUp']
+      if ((answers as any)['EndDay']) patch['EndDay'] = (answers as any)['EndDay']
+      if ((answers as any)['SleepDuration']) patch['SleepDuration'] = (answers as any)['SleepDuration']
+      return patch
+    }
+
+    if (autosaveTimer.current) {
+      window.clearTimeout(autosaveTimer.current)
+      autosaveTimer.current = null
+    }
+    autosaveTimer.current = window.setTimeout(async () => {
+      try {
+        await ensureUsersV2Doc(answers.Id, { sessionId: answers.sessionId, source: 'web-quiz' })
+        const patch = buildPatch()
+        if (Object.keys(patch).length > 0) {
+          await upsertUsersV2(answers.Id, patch)
+        }
+      } catch { /* non-blocking */ }
+    }, 600) // small debounce to batch rapid changes within a step
+
+    return () => {
+      if (autosaveTimer.current) {
+        window.clearTimeout(autosaveTimer.current)
+        autosaveTimer.current = null
+      }
+    }
+  // Track fields that affect the patch; avoid including large objects to reduce reruns
+  }, [stepNumber, (answers as any)['Id'], (answers as any)['sessionId'], (answers as any)['assistant'], (answers as any)['theme'], (answers as any)['primaryColor'], (answers as any)['Goals'], (answers as any)['SkinType'], (answers as any)['SkinProblems'], (answers as any)['HairType'], (answers as any)['HairProblems'], (answers as any)['SelectedActivities'], (answers as any)['Diet'], (answers as any)['WorkEnvironment'], (answers as any)['EnergyLevel'], (answers as any)['Mood'], (answers as any)['Focus'], (answers as any)['Procrastination'], (answers as any)['Name'], (answers as any)['Age'], (answers as any)['Height'], (answers as any)['HeightUnit'], (answers as any)['Weight'], (answers as any)['WeightUnit'], (answers as any)['WakeUp'], (answers as any)['EndDay'], (answers as any)['SleepDuration']])
 
   
   // Simplified sync: store is source of truth, URL follows store

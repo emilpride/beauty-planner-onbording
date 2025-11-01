@@ -45,6 +45,16 @@ describe('mergeScheduledWithUpdates', () => {
     expect(merged[0].status).toBe('completed')
   })
 
+  it('prefers completed over later pending for same key', () => {
+    const scheduled = [
+      makeTask({ id: 'A-2025-10-31', activityId: 'A', date: '2025-10-31' }),
+    ]
+    const completedOlder = makeTask({ id: 'upd1', activityId: 'A', date: '2025-10-31', status: 'completed', updatedAt: new Date(1000) })
+    const pendingLater = makeTask({ id: 'upd2', activityId: 'A', date: '2025-10-31', status: 'pending', updatedAt: new Date(2000) })
+    const merged = mergeScheduledWithUpdates(scheduled, [completedOlder, pendingLater], new Map(), [])
+    expect(merged[0].status).toBe('completed')
+  })
+
   it('does not downgrade completed to later pending for same key', () => {
     const scheduled = [
       makeTask({ id: 'A-2025-10-31', activityId: 'A', date: '2025-10-31' }),

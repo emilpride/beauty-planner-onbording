@@ -30,6 +30,20 @@
     ],
       "rewrites": [
       {
+        "source": "/api/generate-avatar",
+        "function": {
+          "functionId": "generateAvatar",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/enrich-geo",
+        "function": {
+          "functionId": "enrichGeo",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/save-onboarding-session",
         "function": {
           "functionId": "saveOnboardingSession",
@@ -115,8 +129,19 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "functions": {
-    "source": "functions",
-    "runtime": "nodejs20"
-  }
+  "functions": [
+    {
+      "source": "functions",
+      "runtime": "nodejs20",
+      "environmentVariables": {
+        "AVATAR_GEN_PROVIDER": "gemini",
+        "AVATAR_GEN_URL": "https://avatar-gen-service-587635367697.us-central1.run.app/generate"
+      }
+    },
+    {
+      "source": "functions-min",
+      "codebase": "minimal",
+      "runtime": "nodejs20"
+    }
+  ]
 }

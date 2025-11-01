@@ -13,7 +13,7 @@ function tsToDate(v: unknown) {
 
 export async function fetchAchievementProgress(userId: string): Promise<AchievementProgress | null> {
   const db = getFirestoreDb()
-  const ref = doc(collection(doc(collection(db, 'Users'), userId), 'Achievements'), 'Progress')
+  const ref = doc(collection(doc(collection(db, 'users_v2'), userId), 'Achievements'), 'Progress')
   const snap = await getDoc(ref)
   if (!snap.exists()) return null
   const data = snap.data() as Record<string, unknown>
@@ -44,6 +44,6 @@ export async function fetchAchievementProgress(userId: string): Promise<Achievem
 
 export async function markAchievementLevelSeen(userId: string, currentLevel: number) {
   const db = getFirestoreDb()
-  const ref = doc(collection(doc(collection(db, 'Users'), userId), 'Achievements'), 'Progress')
+  const ref = doc(collection(doc(collection(db, 'users_v2'), userId), 'Achievements'), 'Progress')
   await updateDoc(ref, { LastSeenLevel: currentLevel })
 }

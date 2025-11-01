@@ -39,6 +39,7 @@ export function ProceduresList({ planned, completed, skipped, activities, onComp
   const [dragX, setDragX] = useState<Record<string, number>>({})
   const [dragging, setDragging] = useState<Record<string, boolean>>({})
   const [isMobile, setIsMobile] = useState<boolean>(false)
+  const [floaters, setFloaters] = useState<Record<string, Array<{ key: string; text: string; color: string }>>>({})
   const byId = new Map(activities.map((a) => [a.id, a]))
 
   useEffect(() => {
@@ -130,6 +131,22 @@ export function ProceduresList({ planned, completed, skipped, activities, onComp
                     setDragX((p) => ({ ...p, [inst.id]: 0 }))
                     setDragging((p) => ({ ...p, [inst.id]: false }))
                   }
+                const pushFloater = (id: string, type: 'done' | 'skip') => {
+                  const key = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+                  const text = type === 'done' ? '+0.02' : '-0.03'
+                  const color = type === 'done' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                  setFloaters((prev) => ({
+                    ...prev,
+                    [id]: [...(prev[id] ?? []), { key, text, color }],
+                  }))
+                  setTimeout(() => {
+                    setFloaters((prev) => ({
+                      ...prev,
+                      [id]: (prev[id] ?? []).filter((f) => f.key !== key),
+                    }))
+                  }, 1600)
+                }
+
                 return (
                   <motion.div
                     key={inst.id}
@@ -144,7 +161,22 @@ export function ProceduresList({ planned, completed, skipped, activities, onComp
                     dragMomentum={false}
                     onDragStart={() => setDragging((p) => ({ ...p, [inst.id]: true }))}
                     onDrag={(_, info) => setDragX((p) => ({ ...p, [inst.id]: info.offset.x }))}
-                    onDragEnd={onDragEnd}
+                    onDragEnd={(e, info) => {
+                      const x = info?.offset?.x ?? 0
+                      const v = info?.velocity?.x ?? 0
+                      const vw = typeof window !== 'undefined' ? window.innerWidth : 480
+                      const threshold = Math.max(96, Math.min(160, vw * 0.24))
+                      const powerThreshold = 600
+                      if (x > threshold || x * v > powerThreshold) {
+                        pushFloater(inst.id, 'done')
+                        onComplete?.(inst)
+                      } else if (x < -threshold || x * v < -powerThreshold) {
+                        pushFloater(inst.id, 'skip')
+                        onSkip?.(inst)
+                      }
+                      setDragX((p) => ({ ...p, [inst.id]: 0 }))
+                      setDragging((p) => ({ ...p, [inst.id]: false }))
+                    }}
                     whileDrag={{ scale: 0.993 }}
                   >
                     {/* Gradient background layer */}
@@ -205,14 +237,32 @@ export function ProceduresList({ planned, completed, skipped, activities, onComp
                         </div>
                       )}
                     </div>
+                    {/* Floating delta badges */}
+                    <div className="pointer-events-none absolute -top-1 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                      <AnimatePresence initial={false}>
+                        {(floaters[inst.id] ?? []).map((f) => (
+                          <motion.div key={f.key}
+                                      initial={{ y: 8, opacity: 0, scale: 0.9 }}
+                                      animate={{ y: -18, opacity: 1, scale: 1 }}
+                                      exit={{ y: -30, opacity: 0 }}
+                                      transition={{ duration: 1.2 }}
+                                      className={`px-2 py-0.5 text-[11px] font-bold rounded-full shadow ${f.color}`}
+                          >
+                            {f.text}
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
                     {/* Actions */}
                     <div className="flex items-center gap-1.5 ml-2">
-                      <Link
-                        href={{ pathname: '/procedure', query: { id: inst.activityId, date: inst.date } }}
-                        className="rounded-full px-2.5 py-1 text-[11px] font-medium bg-surface text-text-primary border border-border-subtle hover:bg-surface-hover"
-                      >
-                        Start
-                      </Link>
+                      {inst.status === 'pending' && (
+                        <Link
+                          href={{ pathname: '/procedure', query: { id: inst.activityId, date: inst.date } }}
+                          className="rounded-full px-2.5 py-1 text-[11px] font-medium bg-surface text-text-primary border border-border-subtle hover:bg-surface-hover"
+                        >
+                          Start
+                        </Link>
+                      )}
                       {inst.status === 'pending' && (
                         <>
                           <motion.button
@@ -220,7 +270,7 @@ export function ProceduresList({ planned, completed, skipped, activities, onComp
                             title="Complete"
                             className="rounded-full px-2.5 py-1 text-[11px] font-medium text-white bg-gradient-to-r from-emerald-500 to-emerald-600 shadow hover:brightness-110 active:translate-y-[1px]"
                             whileTap={{ scale: 0.97 }}
-                            onClick={() => onComplete?.(inst)}
+                            onClick={() => { pushFloater(inst.id, 'done'); onComplete?.(inst) }}
                           >
                             ✓ Done
                           </motion.button>
@@ -229,7 +279,7 @@ export function ProceduresList({ planned, completed, skipped, activities, onComp
                             title="Skip"
                             className="rounded-full px-2.5 py-1 text-[11px] font-medium bg-surface text-text-primary border border-border-subtle hover:bg-surface-hover active:translate-y-[1px]"
                             whileTap={{ scale: 0.97 }}
-                            onClick={() => onSkip?.(inst)}
+                            onClick={() => { pushFloater(inst.id, 'skip'); onSkip?.(inst) }}
                           >
                             Skip
                           </motion.button>

@@ -328,15 +328,15 @@ export default function RegularCareResultsStep() {
             whileInView="visible"
             viewport={{ once: true, amount: 0.35 }}
           >
-            {/* Legend: clarify it's BMS with/without app */}
+            {/* Legend: clarify it's Wellness Score with/without app */}
             <div className="mb-3 flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="inline-block h-2 w-5 rounded" style={{ background: 'linear-gradient(90deg, #2AEA5C, #84DE54)' }} />
-                <span className="text-xs text-text-secondary">BMS with app</span>
+                <span className="text-xs text-text-secondary">Wellness Score with app</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="inline-block h-2 w-5 rounded" style={{ background: 'linear-gradient(90deg, #FFA64D, #FE6C6C)' }} />
-                <span className="text-xs text-text-secondary">BMS without app</span>
+                <span className="text-xs text-text-secondary">Wellness Score without app</span>
               </div>
             </div>
             <div className="relative w-full aspect-[350/270]">

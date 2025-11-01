@@ -13,7 +13,7 @@ export function buildUpdateId(activityId: string, date: string, hour?: number, m
 
 export async function setTaskStatus(userId: string, task: TaskInstance, status: TaskStatus) {
   const db = getFirestoreDb()
-  const updatesCol = collection(doc(collection(db, 'Users'), userId), 'Updates')
+  const updatesCol = collection(doc(collection(db, 'users_v2'), userId), 'Updates')
   // Always build a deterministic update id from activityId + date [+ time]
   const id = buildUpdateId(task.activityId, task.date, task.time?.hour, task.time?.minute)
   const ref = doc(updatesCol, id)

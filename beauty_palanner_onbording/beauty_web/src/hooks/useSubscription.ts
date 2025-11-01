@@ -13,7 +13,8 @@ export type SubscriptionInfo = {
   period: 'annual' | 'monthly' | 'weekly' | 'lifetime' | 'unknown' | null
 }
 
-const ENDPOINT = 'https://us-central1-beauty-planner-26cc0.cloudfunctions.net/getUserSubscription'
+// Use the 2nd-gen Cloud Run URL to avoid IAM 403s; function verifies Firebase ID token itself
+const ENDPOINT = 'https://getusersubscription-jy4jt54bea-uc.a.run.app'
 
 async function fetchSubscription(): Promise<SubscriptionInfo | null> {
   const auth = getFirebaseAuth()

@@ -551,7 +551,7 @@ export const useQuizStore = create<QuizStore>()(
             value: typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
               ? value
               : Array.isArray(value)
-                ? { type: 'array', length: value.length }
+                ? value // Save arrays completely for SelectedActivities etc
                 : value && typeof value === 'object'
                   ? { type: 'object', keys: Object.keys(value).slice(0, 10) }
                   : value

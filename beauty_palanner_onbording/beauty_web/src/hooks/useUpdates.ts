@@ -10,6 +10,7 @@ import {
 } from '@/lib/firestore'
 import type { TaskInstance, TaskStatus } from '@/types/task'
 import { completeUpdate, skipUpdate } from '@/lib/updates'
+import { recomputeAchievements as recomputeAchievementsFn } from '@/lib/achievementsClient'
 
 export function useTodayUpdates(userId?: string | null) {
   return useQuery<{ items: TaskInstance[]; stats: UpdateStats } | null>({
@@ -73,9 +74,11 @@ export function useUpdateActions() {
       await completeUpdate(userId, id)
       return { id }
     },
-    onSuccess: () => {
+    onSuccess: async (_res, vars) => {
       // Invalidate any updates queries
       qc.invalidateQueries({ queryKey: ['updates'] })
+      // Best-effort: ask backend to recompute achievements immediately
+      try { await recomputeAchievementsFn() } catch {}
     },
   })
 

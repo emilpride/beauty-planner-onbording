@@ -80,12 +80,18 @@ export function mergeScheduledWithUpdates(
     if (!hasScheduled) out.push(u)
   }
 
-  // Apply optimistic overrides
+  // Apply optimistic overrides by semantic task key (activityId|date|HHmm)
   if (overrides && overrides.size) {
     for (let i = 0; i < out.length; i++) {
-      const id = out[i].id
-      if (overrides.has(id)) {
-        out[i] = { ...out[i], status: overrides.get(id)! }
+      const key = buildUpdateKey(out[i])
+      if (overrides.has(key)) {
+        out[i] = { ...out[i], status: overrides.get(key)! }
+        continue
+      }
+      // Fallback: legacy no-time key override support
+      const noTimeKey = buildKeyWithoutTime(out[i])
+      if (overrides.has(noTimeKey)) {
+        out[i] = { ...out[i], status: overrides.get(noTimeKey)! }
       }
     }
   }

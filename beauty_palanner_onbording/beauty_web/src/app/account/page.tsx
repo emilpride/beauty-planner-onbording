@@ -5,8 +5,41 @@ import { PageContainer } from '@/components/common/PageContainer'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Route } from 'next'
+import { useAuth } from '@/hooks/useAuth'
+import { useUserStats } from '@/hooks/useUserDetails'
+import { TOTAL_LEVELS, levelThreshold } from '@/types/achievements'
 
 export default function AccountPage() {
+  const { user } = useAuth()
+  const stats = useUserStats(user?.uid)
+
+  const level = stats.data?.level ?? 0
+  const safeLevel = Math.max(0, Math.min(TOTAL_LEVELS, level))
+  const iconSrc = safeLevel < 1
+    ? '/icons/achievements/level_locked.png'
+    : `/icons/achievements/level_${safeLevel}.png`
+
+  const LEVEL_TAGLINES: Record<number, string> = {
+    0: 'Let’s start your progress today!',
+    1: 'You’ve taken the first step—nice!',
+    2: 'Momentum is building—keep it up!',
+    3: 'Consistency pays off—great work!',
+    4: 'You’re finding your rhythm!',
+    5: 'Halfway hero—stay focused!',
+    6: 'Strong streak—impressive dedication!',
+    7: 'You’re unstoppable—keep pushing!',
+    8: 'So close to the top—finish strong!',
+    9: 'You are a rising star! Keep going!',
+    10: 'Double digits—elite pace!',
+    11: 'Laser focus—this is mastery!',
+    12: 'Your routine is inspiring!',
+    13: 'Excellence unlocked—almost there!',
+    14: 'Peak performer—one step from legendary!',
+    15: 'Legend unlocked—phenomenal job!',
+  }
+  const tagline = LEVEL_TAGLINES[safeLevel] ?? 'Keep going—your progress matters!'
+  const threshold = levelThreshold(Math.max(1, safeLevel))
+
   return (
     <Protected>
       <PageContainer>
@@ -20,22 +53,14 @@ export default function AccountPage() {
           >
             {/* Achievement Badge */}
             <div className="relative w-[50px] h-[50px] shrink-0">
-              <Image
-                src="/icons/achievements/level_9.png"
-                alt="Level 9"
-                fill
-                className="object-contain"
-              />
+              <Image src={iconSrc} alt={safeLevel < 1 ? 'Locked' : `Level ${safeLevel}`} fill className="object-contain" />
             </div>
 
             {/* Level Info */}
             <div className="flex-1">
-              <h2 className="text-2xl font-bold leading-tight text-text-primary">
-                Level 9
-              </h2>
-              <p className="text-xs font-semibold text-text-secondary">
-                You are a rising star! Keep going!
-              </p>
+              <h2 className="text-2xl font-bold leading-tight text-text-primary">{`Level ${safeLevel}`}</h2>
+              <p className="text-xs font-semibold text-text-secondary">{tagline}</p>
+              <p className="text-[11px] text-text-tertiary mt-0.5">Achievement for {threshold} completed procedures</p>
             </div>
 
             {/* Arrow */}

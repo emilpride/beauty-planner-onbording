@@ -1,0 +1,21 @@
+{
+  "name": "notifications-functions-minimal",
+  "private": true,
+  "version": "1.0.0",
+  "engines": { "node": "20" },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "deploy": "firebase deploy --only functions:minimal-getsub",
+    "clean": "node -e \"try{require('fs').rmSync('lib',{recursive:true,force:true})}catch(e){}\""
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^5.1.1",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.11",
+    "typescript": "^5.6.3"
+  }
+}

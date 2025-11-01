@@ -8,21 +8,18 @@ import type { Route } from 'next'
 import { useAuth } from '@/hooks/useAuth'
 import { useUserProfile } from '@/hooks/useUserProfile'
 
-const languages = [
-  { code: 'en', label: 'EN', flag: '🇬🇧', name: 'English' },
-  { code: 'de', label: 'DE', flag: '🇩🇪', name: 'Deutsch' },
-  { code: 'es', label: 'ES', flag: '🇪🇸', name: 'Español' },
-]
+// Language selector hidden for now
 
 type HeaderProps = { onBurger?: () => void }
 
 export function DashboardHeader({ onBurger }: HeaderProps) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
-  const [language, setLanguage] = useState('en')
-  const [isLanguageOpen, setIsLanguageOpen] = useState(false)
+  // const [language, setLanguage] = useState('en')
+  // const [isLanguageOpen, setIsLanguageOpen] = useState(false)
   const { user } = useAuth()
   const { data: profile } = useUserProfile(user?.uid)
   const avatarUrl = profile?.profilePicture || user?.photoURL || ''
+  const isAvatarProcessing = profile?.avatarStatus === 'processing'
   const fallbackInitial = (profile?.name || user?.displayName || 'U').charAt(0).toUpperCase()
 
   // Initialize theme from localStorage or system preference
@@ -50,7 +47,7 @@ export function DashboardHeader({ onBurger }: HeaderProps) {
     }
   }
 
-  const currentLang = languages.find((l) => l.code === language) || languages[0]
+  // const currentLang = languages.find((l) => l.code === language) || languages[0]
 
   return (
     <header className="sticky top-0 z-10 h-16 border-b border-border-subtle bg-surface shadow-sm backdrop-blur">
@@ -75,47 +72,7 @@ export function DashboardHeader({ onBurger }: HeaderProps) {
 
         {/* Right side: Profile + Language + Theme */}
         <div className="flex items-center gap-4">
-          {/* Language Selector - Dropdown (desktop only) */}
-          <div className="relative hidden sm:inline-block">
-            <button
-              onClick={() => setIsLanguageOpen(!isLanguageOpen)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover transition-colors"
-            >
-              <span className="text-sm font-medium text-text-primary">{currentLang.label}</span>
-              <svg
-                className={`w-4 h-4 text-text-secondary transition-transform ${isLanguageOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            
-            {isLanguageOpen && (
-              <div className="absolute top-full mt-2 right-0 bg-surface border border-border-subtle rounded-lg shadow-lg overflow-hidden min-w-[180px] z-50">
-                {languages.map((lang) => (
-                  <button
-                    key={lang.code}
-                    onClick={() => {
-                      setLanguage(lang.code)
-                      setIsLanguageOpen(false)
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-hover transition-colors ${
-                      language === lang.code ? 'bg-[#A385E9]/10' : ''
-                    }`}
-                  >
-                    <div className="flex-1 text-left text-sm font-medium text-text-primary">{lang.label}</div>
-                    {language === lang.code && (
-                      <svg className="w-4 h-4 text-[#A385E9]" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Language Selector - temporarily hidden */}
 
           {/* Theme Toggle - Single animated icon */}
           <button
@@ -178,7 +135,17 @@ export function DashboardHeader({ onBurger }: HeaderProps) {
                   </div>
                 )}
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-green-500 ring-2 ring-white dark:ring-gray-800" />
+              {isAvatarProcessing ? (
+                <div className="absolute -bottom-0.5 -right-0.5 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] leading-none ring-2 ring-white dark:ring-gray-800">
+                  <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  </svg>
+                  <span>processing</span>
+                </div>
+              ) : (
+                <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-green-500 ring-2 ring-white dark:ring-gray-800" />
+              )}
             </div>
           </Link>
         </div>

@@ -17,7 +17,7 @@ import type { Activity } from '@/types/activity'
 import type { TaskInstance } from '@/types/task'
 import type { TaskStatus } from '@/types/task'
 import { setTaskStatus } from '@/lib/taskActions'
-import { mergeScheduledWithUpdates } from '@/lib/updatesMerge'
+import { mergeScheduledWithUpdates, buildUpdateKey, buildKeyWithoutTime } from '@/lib/updatesMerge'
 
 function addDays(d: Date, days: number) {
   const x = new Date(d)
@@ -48,6 +48,8 @@ export default function DashboardPage() {
   const [timeFilter, setTimeFilter] = useState<'all' | 'morning' | 'afternoon' | 'evening'>('all')
   const [period, setPeriod] = useState<'Daily' | 'Weekly' | 'Overall'>('Daily')
   const [calendarCategoryFilter, setCalendarCategoryFilter] = useState<'all' | 'skin' | 'hair' | 'physical' | 'mental'>('all')
+  const [calendarProcedureFilter, setCalendarProcedureFilter] = useState<'all' | string>('all')
+  // Optimistic overrides keyed by semantic task key (activityId|date|HHmm)
   const [overrides, setOverrides] = useState<Map<string, TaskStatus>>(new Map())
   // Toast/Undo for actions
   const [toast, setToast] = useState<{ message: string; actionLabel: string; onAction: () => void; visible: boolean }>({ message: '', actionLabel: 'Undo', onAction: () => {}, visible: false })
@@ -94,9 +96,15 @@ export default function DashboardPage() {
       const next = new Map(prev)
       let changed = false
       for (const item of items) {
-        if (!next.has(item.id)) continue
-        if (next.get(item.id) === item.status) {
-          next.delete(item.id)
+        const k = buildUpdateKey(item)
+        const kNo = buildKeyWithoutTime(item)
+        if (next.has(k) && next.get(k) === item.status) {
+          next.delete(k)
+          // Clean paired no-time key too if present
+          if (next.has(kNo)) next.delete(kNo)
+          changed = true
+        } else if (next.has(kNo) && next.get(kNo) === item.status) {
+          next.delete(kNo)
           changed = true
         }
       }
@@ -134,7 +142,13 @@ export default function DashboardPage() {
   async function handleStatusChange(task: TaskInstance, status: TaskStatus) {
     if (!user?.uid) return
     // optimistic
-    setOverrides(prev => new Map(prev).set(task.id, status))
+    setOverrides(prev => {
+      const next = new Map(prev)
+      next.set(buildUpdateKey(task), status)
+      // Also set no-time key to guard against legacy updates
+      next.set(buildKeyWithoutTime(task), status)
+      return next
+    })
     try {
       await setTaskStatus(user.uid, task, status)
       void qc.invalidateQueries({ queryKey: ['updates'] })
@@ -142,7 +156,8 @@ export default function DashboardPage() {
       // rollback on error
       setOverrides(prev => {
         const next = new Map(prev)
-        next.delete(task.id)
+        next.delete(buildUpdateKey(task))
+        next.delete(buildKeyWithoutTime(task))
         return next
       })
       console.error('Failed to set status', e)
@@ -386,6 +401,8 @@ skipped: ${skippedItems.length}`}
               onSelectDate={setSelectedDate}
               category={calendarCategoryFilter}
               onCategoryChange={setCalendarCategoryFilter}
+              procedureId={calendarProcedureFilter}
+              onProcedureChange={setCalendarProcedureFilter}
               activities={activities ?? []}
               />
             </div>

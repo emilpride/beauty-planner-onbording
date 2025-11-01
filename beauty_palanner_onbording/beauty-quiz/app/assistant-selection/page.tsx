@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuizStore } from '@/store/quizStore'
+import { ensureAuthUser, ensureUsersV2Doc, upsertUsersV2, auth } from '@/lib/firebase'
 import { logAssistantSelected } from '@/lib/quizEvents'
 import Image from 'next/image'
 import AnimatedBackground from '@/components/AnimatedBackground'
@@ -120,6 +121,17 @@ export default function AssistantSelectionPage() {
     setAnswer('assistant', selectedAssistant)
     // Auto-assign gender based on assistant selection (1=Max -> male, 2=Ellie -> female, 3=Dave -> male)
     setAnswer('Gender', selectedAssistant === 2 ? 2 : 1)
+    // Persist early signal to users_v2 for cross-app continuity
+    ;(async () => {
+      try {
+        const user = await ensureAuthUser()
+        const uid = user?.uid || useQuizStore.getState().answers.Id
+        if (uid) {
+          await ensureUsersV2Doc(uid, { sessionId: useQuizStore.getState().answers.sessionId, source: 'web-quiz' })
+          await upsertUsersV2(uid, { assistant: selectedAssistant, Gender: selectedAssistant === 2 ? 2 : 1 })
+        }
+      } catch {}
+    })()
     // Play a gentle exit animation of the card, then navigate
     setIsExiting(true)
     setTimeout(() => {

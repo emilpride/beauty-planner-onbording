@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { Protected } from '@/components/auth/Protected'
 import { PageContainer } from '@/components/common/PageContainer'
 import { useAuth } from '@/hooks/useAuth'
+import { useSearchParams } from 'next/navigation'
 import { useLatestAIAnalysis } from '@/hooks/useAIAnalysis'
 import { useUpdatesInDateRange } from '@/hooks/useUpdates'
 import { useMoodsInRange } from '@/hooks/useMoods'
@@ -54,7 +55,7 @@ export default function ReportPage() {
     }
   }, [uploads, refetchAI])
 
-  // Determine earliest data window to fetch updates once
+  // Determine earliest data window to fetch updates once for charts/calendar
   const earliest = useMemo(() => {
     const a = getStartDate(activityPeriod)
     const c = getStartDate(completionPeriod)
@@ -63,13 +64,16 @@ export default function ReportPage() {
   }, [activityPeriod, completionPeriod, calendarMonth])
 
   const { data: updates } = useUpdatesInDateRange(user?.uid, earliest, new Date())
+  // Fetch all-time updates for header stats (streak, all-time completion, perfect days)
+  const { data: updatesAll } = useUpdatesInDateRange(user?.uid, new Date(2000, 0, 1), new Date())
 
   // Moods fetch window based on selected period
   const moodsStart = useMemo(() => getStartDate(moodPeriod), [moodPeriod])
   const { data: moods } = useMoodsInRange(user?.uid, moodsStart, new Date())
 
   const instances = useMemo(() => updates?.items ?? [], [updates?.items])
-  const general = useMemo(() => computeGeneralStats(instances), [instances])
+  const instancesAll = useMemo(() => updatesAll?.items ?? [], [updatesAll?.items])
+  const general = useMemo(() => computeGeneralStats(instancesAll), [instancesAll])
 
   const actData = useMemo(() => activitiesCompletedData(instances, activityPeriod), [instances, activityPeriod])
   const compData = useMemo(() => completionRateData(instances, completionPeriod), [instances, completionPeriod])
@@ -84,6 +88,24 @@ export default function ReportPage() {
   return (
     <Protected>
       <PageContainer>
+        {/* Debug overlay when ?debug=report */}
+        {(() => {
+          try {
+            const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+            const show = params?.get('debug') === 'report'
+            if (!show) return null
+          } catch { /* ignore */ }
+          const sample = (instancesAll.slice(0, 3) || []).map((i) => ({ id: i.id, date: i.date, status: i.status }))
+          return (
+            <pre className="mb-4 whitespace-pre-wrap text-xs rounded-lg border border-yellow-500/40 bg-yellow-500/10 p-3 text-yellow-200">
+{`DEBUG report
+updates (period): ${instances.length}
+updates (all): ${instancesAll.length}
+moods in range: ${(moods ?? []).length}
+sample: ${JSON.stringify(sample, null, 2)}`}
+            </pre>
+          )
+        })()}
         {/* Grid Layout matching screenshot */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {/* Row 1: BMS Card & Current Streak */}
@@ -124,7 +146,7 @@ export default function ReportPage() {
               currentStreak={general.currentStreak}
               completionRate={Math.round((general.overallCompletionRate || 0) * 100)}
               activitiesCompleted={general.totalActivitiesCompleted}
-              totalPerfectDays={307}
+              totalPerfectDays={general.totalPerfectDays}
             />
           </div>
 

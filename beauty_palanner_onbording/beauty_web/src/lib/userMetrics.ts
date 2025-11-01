@@ -9,7 +9,7 @@ export type UserMetricsDoc = {
 }
 
 function userDocRef(userId: string) {
-  return doc(getFirestoreDb(), 'Users', userId)
+  return doc(getFirestoreDb(), 'users_v2', userId)
 }
 
 export async function fetchUserMetrics(userId: string): Promise<UserMetricsDoc> {
@@ -36,7 +36,7 @@ export async function saveUserMetrics(userId: string, patch: Partial<UserMetrics
 
 export async function fetchAllUpdates(userId: string): Promise<TaskInstance[]> {
   const db = getFirestoreDb()
-  const col = collection(doc(collection(db, 'Users'), userId), 'Updates')
+  const col = collection(doc(collection(db, 'users_v2'), userId), 'Updates')
   const qs = await getDocs(col)
   const out: TaskInstance[] = []
   qs.forEach(d => {

@@ -1,0 +1,242 @@
+{
+  "specVersion": "v1alpha1",
+  "endpoints": {
+    "finalizeOnboarding": {
+      "availableMemoryMb": null,
+      "timeoutSeconds": null,
+      "minInstances": null,
+      "maxInstances": null,
+      "ingressSettings": null,
+      "concurrency": null,
+      "serviceAccountEmail": null,
+      "vpc": null,
+      "platform": "gcfv2",
+      "labels": {},
+      "httpsTrigger": {},
+      "entryPoint": "finalizeOnboarding"
+    },
+    "enrichGeo": {
+      "availableMemoryMb": null,
+      "timeoutSeconds": null,
+      "minInstances": null,
+      "maxInstances": null,
+      "ingressSettings": null,
+      "concurrency": null,
+      "serviceAccountEmail": null,
+      "vpc": null,
+      "platform": "gcfv2",
+      "labels": {},
+      "httpsTrigger": {},
+      "entryPoint": "enrichGeo"
+    },
+    "onUpdateWriteRecomputeAchievements": {
+      "availableMemoryMb": null,
+      "timeoutSeconds": null,
+      "minInstances": null,
+      "maxInstances": null,
+      "ingressSettings": null,
+      "concurrency": null,
+      "serviceAccountEmail": null,
+      "vpc": null,
+      "platform": "gcfv2",
+      "labels": {},
+      "eventTrigger": {
+        "eventType": "google.cloud.firestore.document.v1.written",
+        "eventFilters": {
+          "database": "(default)",
+          "namespace": "(default)"
+        },
+        "eventFilterPathPatterns": {
+          "document": "Users/{userId}/Updates/{updateId}"
+        },
+        "retry": false
+      },
+      "entryPoint": "onUpdateWriteRecomputeAchievements"
+    },
+    "recomputeAchievements": {
+      "availableMemoryMb": null,
+      "timeoutSeconds": null,
+      "minInstances": null,
+      "maxInstances": null,
+      "ingressSettings": null,
+      "concurrency": null,
+      "serviceAccountEmail": null,
+      "vpc": null,
+      "platform": "gcfv2",
+      "labels": {},
+      "httpsTrigger": {},
+      "entryPoint": "recomputeAchievements"
+    },
+    "analyzeUserData": {
+      "availableMemoryMb": null,
+      "timeoutSeconds": 60,
+      "minInstances": null,
+      "maxInstances": 10,
+      "ingressSettings": null,
+      "concurrency": null,
+      "serviceAccountEmail": null,
+      "vpc": null,
+      "platform": "gcfv2",
+      "labels": {},
+      "httpsTrigger": {},
+      "entryPoint": "analyzeUserData"
+    },
+    "skinAnalysisUpload": {
+      "availableMemoryMb": null,
+      "timeoutSeconds": 90,
+      "minInstances": null,
+      "maxInstances": 10,
+      "ingressSettings": null,
+      "concurrency": null,
+      "serviceAccountEmail": null,
+      "vpc": null,
+      "platform": "gcfv2",
+      "secretEnvironmentVariables": [
+        {
+          "key": "FACEPLUS_API_KEY"
+        },
+        {
+          "key": "FACEPLUS_API_SECRET"
+        }
+      ],
+      "labels": {},
+      "httpsTrigger": {},
+      "entryPoint": "skinAnalysisUpload"
+    },
+    "saveOnboardingSession": {
+      "availableMemoryMb": null,
+      "timeoutSeconds": null,
+      "minInstances": null,
+      "maxInstances": null,
+      "ingressSettings": null,
+      "concurrency": null,
+      "serviceAccountEmail": null,
+      "vpc": null,
+      "platform": "gcfv2",
+      "labels": {},
+      "httpsTrigger": {},
+      "entryPoint": "saveOnboardingSession"
+    },
+    "processPayment": {
+      "availableMemoryMb": null,
+      "timeoutSeconds": null,
+      "minInstances": null,
+      "maxInstances": null,
+      "ingressSettings": null,
+      "concurrency": null,
+      "serviceAccountEmail": null,
+      "vpc": null,
+      "platform": "gcfv2",
+      "secretEnvironmentVariables": [
+        {
+          "key": "STRIPE_SECRET_KEY"
+        }
+      ],
+      "labels": {},
+      "httpsTrigger": {},
+      "entryPoint": "processPayment"
+    },
+    "stripeWebhook": {
+      "availableMemoryMb": null,
+      "timeoutSeconds": null,
+      "minInstances": null,
+      "maxInstances": null,
+      "ingressSettings": null,
+      "concurrency": null,
+      "serviceAccountEmail": null,
+      "vpc": null,
+      "platform": "gcfv2",
+      "secretEnvironmentVariables": [
+        {
+          "key": "STRIPE_WEBHOOK_SECRET"
+        },
+        {
+          "key": "STRIPE_SECRET_KEY"
+        }
+      ],
+      "labels": {},
+      "httpsTrigger": {},
+      "entryPoint": "stripeWebhook"
+    },
+    "uploadPhoto": {
+      "availableMemoryMb": null,
+      "timeoutSeconds": 60,
+      "minInstances": null,
+      "maxInstances": 10,
+      "ingressSettings": null,
+      "concurrency": null,
+      "serviceAccountEmail": null,
+      "vpc": null,
+      "platform": "gcfv2",
+      "labels": {},
+      "httpsTrigger": {},
+      "entryPoint": "uploadPhoto"
+    },
+    "healthCheck": {
+      "availableMemoryMb": null,
+      "timeoutSeconds": null,
+      "minInstances": null,
+      "maxInstances": null,
+      "ingressSettings": null,
+      "concurrency": null,
+      "serviceAccountEmail": null,
+      "vpc": null,
+      "platform": "gcfv2",
+      "labels": {},
+      "httpsTrigger": {},
+      "entryPoint": "healthCheck"
+    },
+    "getHealthMetrics": {
+      "availableMemoryMb": null,
+      "timeoutSeconds": null,
+      "minInstances": null,
+      "maxInstances": null,
+      "ingressSettings": null,
+      "concurrency": null,
+      "serviceAccountEmail": null,
+      "vpc": null,
+      "platform": "gcfv2",
+      "labels": {},
+      "httpsTrigger": {},
+      "entryPoint": "getHealthMetrics"
+    },
+    "generateAvatar": {
+      "availableMemoryMb": null,
+      "timeoutSeconds": 60,
+      "minInstances": null,
+      "maxInstances": 10,
+      "ingressSettings": null,
+      "concurrency": null,
+      "serviceAccountEmail": null,
+      "vpc": null,
+      "platform": "gcfv2",
+      "labels": {},
+      "httpsTrigger": {},
+      "entryPoint": "generateAvatar"
+    },
+    "skinAnalysis": {
+      "availableMemoryMb": null,
+      "timeoutSeconds": 60,
+      "minInstances": null,
+      "maxInstances": 10,
+      "ingressSettings": null,
+      "concurrency": null,
+      "serviceAccountEmail": null,
+      "vpc": null,
+      "platform": "gcfv2",
+      "secretEnvironmentVariables": [
+        {
+          "key": "FACEPLUS_API_KEY"
+        },
+        {
+          "key": "FACEPLUS_API_SECRET"
+        }
+      ],
+      "labels": {},
+      "httpsTrigger": {},
+      "entryPoint": "skinAnalysis"
+    }
+  },
+  "requiredAPIs": [],
+  "extensions": {}
+}

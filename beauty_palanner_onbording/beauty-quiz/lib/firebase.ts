@@ -49,6 +49,26 @@ export async function ensureAuthUser() {
   }
 }
 
+type FinalizeProfile = Record<string, unknown>
+
+function resolveFinalizeProfile(overrides?: unknown): FinalizeProfile | undefined {
+  if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides)) {
+    return undefined
+  }
+
+  const record = overrides as Record<string, unknown>
+  const nestedProfile = record['profile']
+
+  if (nestedProfile && typeof nestedProfile === 'object' && !Array.isArray(nestedProfile)) {
+    return nestedProfile as FinalizeProfile
+  }
+
+  return record
+}
+
+// Prevent duplicate geo enrichment calls in a single session
+let geoEnriched = false
+
 // Function to save onboarding session events in real-time via your deployed
 // cloud function. Returns parsed JSON result or null on error.
 
@@ -149,12 +169,61 @@ export async function saveUserToFirestore(userModel: any) {
     const userId = userModel?.Id || userModel?.uid || userModel?.id
     if (!userId) throw new Error('User ID is required')
 
-    const ref = doc(collection(db, 'users'), userId)
-    await setDoc(ref, { ...userModel, updatedAt: serverTimestamp() }, { merge: true })
+    // Migrate writes to users_v2 collection
+    const ref = doc(collection(db, 'users_v2'), userId)
+    await setDoc(ref, { ...userModel, UpdatedAt: serverTimestamp() }, { merge: true })
     return userId
   } catch (e) {
     console.error('Error saving user to Firestore:', e)
     return null
+  }
+}
+
+// Minimal upsert to ensure users_v2/{uid} exists early in onboarding
+export async function ensureUsersV2Doc(userId: string, init?: { sessionId?: string; source?: string }) {
+  if (!userId) return
+  try {
+    const ref = doc(collection(db, 'users_v2'), userId)
+    // Collect lightweight client context
+    const utm = getUtmParams()
+    const device = detectClientDevice()
+    const referrer = typeof document !== 'undefined' ? document.referrer || null : null
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent || null : null
+
+    const base: Record<string, any> = {
+      CreatedAt: serverTimestamp(),
+      UpdatedAt: serverTimestamp(),
+      Device: device,
+      Referrer: referrer,
+      UserAgent: userAgent,
+      // Normalize source: prefer UTM source when present; fallback to 'direct'
+      Source: utm.source || 'direct',
+      UTM: utm,
+    }
+    // Flow is the funnel within our properties (e.g., web-quiz)
+    if (init?.source) base['Flow'] = init.source
+    if (init?.sessionId) base['OnboardingSessionId'] = init.sessionId
+    await setDoc(ref, base, { merge: true })
+
+    // Best-effort server-side enrichment of IP and country (non-blocking)
+    if (!geoEnriched) {
+      geoEnriched = true
+      enrichUserGeo().catch(() => { /* ignore */ })
+    }
+  } catch (e) {
+    console.warn('ensureUsersV2Doc failed:', (e as any)?.message || e)
+  }
+}
+
+// Lightweight helper to upsert a partial patch into users_v2/{uid}
+export async function upsertUsersV2(userId: string, patch: Record<string, any>) {
+  if (!userId) return
+  try {
+    const ref = doc(collection(db, 'users_v2'), userId)
+    const data = { ...patch, UpdatedAt: serverTimestamp() }
+    await setDoc(ref, data, { merge: true })
+  } catch (e) {
+    console.warn('upsertUsersV2 failed:', (e as any)?.message || e)
   }
 }
 
@@ -167,7 +236,7 @@ export default {
 }
 
 // Finalize onboarding on the server and upsert the Flutter-compatible Users/{uid} doc
-export async function finalizeOnboarding(sessionId: string, overrides?: Record<string, any>): Promise<{ ok: boolean; token?: string }>{
+export async function finalizeOnboarding(sessionId: string, overrides?: Record<string, any>): Promise<{ ok: boolean; token?: string }> {
   if (typeof sessionId !== 'string' || sessionId.trim().length === 0) {
     throw new Error('finalizeOnboarding: sessionId is required')
   }
@@ -185,7 +254,8 @@ export async function finalizeOnboarding(sessionId: string, overrides?: Record<s
 
   const endpoint = envFinalizeUrl || '/api/finalize'
 
-  const payload = { sessionId, overrides }
+  const profilePayload = resolveFinalizeProfile(overrides)
+  const payload = profilePayload ? { sessionId, profile: profilePayload } : { sessionId }
 
   const res = await fetch(endpoint, {
     method: 'POST',
@@ -205,4 +275,68 @@ export async function finalizeOnboarding(sessionId: string, overrides?: Record<s
   const json = await res.json().catch(() => null)
   if (!json || typeof json !== 'object') return { ok: true }
   return { ok: Boolean((json as any).ok), token: (json as any).token }
+}
+
+// Enrich users_v2 with IP/country via Cloud Function
+export async function enrichUserGeo(): Promise<boolean> {
+  try {
+    const user = await ensureAuthUser()
+    const idToken = await user?.getIdToken?.()
+    if (!idToken) return false
+
+    const envUrl =
+      process.env['NEXT_PUBLIC_ENRICH_GEO_URL'] ||
+      process.env['ENRICH_GEO_URL'] ||
+      ''
+
+    // If no explicit endpoint configured, attempt local API route (dev only)
+    const endpoint = envUrl || '/api/enrich-geo'
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({}),
+    })
+
+    return res.ok
+  } catch (e) {
+    return false
+  }
+}
+
+// Trigger server-side avatar generation; returns { ok, url? }
+export async function generateAvatar(): Promise<{ ok: boolean; url?: string }> {
+  try {
+    const user = await ensureAuthUser()
+    const idToken = await user?.getIdToken?.()
+    if (!idToken) throw new Error('Not authenticated')
+
+    const envUrl =
+      process.env['NEXT_PUBLIC_GENERATE_AVATAR_URL'] ||
+      process.env['GENERATE_AVATAR_URL'] ||
+      ''
+
+    const endpoint = envUrl || '/api/generate-avatar'
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({}),
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`HTTP ${res.status} ${text}`)
+    }
+    const json = await res.json().catch(() => null)
+    if (json && typeof json === 'object') return json as any
+    return { ok: true }
+  } catch (e) {
+    console.warn('generateAvatar failed:', (e as any)?.message || e)
+    return { ok: false }
+  }
 }

@@ -8,6 +8,7 @@ import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useQuizStore } from '@/store/quizStore'
 import { logQuizStart, logThemeSelected } from '@/lib/quizEvents'
+import { ensureAuthUser, ensureUsersV2Doc, upsertUsersV2 } from '@/lib/firebase'
 
 export default function ThemeSelectionPage() {
   const router = useRouter()
@@ -50,13 +51,31 @@ export default function ThemeSelectionPage() {
       setAnswer('quizStartTime', new Date().toISOString())
     }
     await logThemeSelected(sessionId, activeTheme)
-  // Persist selected primary color in answers and log it
-  setAnswerPrimaryColor(activePrimary)
+    // Persist selected primary color in answers and log it
+    setAnswerPrimaryColor(activePrimary)
     try {
       const { logEvent } = await import('@/lib/quizEvents')
       await logEvent(sessionId, { eventName: 'primaryColorSelected', timestamp: new Date().toISOString(), details: { color: activePrimary } })
     } catch {}
-    setAnswer('theme', activeTheme)
+  setAnswer('theme', activeTheme)
+  // Also standardize capitalized Theme in users_v2 via server write below
+    // Persist early to Firestore for cross-app theme/accent sync
+    try {
+      const user = await ensureAuthUser()
+      const uid = user?.uid || useQuizStore.getState().answers.Id
+      if (uid) {
+        await ensureUsersV2Doc(uid, { sessionId, source: 'web-quiz' })
+        // Map named color to hex for PrimaryColor while keeping the named primaryColor
+        const colorToHex: Record<string, string> = {
+          purple: '#8A60FF',
+          blue: '#3B82F6',
+          green: '#22C55E',
+          pink: '#EC4899',
+          red: '#EF4444',
+        }
+        await upsertUsersV2(uid, { Theme: activeTheme, primaryColor: activePrimary, PrimaryColor: colorToHex[activePrimary] || '#8A60FF' })
+      }
+    } catch {}
     router.push('/welcome')
     // small grace to avoid double taps before navigation completes
     setTimeout(() => setIsContinuing(false), 1200)

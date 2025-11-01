@@ -10,7 +10,7 @@ export function startOfDay(d: Date) {
 export async function fetchUserUpdatesSince(userId: string, since: Date): Promise<TaskInstance[]> {
   const db = getFirestoreDb()
 
-  const col = collection(doc(collection(db, 'Users'), userId), 'Updates')
+  const col = collection(doc(collection(db, 'users_v2'), userId), 'Updates')
   // Firestore requires an orderBy on the field used in range queries
   const q = query(
     col,
@@ -40,7 +40,7 @@ export async function fetchUserUpdatesForToday(userId: string) {
 
 export async function fetchUserUpdatesForDate(userId: string, date: Date): Promise<TaskInstance[]> {
   const db = getFirestoreDb()
-  const col = collection(doc(collection(db, 'Users'), userId), 'Updates')
+  const col = collection(doc(collection(db, 'users_v2'), userId), 'Updates')
   const ymd = toYMD(date)
 
   const snap = await getDocs(col)
@@ -69,7 +69,7 @@ export async function fetchUserUpdatesInDateRange(
   to: Date,
 ): Promise<TaskInstance[]> {
   const db = getFirestoreDb()
-  const col = collection(doc(collection(db, 'Users'), userId), 'Updates')
+  const col = collection(doc(collection(db, 'users_v2'), userId), 'Updates')
   const snap = await getDocs(col)
   const start = startOfDay(from)
   const end = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999)

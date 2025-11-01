@@ -6,7 +6,8 @@ import confettiAnimation from '@/public/images/animations/confetti.json'
 import { useRouter } from 'next/navigation'
 import { useQuizStore } from '@/store/quizStore'
 import AnimatedBackground from '@/components/AnimatedBackground'
-import { finalizeOnboarding } from '@/lib/firebase'
+import { finalizeOnboarding, generateAvatar } from '@/lib/firebase'
+import { buildFinalizeProfilePayload } from '@/lib/finalizeProfile'
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
@@ -119,11 +120,26 @@ export default function SuccessPage() {
     } catch { /* noop */ }
   }, [answers.PaymentCompleted, answers.SelectedPlan])
 
+  // Kick off avatar generation once after successful payment (non-blocking)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        if (answers.PaymentCompleted) {
+          const res = await generateAvatar()
+          if (!cancelled) {
+            // Optionally: we could update local UI state or toast here
+            console.log('Avatar generation:', res)
+          }
+        }
+      } catch { /* non-fatal */ }
+    })()
+    return () => { cancelled = true }
+  }, [answers.PaymentCompleted])
+
   if (!answers.PaymentCompleted) {
     return null
   }
-
-  // No extra actions on this screen; simple confirmation only
 
   return (
     <div className="relative min-h-screen overflow-x-hidden">
@@ -147,9 +163,10 @@ function SuccessCard() {
       setIsFinalizing(true)
       const sid = (answers.sessionId || '').trim()
       if (!sid) throw new Error('Missing session id')
-  const result = await finalizeOnboarding(sid)
-  // Use current host by default to avoid 404s if external app route isn't present
-  const base = typeof window !== 'undefined' ? window.location.origin : 'https://quiz-beautymirror-app.web.app'
+  const finalizeProfile = buildFinalizeProfilePayload(answers)
+      const result = await finalizeOnboarding(sid, { profile: finalizeProfile })
+      // Always redirect to the main web app domain
+      const base = 'https://web.beautymirror.app'
       if (result?.token) {
         const url = `${base}/auth/consume?token=${encodeURIComponent(result.token)}`
         window.location.assign(url)
@@ -162,7 +179,7 @@ function SuccessCard() {
       alert('We could not complete setup automatically. Please try again in a moment.')
       setIsFinalizing(false)
     }
-  }, [answers.sessionId, isFinalizing])
+  }, [answers, isFinalizing])
 
   return (
     <div className="relative overflow-hidden rounded-[20px] bg-white dark:bg-[#171621] shadow-[0_24px_60px_rgba(92,70,136,0.12)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.35)]">

@@ -74,6 +74,74 @@ service cloud.firestore {
       }
     }
 
+    // users_v2 collection (new structure, same permissions as Users)
+    match /users_v2/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && request.auth.uid == userId &&
+        request.resource.data.keys().hasAny(['Email','CreatedAt','Timezone','TimezoneOffsetMinutes','NotificationPrefs']) &&
+        !request.resource.data.keys().hasAny(['admin','moderator']);
+      allow update: if (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['admin','moderator'])) || isAdmin();
+      allow delete: if isAdmin();
+
+      // Activities CRUD (owner only)
+      match /Activities/{activityId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
+
+      // Updates: owner can create (generator) and update status
+      match /Updates/{updateId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
+
+      // Mood entries
+      match /Moods/{moodId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
+
+      // AI analysis snapshots
+      match /AIAnalysis/{analysisId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update: if isOwner(userId) || isAdmin();
+        allow delete: if isAdmin();
+      }
+
+      // AI analysis uploads tracking
+      match /AIAnalysisUploads/{uploadId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId) || isAdmin();
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      // Notification preferences
+      match /NotificationPrefs/{docId} {
+        allow read, create, update, delete: if isOwner(userId) || isAdmin();
+      }
+
+      // FCM tokens
+      match /FcmTokens/{tokenId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow delete: if isOwner(userId);
+        allow update: if isOwner(userId) || isAdmin();
+      }
+
+      // Notifications sent dedupe log
+      match /NotificationsSent/{notificationId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isAdmin();
+        allow update, delete: if false;
+      }
+    }
+
     // Default deny
     match /{document=**} { allow read, write: if false; }
   }
